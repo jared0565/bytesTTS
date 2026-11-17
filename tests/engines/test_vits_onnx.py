@@ -9,7 +9,7 @@ import pytest
 from helpers import HOSTILE, TINY, ser_db, tiny_golden
 
 from bytestts.engines.base import SynthesisOptions, VoiceRef
-from bytestts.engines.vits_onnx import ENGINES, VitsDefaults, VitsOnnxEngine, reject_external_data
+from bytestts.engines.vits_onnx import ENGINES, VitsDefaults, VitsOnnxEngine, _session_options, reject_external_data
 from bytestts.errors import IntegrityError, NotSupported, VoiceNotFound
 
 MODEL = TINY / "model.onnx"
@@ -199,3 +199,58 @@ def test_malformed_model_raises_integrity_error(bad: bytes) -> None:  # truncate
 def test_raw_data_is_skipped_not_parsed() -> None:  # tensor bytes that look like fields must not confuse the walk
     tensor = _ld(9, EXTERNAL_TENSOR * 3)  # TensorProto.raw_data whose content mimics data_location
     reject_external_data(_ld(7, _ld(5, tensor)))
+
+
+# --- parser differentials: what the scan reads must be what ONNX Runtime loads ---
+
+
+@pytest.fixture(scope="module")
+def ort_format_model(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The tiny model in ORT's FlatBuffers format, written by ONNX Runtime itself (one single-threaded session)."""
+    path = tmp_path_factory.mktemp("ortfmt") / "tiny.ort"
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = 1
+    so.inter_op_num_threads = 1
+    so.optimized_model_filepath = str(path)
+    so.add_session_config_entry("session.save_model_format", "ORT")
+    ort.InferenceSession(str(MODEL), sess_options=so, providers=["CPUExecutionProvider"])
+    return path
+
+
+def test_ort_format_model_refused_before_ort(ort_format_model: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # ORT loads FlatBuffers models (identifier ORTM) by sniffing, and the protobuf scan cannot read them
+    assert ort_format_model.read_bytes()[4:8] == b"ORTM"
+    calls: list[Any] = []
+    monkeypatch.setattr(ort, "InferenceSession", lambda *a, **k: calls.append(a))
+    with pytest.raises(IntegrityError, match="ORT format"):
+        VitsOnnxEngine(ort_format_model, DEFAULTS, device="cpu", threads=1)
+    assert calls == []
+
+
+def test_session_parses_only_onnx_protobuf(ort_format_model: Path) -> None:
+    # the second layer, independent of the identifier check: the session never takes the FlatBuffers path
+    with pytest.raises(Exception, match="protobuf parsing failed"):
+        ort.InferenceSession(
+            ort_format_model.read_bytes(), sess_options=_session_options(1), providers=["CPUExecutionProvider"]
+        )
+    for threads in (1, None):
+        assert _session_options(threads).get_session_config_entry("session.load_model_format") == "ONNX"
+
+
+@pytest.mark.parametrize("value", [2**32 + 1, 2**63 + 1, 2**64 + 1])
+def test_data_location_is_read_as_int32(value: int) -> None:
+    # protobuf truncates an enum varint to 32 bits; ONNX Runtime 1.32.0 treats 2**32 + 1 as EXTERNAL (measured)
+    with pytest.raises(IntegrityError, match="external data"):
+        reject_external_data(_ld(7, _ld(5, _varint(14 << 3) + _varint(value))))
+
+
+@pytest.mark.parametrize("high", [1 << 32, 1 << 40, 1 << 63])
+def test_field_keys_are_read_as_uint32(high: int) -> None:
+    # protobuf keeps a key's low 32 bits: ONNX Runtime 1.32.0 loaded an initializer whose key carried 2**32 and
+    # read its external file (measured). Every key here carries `high`, the external_data entry included.
+    entry = _varint(high | 13 << 3 | 2) + _varint(10) + _ld(1, b"location")
+    tensor = entry + _varint(high | 14 << 3) + _varint(1)
+    init = _varint(high | 5 << 3 | 2) + _varint(len(tensor)) + tensor
+    model = _varint(high | 7 << 3 | 2) + _varint(len(init)) + init
+    with pytest.raises(IntegrityError, match="external data"):
+        reject_external_data(model)

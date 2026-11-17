@@ -38,6 +38,13 @@ _CUDA_ADVICE = (
 # ONNX Runtime 1.32.0 has no session option that refuses external data (none of its 105 config keys does;
 # session.model_external_initializers_file_folder_path only moves where the files are resolved), so this
 # check is the guard, and the session is built from bytes so ORT never holds a path to resolve against.
+# The scan must read the model exactly as ORT will:
+#   * ORT sniffs bytes 4..8 for "ORTM" and then loads its FlatBuffers format, which this scan cannot read.
+#     Such bytes are refused here, and the session pins session.load_model_format=ONNX (measured: a real
+#     .ort model loads without the pin and fails protobuf parsing with it).
+#   * protobuf reads an enum varint as int32, so data_location 2**32 + 1 is EXTERNAL (measured in ORT).
+#   * protobuf keeps a field key's low 32 bits: ORT loaded an initializer whose key carried 2**32 and read
+#     its external file (measured), so keys are masked the same way before the field number is taken.
 _CHILDREN: dict[str, dict[int, str]] = {
     "model": {7: "graph", 20: "training", 25: "function"},
     "training": {1: "graph", 2: "graph"},
@@ -48,6 +55,7 @@ _CHILDREN: dict[str, dict[int, str]] = {
     "sparse": {1: "tensor", 2: "tensor"},
 }
 _EXTERNAL_DATA, _DATA_LOCATION, _LOCATION_EXTERNAL = 13, 14, 1
+_ORT_FORMAT_ID = b"ORTM"  # the FlatBuffers file identifier, at bytes 4..8
 
 
 def _varint(buf: memoryview, pos: int) -> tuple[int, int]:
@@ -70,7 +78,7 @@ def _fields(buf: memoryview) -> Iterator[tuple[int, int, int | memoryview]]:
     pos, end = 0, len(buf)
     while pos < end:
         key, pos = _varint(buf, pos)
-        field, wire = key >> 3, key & 7
+        field, wire = (key & 0xFFFF_FFFF) >> 3, key & 7  # a key is uint32 to protobuf: high bits are dropped
         value: int | memoryview = 0
         if wire == 0:
             value, pos = _varint(buf, pos)
@@ -90,13 +98,16 @@ def _fields(buf: memoryview) -> Iterator[tuple[int, int, int | memoryview]]:
 
 
 def reject_external_data(model: bytes) -> None:
-    """Raise IntegrityError if any tensor in the model, at any depth, uses external data."""
+    """Raise IntegrityError unless the model is ONNX protobuf in which no tensor, at any depth, uses external data."""
+    if bytes(model[4:8]) == _ORT_FORMAT_ID:
+        raise IntegrityError("the model is in ORT format (FlatBuffers), which is refused: only ONNX models load")
     stack: list[tuple[str, memoryview]] = [("model", memoryview(model))]  # a stack, not recursion: depth is free
     while stack:
         kind, buf = stack.pop()
         for field, wire, value in _fields(buf):
             if kind == "tensor":
-                if (field == _DATA_LOCATION and wire == 0 and value == _LOCATION_EXTERNAL) or (
+                location = value & 0xFFFF_FFFF if isinstance(value, int) else None  # as int32, as protobuf does
+                if (field == _DATA_LOCATION and wire == 0 and location == _LOCATION_EXTERNAL) or (
                     field == _EXTERNAL_DATA and wire == 2
                 ):
                     raise IntegrityError(
@@ -134,6 +145,18 @@ class VitsDefaults:
         )
 
 
+def _session_options(threads: int | None) -> Any:
+    options = ort.SessionOptions()
+    options.add_session_config_entry("session.load_model_format", "ONNX")  # never sniff for FlatBuffers
+    if threads is not None:  # as spike/ort_safe.py
+        options.intra_op_num_threads = threads
+        options.inter_op_num_threads = 1
+        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        options.add_session_config_entry("session.inter_op.allow_spinning", "0")
+    return options
+
+
 class VitsOnnxEngine:
     def __init__(
         self,
@@ -157,14 +180,7 @@ class VitsOnnxEngine:
 
         model = Path(model_path).read_bytes()
         reject_external_data(model)  # before ONNX Runtime sees a single byte
-        options = ort.SessionOptions()
-        if threads is not None:  # as spike/ort_safe.py
-            options.intra_op_num_threads = threads
-            options.inter_op_num_threads = 1
-            options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
-            options.add_session_config_entry("session.intra_op.allow_spinning", "0")
-            options.add_session_config_entry("session.inter_op.allow_spinning", "0")
-        self._session = ort.InferenceSession(model, sess_options=options, providers=providers)  # bytes, no path
+        self._session = ort.InferenceSession(model, sess_options=_session_options(threads), providers=providers)
 
         actual = self.provider
         if device == "cuda" and actual != _CUDA:
