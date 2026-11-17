@@ -1,0 +1,17 @@
+# aramid repo config -- see ARAMID.md; `aramid doctor` reports the live stack
+schema_version = 1
+semgrep_block_armed = false
+agent_block_armed = false
+bake_started = "2026-11-16"
+
+[tests]
+command = ["uv", "run", "--no-sync", "pytest", "-q"]   # --no-sync: a push never downloads torch
+timeout_s = 300
+
+[fuzz]   # REPLACES aramid's defaults (ARAMID.md:165-168), so the twelve defaults are kept
+skip_name_patterns = [
+  "*deploy*", "*delete*", "*remove*", "*drop*", "*push*", "*send*",
+  "*upload*", "*kill*", "*wipe*", "*publish*", "*destroy*", "*truncate*",
+  "main", "save*", "*download*", "ensure_voice", "*phonemize*", "find_espeak",
+  "export_onnx", "package", "convert*", "concat", "synthesize*", "stream",
+]

@@ -1,0 +1,26 @@
+.aramid/
+graph-out/
+.graphite*
+.cache/
+
+# Graphite
+**/.cache/graphite/
+**/.graphite/
+.graphite-daemon/
+.githooks/
+
+# BytesTTS: internal planning docs stay on this machine (operator decision 2026-11-16)
+docs/internal/
+
+# BytesTTS: build and tool outputs (plan Task 1)
+TTS-dev/
+.venv/
+.venvs/
+*.onnx
+*.safetensors
+!tests/fixtures/**/*.onnx
+!tests/fixtures/**/*.safetensors
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+dist/
