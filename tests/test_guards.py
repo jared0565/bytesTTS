@@ -90,6 +90,14 @@ def test_espeak_source_build_verifies_the_reviewed_commit() -> None:
         assert 'test "$(git rev-parse HEAD)" = "$ESPEAK_COMMIT"' in run
 
 
+def test_espeak_build_is_never_restored_from_cache() -> None:  # a restored cache would skip the commit check
+    steps = _workflow_steps()
+    assert not [s for s in steps if "actions/cache" in s.get("uses", "") and "espeak" in str(s.get("with", {}))]
+    for s in steps:
+        if "git clone" in s.get("run", "") and "espeak-ng" in s["run"]:
+            assert "if" not in s or "cache" not in str(s["if"]), s
+
+
 def test_workflows_do_not_interpolate_event_text_in_run() -> None:
     wf_dir = ROOT / ".github" / "workflows"
     wfs = [*wf_dir.glob("*.yml"), *wf_dir.glob("*.yaml")]

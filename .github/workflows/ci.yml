@@ -31,16 +31,8 @@ jobs:
           python-version: ${{ matrix.python }}
 
       # --- espeak-ng at the pinned tag ---------------------------------------------------------
-      - name: Cache espeak-ng build (Linux)
-        if: runner.os == 'Linux'
-        id: espeak-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: ~/espeak-ng
-          key: espeak-ng-${{ env.ESPEAK_TAG }}-${{ env.ESPEAK_COMMIT }}-${{ runner.os }}
-
       - name: Build espeak-ng from source (Linux)
-        if: runner.os == 'Linux' && steps.espeak-cache.outputs.cache-hit != 'true'
+        if: runner.os == 'Linux'  # always built from the verified commit: no cache to poison
         shell: bash
         run: |
           set -euo pipefail
