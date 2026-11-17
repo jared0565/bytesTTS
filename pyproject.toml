@@ -75,6 +75,7 @@ markers = [
   "espeak: needs espeak-ng",
 ]
 addopts = "--import-mode=importlib -m 'not parity and not quality and not gpu and not network'"
+faulthandler_timeout = 120  # a hung test dumps every thread's stack (Task 3 ledger)
 
 [tool.ruff]
 line-length = 120
