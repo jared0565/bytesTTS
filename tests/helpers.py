@@ -2,7 +2,10 @@
 """Shared test helpers. Imported as `helpers` (pyproject pythonpath = tests), never from conftest.py:
 under --import-mode=importlib, importing from conftest.py creates a second copy of the module."""
 
+import hashlib
+import json
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +20,7 @@ from bytestts.text.tokenizer import CharacterSet
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 TINY = FIXTURES / "tiny_vits"
 HOSTILE = FIXTURES / "hostile"
+TEST_THREADS = 1  # every ONNX Runtime session in tests: tests/conftest.py fails any other (PC hard-reset hazard)
 
 # The characters frontend of the tiny fixture (Task 8 defined it; Task 10's fixture config.json must equal it).
 CHAR_CFG = FrontendConfig(
@@ -101,3 +105,16 @@ def require_espeak(expected_version: str | None) -> EspeakInstall:
             pytest.fail(reason)
         pytest.skip(reason)
     return install
+
+
+def edit_json(path: Path, change: Callable[[dict[str, Any]], None]) -> None:
+    data = json.loads(path.read_bytes())
+    change(data)
+    path.write_bytes(json.dumps(data, indent=2).encode())
+
+
+def repin(package: Path, name: str) -> None:
+    """Point the package's voice.json at the current bytes of `name`, listing it if it was not."""
+    data = (package / name).read_bytes()
+    entry = {"sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}
+    edit_json(package / "voice.json", lambda m: m["files"].__setitem__(name, entry))
