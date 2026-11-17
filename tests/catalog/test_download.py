@@ -406,6 +406,10 @@ def _fake_https(monkeypatch: pytest.MonkeyPatch, redirects: dict[str, str]) -> l
         "https://127.0.0.1/admin",
         "https://localhost/admin",
         "https://api.localhost/admin",
+        # a trailing dot is the same name to the resolver (a fully qualified one), in any case
+        "https://localhost./admin",
+        "https://api.localhost./admin",
+        "https://LocalHost./admin",
         "https://10.0.0.1/admin",
         "https://192.168.1.1/admin",
         "https://169.254.169.254/latest/meta-data",  # cloud metadata
@@ -433,6 +437,7 @@ def test_https_never_redirects_inward(tmp_path: Path, monkeypatch: pytest.Monkey
     "target",
     [
         "https://cafe.be/f",
+        "https://cafe.be./f",  # a fully qualified public name stays public
         "https://0x.example/f",
         "https://123.example/f",
         "https://93.184.216.34/f",
