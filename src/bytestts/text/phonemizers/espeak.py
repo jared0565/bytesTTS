@@ -13,7 +13,6 @@ from __future__ import annotations
 import functools
 import os
 import re
-import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -59,11 +58,24 @@ def find_espeak(executable: str | os.PathLike[str] | None = None) -> EspeakInsta
             if not exe.is_file():
                 raise FrontendUnavailable(f"espeak-ng executable not found at {exe}. {INSTALL_HINT}")
             return EspeakInstall(exe, _data_path_for(exe))
-    found = shutil.which("espeak-ng")
+    found = _on_path()
     if found is None:
         raise FrontendUnavailable(f"espeak-ng not found. {INSTALL_HINT}")
-    exe = Path(found)
-    return EspeakInstall(exe, _data_path_for(exe))
+    return EspeakInstall(found, _data_path_for(found))
+
+
+def _on_path() -> Path | None:
+    """espeak-ng from the absolute PATH entries only. Windows (and shutil.which there) searches the current
+    directory first, and POSIX reads an empty or relative entry as it: either way a planted espeak-ng in a
+    downloaded folder would run. On Windows only espeak-ng.exe counts; a .bat or .cmd runs through cmd.exe."""
+    name = "espeak-ng.exe" if os.name == "nt" else "espeak-ng"
+    for entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not entry or not os.path.isabs(entry):
+            continue
+        candidate = Path(entry) / name
+        if candidate.is_file() and (os.name == "nt" or os.access(candidate, os.X_OK)):
+            return candidate
+    return None
 
 
 class EspeakPhonemizer:
