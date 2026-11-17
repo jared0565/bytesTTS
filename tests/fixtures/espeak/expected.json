@@ -1,0 +1,61 @@
+{
+ "espeak_version": "1.52.0",
+ "form": "raw stdout of BASE+['-v',voice,'--stdin'] with input text.encode('utf-8')+b'\\n'",
+ "cases": [
+  {
+   "voice": "fr-fr",
+   "text": "café naïve",
+   "raw": "k_a_f_ˈe n_a_ˈi_v\r\n"
+  },
+  {
+   "voice": "en-us",
+   "text": "The café on the corner serves a naïve but charming breakfast menu.",
+   "raw": "ð_ə k_æ_f_ˈeɪ ɔ_n_ð_ə k_ˈɔːɹ_n_ɚ s_ˈɜː_v_z ɐ n_aɪ_ˈiː_v__ b_ˌʌ_t tʃ_ˈɑːɹ_m_ɪ_ŋ b_ɹ_ˈɛ_k_f_ə_s_t m_ˈɛ_n_j_uː\r\n"
+  },
+  {
+   "voice": "en-us",
+   "text": "Her résumé listed a year in Zürich and a summer in São Paulo.",
+   "raw": "h_ɜː ɹ_ˈɛ_z_uː_m_ˌeɪ l_ˈɪ_s_t_ᵻ_d ɐ j_ˈɪ_ɹ ɪ_n z_ˈuː_ɹ_ɪ_tʃ__ æ_n_d ɐ s_ˈʌ_m_ɚ_ɹ ɪ_n s_ˈaʊ p_ˈɔː_l_oʊ\r\n"
+  },
+  {
+   "voice": "de",
+   "text": "Die Straße führt über eine schmale Brücke in das nächste Dorf.",
+   "raw": "d_iː ʃ_t_ɾ_ˈɑː_s_ə f_ˈyː_ɾ_t__ _ˌyː_b_ɜ _ˌaɪ_n_ə ʃ_m_ˈɑː_l_ə b_ɾ_ˈʏ_k_ə_ _ɪ_n d_a_s n_ˈɛ_ç_s_t_ə d_ˈɔ_ɾ_f\r\n"
+  },
+  {
+   "voice": "de",
+   "text": "Im Frühling blühen die Äpfel früher als die Birnen am Hügel.",
+   "raw": "_ɪ_m f_r_ˈyː_l_ɪ_ŋ b_l_ˈyː_ə_n d_iː _ˈɛ_p_f_ə_l f_r_ˈyː_ɜ_ _a_l_s d_iː b_ˈɪ_ɾ_n_ə_n_ _a_m h_ˈyː_ɡ_ə_l\r\n"
+  },
+  {
+   "voice": "es",
+   "text": "El niño pequeño soñaba con montañas cubiertas de nieve.",
+   "raw": "e_l n_ˈi_ɲ_o p_e_k_ˈe_ɲ_o s_o_ɲ_ˈa_β_a k_o_n m_o_n_t_ˈa_ɲ_a_s k_u_β_j_ˈe_ɾ_t_a_s ð_e n_j_ˈe_β_e\r\n"
+  },
+  {
+   "voice": "es",
+   "text": "¿Dónde está la estación de autobuses más cercana?",
+   "raw": "d_ˈo_n_d_e e_s_t_ˈa l_a ˌe_s_t_a_θ_j_ˈo_n d_e ˌaʊ_t_o_β_ˈu_s_e_s m_ˈa_s θ_e_ɾ_k_ˈa_n_a\r\n"
+  },
+  {
+   "voice": "fr-fr",
+   "text": "Le garçon a reçu une longue lettre de sa sœur.",
+   "raw": "l_ə- ɡ_a_ʁ_s_ˈɔ̃ a ʁ_ə_s_ˈy y_n l_ˈɔ̃_ɡ l_ˈɛ_t_ʁ d_ə- s_a- s_ˈœ_ʁ\r\n"
+  },
+  {
+   "voice": "fr-fr",
+   "text": "Où se trouve la forêt près du vieux château ?",
+   "raw": "u s_ə- t_ʁ_ˈu_v l_a- f_o_ʁ_ˈɛ p_ʁ_ɛ d_y- v_j_ˈø ʃ_a_t_ˈo\r\n"
+  },
+  {
+   "voice": "it",
+   "text": "Perché non vieni con noi in città domani?",
+   "raw": "p_e__r_k_ˌe n_o_n v_j_ˈɛ_n_ɪ k_o_n n_ˌo_i_ i_n tʃ_i_tː_ˈa d_o_m_ˈa_n_ɪ\r\n"
+  },
+  {
+   "voice": "it",
+   "text": "La virtù è più forte della paura, disse il nonno.",
+   "raw": "l_a v_i___r_t_ˈu_ e p_j_ʊ f_ˈɔ__r_t_e d_ˌe_l_l_a p_a_ˈʊ_r_a\r\nd_ˈi_ss_e_ i_l n_ˈɔ_n_n_o\r\n"
+  }
+ ]
+}
