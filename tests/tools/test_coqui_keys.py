@@ -109,3 +109,10 @@ def test_language_and_sample_rate() -> None:
 
 def test_coqui_keys_never_loads_pickles() -> None:
     assert "torch.load" not in (ROOT / "tools" / "convert" / "coqui_keys.py").read_text("utf-8")
+
+
+def test_ljspeech_vocabulary_fits_its_embedding() -> None:  # else the jail refuses a 145 MB load with exit 4
+    from bytestts.text.tokenizer import CharacterSet
+
+    vc = ck.extract_voice_config(ljspeech(), "en")
+    assert len(CharacterSet.from_config(vc["characters"]).vocab) == ljspeech()["model_args"]["num_chars"] == 179
