@@ -412,6 +412,14 @@ def _fake_https(monkeypatch: pytest.MonkeyPatch, redirects: dict[str, str]) -> l
         "https://[::1]/admin",
         "https://[::ffff:127.0.0.1]/admin",
         "https://0.0.0.0/admin",
+        # legacy numeric IPv4 spellings: ipaddress refuses them, but the resolver turns each into 127.0.0.1
+        "https://2130706433/admin",
+        "https://0x7f000001/admin",
+        "https://127.1/admin",
+        "https://0177.0.0.1/admin",
+        "https://0x7f.0.0.1/admin",
+        "https://127.0.0.1./admin",
+        "https://010.0.0.1/admin",  # 8.0.0.1 to the resolver, but no spelling ipaddress accepts: refused too
     ],
 )
 def test_https_never_redirects_inward(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
@@ -419,6 +427,25 @@ def test_https_never_redirects_inward(tmp_path: Path, monkeypatch: pytest.Monkey
     with pytest.raises(ValueError):
         download_file("https://mirror.example/f", tmp_path / "f", sha256=SHA, size=N)
     assert seen == ["https://mirror.example/f"] and leftovers(tmp_path) == []  # the inward hop was never requested
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://cafe.be/f",
+        "https://0x.example/f",
+        "https://123.example/f",
+        "https://93.184.216.34/f",
+        "https://9.9.9.9/f",
+    ],
+)
+def test_https_follows_public_names_and_addresses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str
+) -> None:  # the numeric-spelling rule must not catch names that only look numeric, nor canonical public IPs
+    seen = _fake_https(monkeypatch, {"https://mirror.example/f": target})
+    with pytest.raises(requests.ConnectionError):
+        download_file("https://mirror.example/f", tmp_path / "f", sha256=SHA, size=N)
+    assert seen == ["https://mirror.example/f", target]
 
 
 def test_https_redirects_to_other_public_hosts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

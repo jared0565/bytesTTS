@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,56 @@ def test_missing_espeak_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PATH", "")
     monkeypatch.delenv("BYTESTTS_ESPEAK", raising=False)
     with pytest.raises(FrontendUnavailable, match="espeak-ng"):
+        find_espeak()
+
+
+def _stub(directory: Path, name: str = "espeak-ng.exe" if os.name == "nt" else "espeak-ng") -> Path:
+    """An empty file named like espeak-ng. Never run: these tests only check which file is found."""
+    directory.mkdir(parents=True, exist_ok=True)
+    exe = directory / name
+    exe.write_bytes(b"")
+    exe.chmod(0o755)
+    return exe
+
+
+def _path_only(monkeypatch: pytest.MonkeyPatch, *entries: str) -> None:
+    monkeypatch.delenv("BYTESTTS_ESPEAK", raising=False)
+    monkeypatch.delenv("BYTESTTS_ESPEAK_DATA", raising=False)
+    monkeypatch.setenv("PATH", os.pathsep.join(entries))
+
+
+def test_lookup_never_takes_espeak_from_the_current_directory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Windows searches the current directory first (shutil.which too), so a planted espeak-ng.exe in a downloaded
+    # folder would run with the user's rights. POSIX reads an empty PATH entry, or ".", as the current directory.
+    _stub(tmp_path / "cwd")
+    (tmp_path / "empty").mkdir()
+    monkeypatch.chdir(tmp_path / "cwd")
+    _path_only(monkeypatch, "", ".", str(tmp_path / "empty"))
+    with pytest.raises(FrontendUnavailable, match="not found"):
+        find_espeak()
+
+
+def test_lookup_finds_espeak_in_an_absolute_path_entry(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    exe = _stub(tmp_path / "bin")
+    monkeypatch.chdir(tmp_path)
+    _path_only(monkeypatch, ".", str(tmp_path / "bin"))
+    assert find_espeak().executable == exe
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows file types")
+def test_lookup_ignores_batch_files_on_windows(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _stub(tmp_path / "bin", "espeak-ng.bat")  # a .bat or .cmd runs through cmd.exe's own parsing
+    _stub(tmp_path / "bin", "espeak-ng.cmd")
+    _path_only(monkeypatch, str(tmp_path / "bin"))
+    with pytest.raises(FrontendUnavailable, match="not found"):
+        find_espeak()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def test_lookup_ignores_a_file_that_is_not_executable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _stub(tmp_path / "bin").chmod(0o644)
+    _path_only(monkeypatch, str(tmp_path / "bin"))
+    with pytest.raises(FrontendUnavailable, match="not found"):
         find_espeak()
 
 
