@@ -11,7 +11,7 @@ from helpers import TINY, TINY_ARGS, ser_db
 
 from bytestts.engines.base import SynthesisOptions, VoiceRef
 from bytestts.engines.vits_onnx import VitsDefaults, VitsOnnxEngine
-from bytestts.errors import VoiceNotFound
+from bytestts.errors import IntegrityError, VoiceNotFound
 from bytestts.train.vits.config import VitsModelConfig
 from bytestts.train.vits.export import export_onnx
 from bytestts.train.vits.model import VitsGenerator
@@ -61,12 +61,13 @@ def test_unknown_speaker_raises(multi: tuple[VitsGenerator, Path]) -> None:
         eng.synthesize(TOKENS, VoiceRef("multi", speaker="carol"), ZERO)
 
 
+# A model and its speakers that disagree make a broken voice package: IntegrityError (8ac087a), not ValueError.
 def test_multispeaker_model_needs_its_mapping(multi: tuple[VitsGenerator, Path]) -> None:
-    with pytest.raises(ValueError, match="speakers mapping"):
+    with pytest.raises(IntegrityError, match="speaker id"):
         VitsOnnxEngine(multi[1], DEFAULTS, device="cpu", threads=1)
 
 
 def test_single_speaker_model_refuses_a_mapping() -> None:
     defaults = VitsDefaults.from_config(json.loads((TINY / "config.json").read_bytes()))
-    with pytest.raises(ValueError, match="single speaker"):
+    with pytest.raises(IntegrityError, match="single speaker"):
         VitsOnnxEngine(TINY / "model.onnx", defaults, speakers=SPEAKERS, device="cpu", threads=1)
