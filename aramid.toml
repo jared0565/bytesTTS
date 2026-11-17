@@ -14,4 +14,5 @@ skip_name_patterns = [
   "*upload*", "*kill*", "*wipe*", "*publish*", "*destroy*", "*truncate*",
   "main", "save*", "*download*", "ensure_voice", "*phonemize*", "find_espeak",
   "export_onnx", "package", "convert*", "concat", "synthesize*", "stream",
+  "run_version", "espeak_version",           # tools/dev/matrix.py: start processes (Task 2)
 ]

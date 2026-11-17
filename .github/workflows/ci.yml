@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  ESPEAK_TAG: "1.52.0"  # pinned in P0.3; every machine that runs the espeak tests uses this tag
+  ESPEAK_MSI_SHA256: "7f673c709ea5dd579d3b5ebb98688cc575328a6ab7438d2bc405b88cedaeafb9"
+  BYTESTTS_REQUIRE_ESPEAK: "1"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: ${{ matrix.python }}
+
+      # --- espeak-ng at the pinned tag ---------------------------------------------------------
+      - name: Cache espeak-ng build (Linux)
+        if: runner.os == 'Linux'
+        id: espeak-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/espeak-ng
+          key: espeak-ng-${{ env.ESPEAK_TAG }}-${{ runner.os }}
+
+      - name: Build espeak-ng from source (Linux)
+        if: runner.os == 'Linux' && steps.espeak-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends autoconf automake libtool make gcc pkg-config
+          git clone --depth 1 --branch "$ESPEAK_TAG" https://github.com/espeak-ng/espeak-ng.git "$RUNNER_TEMP/espeak-src"
+          cd "$RUNNER_TEMP/espeak-src"
+          ./autogen.sh
+          ./configure --prefix="$HOME/espeak-ng"
+          make -j2
+          make install
+
+      - name: Point BytesTTS at espeak-ng (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "BYTESTTS_ESPEAK=$HOME/espeak-ng/bin/espeak-ng" >> "$GITHUB_ENV"
+          echo "BYTESTTS_ESPEAK_DATA=$HOME/espeak-ng/share" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$HOME/espeak-ng/lib" >> "$GITHUB_ENV"
+
+      - name: Install espeak-ng from the pinned MSI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Join-Path $env:RUNNER_TEMP 'espeak-ng.msi'
+          Invoke-WebRequest -Uri "https://github.com/espeak-ng/espeak-ng/releases/download/$env:ESPEAK_TAG/espeak-ng.msi" -OutFile $msi
+          $hash = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLowerInvariant()
+          if ($hash -ne $env:ESPEAK_MSI_SHA256) { throw "espeak-ng.msi sha256 mismatch: $hash" }
+          $target = Join-Path $env:RUNNER_TEMP 'espeak-ng'
+          $p = Start-Process msiexec.exe -ArgumentList '/a', "`"$msi`"", '/qn', "TARGETDIR=`"$target`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "msiexec /a exited $($p.ExitCode)" }
+          $root = Join-Path $target 'eSpeak NG'
+          "BYTESTTS_ESPEAK=$(Join-Path $root 'espeak-ng.exe')" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "BYTESTTS_ESPEAK_DATA=$root" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      # --- sync and checks -----------------------------------------------------------------------
+      - name: Sync (CI standard)
+        run: uv sync --extra train --extra server --extra torch-cpu
+
+      - name: Tests
+        run: uv run pytest
+
+      - name: Ruff
+        run: uv run ruff check
+
+      - name: Mypy
+        run: uv run mypy
+
+      - name: Licence gate
+        run: uv run python -P tools/dev/check_licences.py

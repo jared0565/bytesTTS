@@ -1,0 +1,101 @@
+[project]
+name = "bytestts"
+dynamic = ["version"]
+description = "Text-to-speech for Python: VITS voices on ONNX Runtime, as a library and a CLI"
+license = "MPL-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11,<3.15"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+# Core is exactly these five (plan, Global Constraints). PyTorch appears only in [train] and tools/.
+dependencies = ["onnxruntime", "numpy", "pysbd", "platformdirs", "requests"]
+
+[project.optional-dependencies]
+# onnxruntime-gpu only: users install CUDA 13 + cuDNN 9 themselves; no proprietary NVIDIA wheels here (P0.9).
+gpu = ["onnxruntime-gpu"]
+server = ["fastapi", "uvicorn"]
+train = ["torch", "safetensors", "onnx", "soundfile"]
+# Selector extras: they only choose torch's index. Pick exactly one with [train].
+torch-cpu = ["torch"]
+torch-cu130 = ["torch"]
+
+[project.scripts]
+bytestts = "bytestts.cli:main"
+
+[dependency-groups]
+dev = ["pytest", "ruff", "mypy", "pyyaml", "types-requests"]
+eval = ["faster-whisper==1.2.1"]  # maintainer-only ASR for WER (P0.1); never shipped
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/bytestts/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bytestts"]
+
+[tool.uv]
+conflicts = [
+  [{ extra = "torch-cpu" }, { extra = "torch-cu130" }],
+  [{ extra = "gpu" }, { extra = "torch-cpu" }],
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "torch-cpu" },
+  { index = "pytorch-cu130", extra = "torch-cu130" },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+markers = [
+  "parity: compares against TTS-dev golden data; needs BYTESTTS_PARITY_VOICE_DIR",
+  "quality: RTF and WER measurement",
+  "gpu: needs a working CUDA execution provider",
+  "network: uses the network",
+  "espeak: needs espeak-ng",
+]
+addopts = "--import-mode=importlib -m 'not parity and not quality and not gpu and not network'"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "S", "NPY", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = "bytestts.train.*"
+disallow_untyped_calls = false
+disallow_any_generics = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = ["onnxruntime.*", "pysbd.*"]
+ignore_missing_imports = true

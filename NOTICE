@@ -1,0 +1,13 @@
+BytesTTS
+Licensed under the Mozilla Public License 2.0 (see LICENSE).
+
+This product includes software derived from Coqui TTS v0.22.0
+(https://github.com/coqui-ai/TTS), licensed under the Mozilla Public
+License 2.0. Files derived from it say so in their second header line:
+"# Derived from Coqui TTS v0.22.0, <original path>".
+
+The speech model architecture is VITS:
+  Jaehyeon Kim, Jungil Kong, Juhee Son. "Conditional Variational
+  Autoencoder with Adversarial Learning for End-to-End Text-to-Speech."
+  Proceedings of the 38th International Conference on Machine Learning
+  (ICML), 2021.
