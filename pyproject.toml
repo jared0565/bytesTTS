@@ -101,11 +101,14 @@ files = ["src"]
 [[tool.mypy.overrides]]
 module = "bytestts.train.*"
 disallow_untyped_calls = false
+disallow_subclassing_any = false  # nn.Module is Any where torch is absent (aramid gate, machine interpreter)
 disallow_any_generics = false
 warn_return_any = false
 
-# onnxruntime and pysbd ship no stubs. inflect does, but aramid's gate runs mypy on the machine
-# interpreter, which lacks it; `uv run mypy` (dev venv, CI) still checks it fully (Task 4 ledger).
+# onnxruntime and pysbd ship no stubs. inflect, torch, safetensors and onnx do, but aramid's gate runs
+# mypy on the machine interpreter, which lacks them; `uv run mypy` (dev venv, CI) still checks them fully
+# (Task 4 and Task 9 ledger).
 [[tool.mypy.overrides]]
-module = ["onnxruntime.*", "pysbd.*", "inflect", "inflect.*"]
+module = ["onnxruntime.*", "pysbd.*", "inflect", "inflect.*", "torch", "torch.*",
+          "safetensors", "safetensors.*", "onnx", "onnx.*"]
 ignore_missing_imports = true
