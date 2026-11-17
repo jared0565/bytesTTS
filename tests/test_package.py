@@ -91,3 +91,26 @@ def test_side_effect_guard_fires(probe: str) -> None:  # the control: the guard 
     proc = _run_child(probe)
     assert proc.returncode != 0 and "side effect at import time" in proc.stderr
     assert "imported-ok" not in proc.stdout
+
+
+# The converter runs in the sandbox's reference environments, which have torch but not the runtime's
+# dependencies (onnxruntime, requests, platformdirs, pysbd). Its imports must not need them.
+_NO_RUNTIME = textwrap.dedent(
+    """
+    import sys
+    for name in ("onnxruntime", "requests", "platformdirs", "pysbd"):
+        sys.modules[name] = None  # importing any of them now raises ImportError
+    import bytestts
+    import bytestts.catalog.manifest, bytestts.text.tokenizer, bytestts.train.vits.config
+    from bytestts import ConsentMissing, IntegrityError
+    print("conversion-imports-ok", bytestts.__version__)
+    """
+)
+
+
+def test_conversion_code_imports_without_the_runtime() -> None:
+    proc = subprocess.run(  # noqa: S603 -- fixed argv: this interpreter and a constant script
+        [sys.executable, "-P", "-c", _NO_RUNTIME], capture_output=True, text=True, timeout=120
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert f"conversion-imports-ok {bytestts.__version__}" in proc.stdout

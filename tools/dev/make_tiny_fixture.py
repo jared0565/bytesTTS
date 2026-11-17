@@ -13,6 +13,8 @@ N(0, 0.05) so the zero-initialized flows are not identities. It contains:
   model_config.json   the generator architecture (VitsModelConfig.to_dict)
   golden.npz   3 token sequences with the PyTorch port's durations and waveform at scales [0, 1, 0]
 `--with-generator` also writes generator.safetensors (1 MB; nothing reads it, so it is not committed).
+`--converted-layout OUT` writes what tools/convert/convert_coqui.py would write for this voice (generator.safetensors,
+model_config.json, voice_config.json, conversion_report.json): the input tools/convert/package_voice.py expects.
 
 Every file is written as bytes with LF line ends; .gitattributes keeps git from converting them.
 Runs single-threaded: all-core load resets the development PC.
@@ -21,7 +23,9 @@ Runs single-threaded: all-core load resets the development PC.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -84,24 +88,64 @@ def _entry(path: Path) -> dict[str, Any]:
     return {"sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}
 
 
-def make_tiny(out: Path, *, with_generator: bool) -> None:
-    from bytestts.text.frontend import FrontendConfig, TextFrontend
+def _num_chars() -> int:
+    from bytestts.text.frontend import FrontendConfig
+
+    return len(FrontendConfig.from_voice_config(VOICE_CONFIG).characters.vocab)
+
+
+def _tiny_model(model_args: dict[str, Any]) -> Any:
+    """The seeded, perturbed tiny generator for these Coqui model_args."""
     from bytestts.train.vits.config import VitsModelConfig
-    from bytestts.train.vits.export import export_onnx
-    from bytestts.train.vits.io import save_generator
     from bytestts.train.vits.model import VitsGenerator
 
-    frontend_cfg = FrontendConfig.from_voice_config(VOICE_CONFIG)
-    frontend = TextFrontend(frontend_cfg)
-    num_chars = len(frontend_cfg.characters.vocab)
-
     torch.manual_seed(SEED)
-    model = VitsGenerator(VitsModelConfig.from_coqui({**TINY_ARGS, "use_sdp": False}, num_chars=num_chars))
+    model = VitsGenerator(VitsModelConfig.from_coqui(model_args, num_chars=_num_chars()))
     g = torch.Generator().manual_seed(PERTURB_SEED)
     with torch.no_grad():
         for p in model.parameters():
             p.add_(torch.randn(p.shape, generator=g) * 0.05)
-    model.eval()
+    return model.eval()
+
+
+def coqui_config(model_args: dict[str, Any]) -> dict[str, Any]:
+    """This voice as a Coqui config.json would describe it."""
+    top = {k: v for k, v in VOICE_CONFIG.items() if k not in ("language", "sample_rate")}
+    cfg = {**top, "audio": {"sample_rate": SAMPLE_RATE}, "model_args": {**model_args, "num_chars": _num_chars()}}
+    return copy.deepcopy(cfg)  # callers edit it: never let them reach VOICE_CONFIG
+
+
+def make_converted(out: Path, *, speakers: dict[str, int] | None = None) -> None:
+    """The conversion output for the tiny voice (with `speakers`, a multi-speaker variant)."""
+    from bytestts.train.vits.io import save_generator
+
+    spec = importlib.util.spec_from_file_location("coqui_keys", Path(__file__).parents[1] / "convert" / "coqui_keys.py")
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load tools/convert/coqui_keys.py")
+    coqui_keys = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coqui_keys)
+
+    model_args: dict[str, Any] = {**TINY_ARGS, "use_sdp": False}
+    if speakers:
+        model_args |= {"use_speaker_embedding": True, "num_speakers": len(speakers), "speaker_embedding_channels": 8}
+    out.mkdir(parents=True, exist_ok=True)
+    save_generator(_tiny_model(model_args), out)
+    (out / "voice_config.json").write_bytes(
+        _json_bytes(coqui_keys.extract_voice_config(coqui_config(model_args), "en"))
+    )
+    if speakers:
+        (out / "speakers.json").write_bytes(_json_bytes(speakers))
+    report = {"source": "tools/dev/make_tiny_fixture.py --converted-layout", "load_mode": "none: built here, no pickle"}
+    (out / "conversion_report.json").write_bytes(_json_bytes(report))
+
+
+def make_tiny(out: Path, *, with_generator: bool) -> None:
+    from bytestts.text.frontend import FrontendConfig, TextFrontend
+    from bytestts.train.vits.export import export_onnx
+    from bytestts.train.vits.io import save_generator
+
+    frontend = TextFrontend(FrontendConfig.from_voice_config(VOICE_CONFIG))
+    model = _tiny_model({**TINY_ARGS, "use_sdp": False})
 
     golden: dict[str, np.ndarray] = {"count": np.array(len(SENTENCES))}
     for i, sentence in enumerate(SENTENCES):
@@ -173,9 +217,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("out", type=Path)
     ap.add_argument("--hostile", action="store_true", help="write the hostile external-data model instead")
     ap.add_argument("--with-generator", action="store_true", help="also write generator.safetensors")
+    ap.add_argument("--converted-layout", action="store_true", help="write the conversion output instead")
     args = ap.parse_args(argv)
     if args.hostile:
         make_hostile(args.out)
+    elif args.converted_layout:
+        make_converted(args.out)
     else:
         make_tiny(args.out, with_generator=args.with_generator)
     return 0

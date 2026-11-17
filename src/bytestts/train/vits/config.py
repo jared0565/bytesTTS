@@ -89,6 +89,11 @@ class VitsModelConfig:
         return cls(**d)
 
     @classmethod
+    def coqui_keys(cls) -> frozenset[str]:
+        """The Coqui `model_args` keys from_coqui reads, the ones it refuses included."""
+        return frozenset({f.name for f in dataclasses.fields(cls)} - {"num_chars", "sample_rate"}) | frozenset(_REFUSED)
+
+    @classmethod
     def from_coqui(
         cls, model_args: Mapping[str, Any], num_chars: int, *, sample_rate: int | None = None
     ) -> VitsModelConfig:
@@ -96,8 +101,7 @@ class VitsModelConfig:
         for key, what in _REFUSED.items():
             if model_args.get(key):
                 raise NotSupported(f"{what} are not supported ({key} is set)")
-        names = {f.name for f in dataclasses.fields(cls)} - {"num_chars", "sample_rate"}
-        known = {k: v for k, v in model_args.items() if k in names}
+        known = {k: v for k, v in model_args.items() if k in cls.coqui_keys() and k not in _REFUSED}
         return cls.from_dict({**known, "num_chars": num_chars, "sample_rate": sample_rate})
 
     def to_dict(self) -> dict[str, Any]:

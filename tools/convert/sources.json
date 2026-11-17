@@ -1,0 +1,50 @@
+{
+  "de/css10/vits-neon": {
+    "coqui_licence": "bsd-3-clause",
+    "sha256": "b6da8a18dd122fab0783ed4ef343e29a8f09d39311b99b8eab80b0ea8dffe316",
+    "size": 100932296,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.8.0_models/tts_models--de--css10--vits.zip"
+  },
+  "de/thorsten/vits": {
+    "coqui_licence": "apache 2.0",
+    "sha256": "665f718c558693f5bd0747db19f4b5b4ce81b8903e48b7a51dd5f634475d7d6b",
+    "size": 309016018,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.7.0_models/tts_models--de--thorsten--vits.zip"
+  },
+  "en/ljspeech/vits": {
+    "coqui_licence": "apache 2.0",
+    "sha256": "061ed8902f57c2dc8821b675bd15b7134cec2fb5d576dafcb928b6f5bf1a3489",
+    "size": 145594973,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.6.1_models/tts_models--en--ljspeech--vits.zip"
+  },
+  "en/vctk/vits": {
+    "coqui_licence": "apache 2.0",
+    "sha256": "ad753e5200614907627495b6177a08d755df1dbbde30eb6e31264caa2a3f3eaa",
+    "size": 147691678,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.6.1_models/tts_models--en--vctk--vits.zip"
+  },
+  "es/css10/vits": {
+    "coqui_licence": "bsd-3-clause",
+    "sha256": "3b15b180b52dc0884934e81be2935a23bd7c2be58410c158c4d40e7deba1807f",
+    "size": 100893027,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.8.0_models/tts_models--es--css10--vits.zip"
+  },
+  "fr/css10/vits": {
+    "coqui_licence": "bsd-3-clause",
+    "sha256": "e946732aaef60b3e6462064b5f0e0286bc48ffa324474d0bde578ba60e566219",
+    "size": 100821187,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.8.0_models/tts_models--fr--css10--vits.zip"
+  },
+  "it/mai_female/vits": {
+    "coqui_licence": "apache 2.0",
+    "sha256": "d5aa1e99c889452e31f7238871da951ae94ce96bf60e7c7888d54e63a6b25b29",
+    "size": 145532590,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.6.1_models/tts_models--it--mai_female--vits.zip"
+  },
+  "it/mai_male/vits": {
+    "coqui_licence": "apache 2.0",
+    "sha256": "75d8c008bc790f52a4ad489f7b2eb041ec945f1602437dd3310ee85020a2c787",
+    "size": 145532461,
+    "url": "https://github.com/coqui-ai/TTS/releases/download/v0.6.1_models/tts_models--it--mai_male--vits.zip"
+  }
+}

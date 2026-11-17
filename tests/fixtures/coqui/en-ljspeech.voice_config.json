@@ -1,0 +1,22 @@
+{
+ "language": "en",
+ "use_phonemes": true,
+ "phonemizer": "espeak",
+ "phoneme_language": "en",
+ "text_cleaner": "phoneme_cleaners",
+ "characters": {
+  "characters_class": "TTS.tts.models.vits.VitsCharacters",
+  "pad": "_",
+  "eos": "",
+  "bos": "",
+  "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  "punctuations": ";:,.!?¡¿—…\"«»“” ",
+  "phonemes": "ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
+ },
+ "add_blank": true,
+ "enable_eos_bos_chars": false,
+ "sample_rate": 22050,
+ "inference_noise_scale": 0.667,
+ "length_scale": 1,
+ "inference_noise_scale_dp": 0.8
+}

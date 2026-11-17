@@ -22,6 +22,20 @@ TINY = FIXTURES / "tiny_vits"
 HOSTILE = FIXTURES / "hostile"
 TEST_THREADS = 1  # every ONNX Runtime session in tests: tests/conftest.py fails any other (PC hard-reset hazard)
 
+
+def pin_torch_threads() -> None:
+    """One torch thread, intra- and inter-op (all-core load resets the development PC). Safe to call twice."""
+    import torch
+
+    torch.set_num_threads(1)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:  # torch allows one call per process; the check below says whether it was ours
+        pass
+    if (torch.get_num_threads(), torch.get_num_interop_threads()) != (1, 1):
+        raise RuntimeError(f"torch is not single-threaded: {torch.get_num_threads()}/{torch.get_num_interop_threads()}")
+
+
 # The characters frontend of the tiny fixture (Task 8 defined it; Task 10's fixture config.json must equal it).
 CHAR_CFG = FrontendConfig(
     kind="characters",
