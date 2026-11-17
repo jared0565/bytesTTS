@@ -69,6 +69,27 @@ def test_untrusted_interpolation_detector(run: str, untrusted: bool) -> None:
     assert interpolates_untrusted(run) is untrusted
 
 
+def _workflow_steps() -> list[dict[str, Any]]:
+    wf_dir = ROOT / ".github" / "workflows"
+    wfs = [*wf_dir.glob("*.yml"), *wf_dir.glob("*.yaml")]
+    assert wfs  # an empty glob must not pass
+    return [step for wf in wfs for job in yaml_safe_load(wf)["jobs"].values() for step in job.get("steps", [])]
+
+
+def test_workflow_actions_are_pinned_to_commit_shas() -> None:  # a tag can be moved; a commit SHA cannot
+    uses = [step["uses"] for step in _workflow_steps() if "uses" in step]
+    assert uses
+    for ref in uses:
+        assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", ref), ref
+
+
+def test_espeak_source_build_verifies_the_reviewed_commit() -> None:
+    builds = [s["run"] for s in _workflow_steps() if "git clone" in s.get("run", "") and "espeak-ng" in s["run"]]
+    assert builds
+    for run in builds:
+        assert 'test "$(git rev-parse HEAD)" = "$ESPEAK_COMMIT"' in run
+
+
 def test_workflows_do_not_interpolate_event_text_in_run() -> None:
     wf_dir = ROOT / ".github" / "workflows"
     wfs = [*wf_dir.glob("*.yml"), *wf_dir.glob("*.yaml")]
