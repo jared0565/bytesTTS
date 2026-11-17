@@ -88,9 +88,11 @@ def test_split_sentences() -> None:
 
 def test_sentence_split_is_linear() -> None:  # pysbd alone is quadratic: 110 KB took 7-9 s, 220 KB ~36 s
     text = ("The quick brown fox jumps over the lazy dog. " * 5000).strip()  # ~225 KB
-    start = time.perf_counter()
+    # CPU time, not wall time: the property is the algorithm's cost. A shared CPU (aramid's gate runs its checkers
+    # beside the suite on one pinned core) stretched 1.8 s of CPU to 5.8 s of wall time (Task 17, final gate).
+    start = time.process_time()
     sentences = split_sentences(text, "en")
-    assert time.perf_counter() - start < 5
+    assert time.process_time() - start < 5
     assert len(sentences) == 5000 and set(sentences) == {"The quick brown fox jumps over the lazy dog."}
 
 
