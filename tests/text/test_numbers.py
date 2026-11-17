@@ -55,6 +55,12 @@ def test_long_runs_never_crash_and_stay_fast(text: str) -> None:
     assert not any(c.isdigit() for c in out)
 
 
+def test_leading_zeros_do_not_reach_the_int_digit_limit() -> None:  # aramid llm-review 10b577d7
+    assert expand_numbers_en("0" * 5000 + "1") == "one"
+    assert expand_numbers_en("$" + "0" * 5000 + "1") == "one dollar"
+    assert expand_numbers_en("0" * 5000 + "1st") == "first"
+
+
 # Reference outputs of TTS-dev 0.22.0 `english/number_norm.py`, computed 2026-11-17 by importing that
 # file with inflect 7.6.0. Quirks are kept on purpose: the port keeps TTS-dev's behaviour.
 @pytest.mark.parametrize(
