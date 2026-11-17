@@ -35,7 +35,7 @@ def save_generator(model: VitsGenerator, directory: Path) -> None:
     state = {k: v.detach().contiguous() for k, v in model.state_dict().items()}
     _atomic_write(directory / WEIGHTS, lambda p: save_file(state, str(p)))
     text = json.dumps(model.cfg.to_dict(), indent=2, sort_keys=True) + "\n"
-    _atomic_write(directory / CONFIG, lambda p: p.write_text(text, "utf-8"))
+    _atomic_write(directory / CONFIG, lambda p: p.write_bytes(text.encode("utf-8")))  # LF on every OS
 
 
 def load_generator(directory: Path) -> VitsGenerator:

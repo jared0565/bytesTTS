@@ -1,0 +1,24 @@
+{
+  "add_blank": true,
+  "characters": {
+    "blank": "<BLNK>",
+    "bos": null,
+    "characters": "abcdefghijklmnopqrstuvwxyz",
+    "characters_class": "TTS.tts.utils.text.characters.Graphemes",
+    "eos": null,
+    "is_sorted": true,
+    "is_unique": true,
+    "pad": "<PAD>",
+    "punctuations": "!'(),-.:;? "
+  },
+  "enable_eos_bos_chars": false,
+  "inference_noise_scale": 0.667,
+  "inference_noise_scale_dp": 1.0,
+  "language": "en",
+  "length_scale": 1.0,
+  "phoneme_language": null,
+  "phonemizer": null,
+  "sample_rate": 22050,
+  "text_cleaner": "basic_cleaners",
+  "use_phonemes": false
+}

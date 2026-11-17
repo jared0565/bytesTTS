@@ -142,11 +142,12 @@ class VitsGenerator(nn.Module):
         self,
         tokens: Tensor,
         token_lengths: Tensor,
-        noise_scale: float,
-        length_scale: float,
-        noise_scale_dp: float,
+        noise_scale: float | Tensor,
+        length_scale: float | Tensor,
+        noise_scale_dp: float | Tensor,
         sid: Tensor | None,
     ) -> tuple[Tensor, Tensor]:
+        """infer's body. The scales may be 0-d tensors, which keeps them live inputs in an ONNX export."""
         g = None
         if hasattr(self, "emb_g"):
             if sid is None:  # TTS-dev would fail later inside the decoder's cond_layer

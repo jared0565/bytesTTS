@@ -4,31 +4,12 @@ from pathlib import Path
 
 import pytest
 from golden import VOICE_CFG, trace
-from helpers import require_espeak
+from helpers import CHAR_CFG, require_espeak
 
 from bytestts.errors import NoSpeakableText, NotSupported
 from bytestts.text.frontend import MAX_TOKENS_PER_CHUNK, FrontendConfig, FrontendTrace, TextFrontend
 from bytestts.text.sentences import WINDOW_CHARS, split_sentences
 from bytestts.text.tokenizer import CharacterSet
-
-CHAR_CFG = FrontendConfig(
-    kind="characters",
-    language="en",
-    phoneme_language=None,
-    cleaner="basic_cleaners",
-    characters=CharacterSet(
-        characters="abcdefghijklmnopqrstuvwxyz",
-        punctuations="!'(),-.:;? ",
-        pad="<PAD>",
-        eos=None,
-        bos=None,
-        blank="<BLNK>",
-        is_unique=True,
-        is_sorted=True,
-    ),
-    add_blank=True,
-    use_eos_bos=False,
-)  # defined here; Task 10's tiny fixture reuses this exact config
 
 
 @pytest.mark.espeak

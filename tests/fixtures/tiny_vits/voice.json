@@ -1,0 +1,23 @@
+{
+  "attribution": "BytesTTS test fixture: a seeded random tiny VITS. No training data, no real voice.",
+  "data_licence": "none",
+  "engine": "vits-onnx",
+  "featured": [],
+  "files": {
+    "config.json": {
+      "sha256": "d8042d9a3c2bca731769aa117588963d04d33ec3dab5b31e8fcdd84d1f0892dd",
+      "size": 599
+    },
+    "model.onnx": {
+      "sha256": "9bcd7dca8d9f659c05d8f413c2e370eb8632f05546b09045e59f5f0545b11bb9",
+      "size": 1112670
+    }
+  },
+  "id": "tiny",
+  "language": "en",
+  "licence": "MPL-2.0",
+  "origin": "catalog",
+  "sample_rate": 22050,
+  "speakers": [],
+  "version": "0.1.0"
+}

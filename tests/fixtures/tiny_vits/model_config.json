@@ -1,0 +1,52 @@
+{
+  "condition_dp_on_speaker": true,
+  "dilation_rate_flow": 1,
+  "dilation_rate_posterior_encoder": 1,
+  "dropout_p_duration_predictor": 0.5,
+  "dropout_p_text_encoder": 0.1,
+  "encoder_sample_rate": null,
+  "hidden_channels": 16,
+  "hidden_channels_ffn_text_encoder": 32,
+  "inference_noise_scale": 0.667,
+  "inference_noise_scale_dp": 1.0,
+  "interpolate_z": true,
+  "kernel_size_flow": 5,
+  "kernel_size_posterior_encoder": 5,
+  "kernel_size_text_encoder": 3,
+  "length_scale": 1,
+  "max_inference_len": null,
+  "noise_scale": 1.0,
+  "noise_scale_dp": 1.0,
+  "num_chars": 39,
+  "num_heads_text_encoder": 2,
+  "num_layers_flow": 1,
+  "num_layers_posterior_encoder": 1,
+  "num_layers_text_encoder": 1,
+  "num_speakers": 0,
+  "out_channels": 17,
+  "resblock_dilation_sizes_decoder": [
+    [
+      1,
+      3,
+      5
+    ]
+  ],
+  "resblock_kernel_sizes_decoder": [
+    3
+  ],
+  "resblock_type_decoder": "1",
+  "sample_rate": null,
+  "speaker_embedding_channels": 256,
+  "spec_segment_size": 32,
+  "upsample_initial_channel_decoder": 32,
+  "upsample_kernel_sizes_decoder": [
+    8,
+    8
+  ],
+  "upsample_rates_decoder": [
+    4,
+    4
+  ],
+  "use_sdp": false,
+  "use_speaker_embedding": false
+}

@@ -144,7 +144,7 @@ class StochasticDurationPredictor(nn.Module):
         dr: Tensor | None = None,
         g: Tensor | None = None,
         reverse: bool = False,
-        noise_scale: float = 1.0,
+        noise_scale: float | Tensor = 1.0,
     ) -> Tensor:
         """Training (reverse=False): the duration NLL. Inference (reverse=True): log-durations [B, 1, T]."""
         x = self.pre(x)

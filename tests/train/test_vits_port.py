@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MPL-2.0
 import math
 from pathlib import Path
-from typing import Any
 
 import pytest
 import torch
+from helpers import TINY_ARGS
 from safetensors.torch import load_file, save_file
 
 from bytestts.errors import NotSupported
@@ -12,21 +12,6 @@ from bytestts.train.vits.config import VitsModelConfig
 from bytestts.train.vits.io import load_generator, save_generator
 from bytestts.train.vits.model import VitsGenerator
 
-TINY_ARGS: dict[str, Any] = {  # Coqui `model_args` shape: hidden 16, 1 layer, upsample [4, 4]
-    "out_channels": 17,
-    "hidden_channels": 16,
-    "hidden_channels_ffn_text_encoder": 32,
-    "num_heads_text_encoder": 2,
-    "num_layers_text_encoder": 1,
-    "num_layers_posterior_encoder": 1,
-    "num_layers_flow": 1,
-    "resblock_kernel_sizes_decoder": [3],
-    "resblock_dilation_sizes_decoder": [[1, 3, 5]],
-    "upsample_rates_decoder": [4, 4],
-    "upsample_initial_channel_decoder": 32,
-    "upsample_kernel_sizes_decoder": [8, 8],
-    "some_training_only_key": True,  # ignored, as Coqui configs carry many
-}
 TINY = VitsModelConfig.from_coqui(TINY_ARGS, num_chars=40)
 HOP = 16  # 4 * 4
 ZERO = {"noise_scale": 0.0, "length_scale": 1.0, "noise_scale_dp": 0.0}
@@ -144,3 +129,7 @@ def test_defaults_are_vitsargs_defaults() -> None:  # TTS-dev vits.py:366-600
 
 def test_config_dict_roundtrip() -> None:
     assert VitsModelConfig.from_dict(TINY.to_dict()) == TINY
+
+
+def test_unknown_coqui_keys_are_ignored() -> None:  # Coqui model_args carry many training-only keys
+    assert VitsModelConfig.from_coqui({**TINY_ARGS, "some_training_only_key": True}, num_chars=40) == TINY
