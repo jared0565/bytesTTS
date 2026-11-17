@@ -11,7 +11,6 @@ On this PC, run only with the operator's OK: the suite builds ONNX sessions (pla
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -22,19 +21,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def espeak_version() -> str:
-    """The espeak-ng the tests will find: $BYTESTTS_ESPEAK, else espeak-ng on PATH."""
-    exe = os.environ.get("BYTESTTS_ESPEAK") or shutil.which("espeak-ng")
-    if not exe:
-        return "not found"
-    env = dict(os.environ)
-    if os.environ.get("BYTESTTS_ESPEAK_DATA"):
-        env["ESPEAK_DATA_PATH"] = os.environ["BYTESTTS_ESPEAK_DATA"]
+    """The espeak-ng the tests will find, located as the library locates it: $BYTESTTS_ESPEAK, else espeak-ng on
+    PATH, with its data from $BYTESTTS_ESPEAK_DATA or beside the executable (espeak-ng 1.52.0 crashes without it)."""
+    from bytestts.errors import FrontendUnavailable
+    from bytestts.text.phonemizers.espeak import EspeakPhonemizer, find_espeak
+
     try:
-        out = subprocess.run([exe, "--version"], capture_output=True, text=True, env=env, timeout=30)  # noqa: S603
-    except OSError as e:
+        install = find_espeak()
+    except FrontendUnavailable as e:
+        return f"not found ({e})"
+    try:
+        return EspeakPhonemizer("en-us", install=install).version
+    except FrontendUnavailable as e:
         return f"error: {e}"
-    words = out.stdout.split()
-    return words[3] if out.returncode == 0 and len(words) > 3 else f"error (exit {out.returncode})"
 
 
 def run_version(version: str) -> str:

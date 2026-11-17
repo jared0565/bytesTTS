@@ -31,7 +31,11 @@ def test_errors_hierarchy() -> None:
 # package it walks into -- bytestts.train included (torch). See the Task 2 ruling in the ledger.
 _CHILD = textwrap.dedent(
     """
-    import importlib, pkgutil, socket, subprocess
+    import importlib, pkgutil, platform, socket, subprocess
+
+    # Python 3.11 on Windows answers platform.uname() by running `ver` once, then caches it; onnxruntime asks at
+    # import. That is the interpreter probing its host on a dependency's behalf, not BytesTTS: warm the cache first.
+    platform.uname()
 
     def boom(*args, **kwargs):
         raise RuntimeError("side effect at import time")
