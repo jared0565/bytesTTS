@@ -8,8 +8,11 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import numpy as np
+import onnx
 import pytest
 from helpers import TEST_THREADS, TINY, edit_json
+from onnx import numpy_helper
 
 from bytestts import BytesTTS
 from bytestts.catalog.manifest import VoiceManifest, verify_package
@@ -44,11 +47,27 @@ def converted_multi(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return d
 
 
+@pytest.fixture(scope="module")
+def fresh_tiny(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The tiny fixture as the fixture tool writes it here and now, from the same seeds."""
+    d: Path = tmp_path_factory.mktemp("fresh") / "tiny"
+    fixture_tool.make_tiny(d, with_generator=False)
+    return d
+
+
 def package(converted: Path, out: Path, **kw: Any) -> VoiceManifest:
     m: VoiceManifest = pv.package(
         converted, out, **{"voice_id": "t", "version": "1", "language": "en", **CREDITS, **kw}
     )
     return m
+
+
+def _without_weights(model: onnx.ModelProto) -> bytes:
+    bare = onnx.ModelProto.FromString(model.SerializeToString())
+    for t in bare.graph.initializer:  # names, shapes and order stay; only the values go
+        t.ClearField("raw_data")
+        t.ClearField("float_data")
+    return bare.SerializeToString()
 
 
 def test_package_from_tiny(converted: Path, tmp_path: Path) -> None:
@@ -57,11 +76,22 @@ def test_package_from_tiny(converted: Path, tmp_path: Path) -> None:
     assert (m.id, m.origin, m.engine, m.sample_rate) == ("t", "catalog", "vits-onnx", 22050)
 
 
-def test_package_reproduces_the_committed_fixture(converted: Path, tmp_path: Path) -> None:
-    # the converted layout holds the fixture's own weights and config: packaging must give back the same bytes
+def test_package_gives_the_fixture_tools_bytes(converted: Path, fresh_tiny: Path, tmp_path: Path) -> None:
+    # the converted layout holds the fixture's own weights and config: packaging must export the same bytes
     package(converted, tmp_path / "pkg")
     for name in ("model.onnx", "config.json"):
-        assert (tmp_path / "pkg" / name).read_bytes() == (TINY / name).read_bytes(), name
+        assert (tmp_path / "pkg" / name).read_bytes() == (fresh_tiny / name).read_bytes(), name
+
+
+def test_committed_fixture_is_what_the_tools_write(fresh_tiny: Path) -> None:
+    # The committed bytes are one platform's: torch's seeded weights and its weight-norm folding differ in the last
+    # bits between its Windows and Linux builds (measured at most 6e-8, Task 17 Step 11). All else must be exact.
+    assert (fresh_tiny / "config.json").read_bytes() == (TINY / "config.json").read_bytes()
+    fresh, committed = onnx.load(str(fresh_tiny / "model.onnx")), onnx.load(str(TINY / "model.onnx"))
+    assert _without_weights(fresh) == _without_weights(committed)
+    for a, b in zip(fresh.graph.initializer, committed.graph.initializer, strict=True):
+        x, y = numpy_helper.to_array(a), numpy_helper.to_array(b)
+        np.testing.assert_allclose(x, y, rtol=0, atol=1e-6, err_msg=a.name)
 
 
 def test_packaged_voice_speaks(converted: Path, tmp_path: Path) -> None:

@@ -7,11 +7,14 @@ import json
 import re
 import zipfile
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+# The converter reads only os.name. Swap its own `os` binding, never the real module's attribute: on Python 3.11
+# a patched os.name makes every new Path a WindowsPath, which POSIX refuses, pytest's failure report included.
+ON_WINDOWS = SimpleNamespace(name="nt")
 
 
 def load_tool(path: str) -> ModuleType:
@@ -95,7 +98,7 @@ def test_refuses_to_run_on_windows(monkeypatch: pytest.MonkeyPatch, capsys: pyte
         raise AssertionError("convert ran")
 
     monkeypatch.setattr(cc, "convert", never)
-    monkeypatch.setattr(cc.os, "name", "nt")
+    monkeypatch.setattr(cc, "os", ON_WINDOWS)
     assert cc.main(["a.zip", "out"]) == 2
     assert "sandbox" in capsys.readouterr().err
 
@@ -112,7 +115,7 @@ def test_shipped_sources_are_pinned() -> None:
 def test_the_unpickler_itself_refuses_on_windows(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, allow_full_load: bool
 ) -> None:  # not only main(): any caller of _load, a fuzzer's included, is refused before torch is imported
-    monkeypatch.setattr(cc.os, "name", "nt")
+    monkeypatch.setattr(cc, "os", ON_WINDOWS)
     (tmp_path / "x.pth").write_bytes(b"not a pickle")
     with pytest.raises(cc.Refused, match="sandbox") as e:
         cc._load(tmp_path / "x.pth", allow_full_load)
