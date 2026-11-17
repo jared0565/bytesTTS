@@ -32,9 +32,9 @@ from bytestts.errors import IntegrityError, VoiceNotFound
 
 MAX_REDIRECTS = 5
 _LOOPBACK = ("127.0.0.1", "localhost")
-# 1 to 4 dot-separated parts, each decimal, octal (leading 0) or 0x-hex, with an optional trailing dot
+# 1 to 4 dot-separated parts, each decimal, octal (leading 0) or 0x-hex
 _IPV4_PART = r"(?:0[xX][0-9a-fA-F]*|[0-9]+)"
-_NUMERIC_IPV4 = re.compile(rf"(?:{_IPV4_PART}\.){{0,3}}{_IPV4_PART}\.?")
+_NUMERIC_IPV4 = re.compile(rf"(?:{_IPV4_PART}\.){{0,3}}{_IPV4_PART}")
 _CHUNK = 1 << 16
 _REPLACE_ATTEMPTS = 20  # about 2 s of retries in all
 # identity: the size cap then counts the bytes on the wire, and no compressed body can inflate behind it
@@ -44,13 +44,16 @@ Progress = Callable[[int, int], None]
 
 
 def _is_internal(host: str) -> bool:
+    # `host` is urlsplit's hostname, already lowercase. A trailing dot (localhost., 127.0.0.1.) is the same host to
+    # the resolver, a fully qualified name: drop it before any check, or it slips past every one of them.
+    host = host.rstrip(".")
     if host == "localhost" or host.endswith(".localhost"):
         return True
     try:
         return not ipaddress.ip_address(host).is_global  # loopback, private, link-local, unspecified, mapped
     except ValueError:
-        # Legacy IPv4 spellings (2130706433, 0x7f000001, 127.1, 0177.0.0.1, a trailing dot) are not addresses to
-        # ipaddress, but the resolver reads each as one. No real name looks like this: refuse rather than guess.
+        # Legacy IPv4 spellings (2130706433, 0x7f000001, 127.1, 0177.0.0.1) are not addresses to ipaddress,
+        # but the resolver reads each as one. No real name looks like this: refuse rather than guess.
         return _NUMERIC_IPV4.fullmatch(host) is not None  # otherwise a name: not resolved here
 
 
