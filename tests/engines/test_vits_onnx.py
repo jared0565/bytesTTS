@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 import json
+import struct
 from pathlib import Path
 from typing import Any
 
@@ -231,15 +232,18 @@ def test_session_parses_only_onnx_protobuf(ort_format_model: Path) -> None:
     # the second layer, independent of the identifier check: the session never takes the FlatBuffers path
     with pytest.raises(Exception, match="protobuf parsing failed"):
         ort.InferenceSession(
-            ort_format_model.read_bytes(), sess_options=_session_options(1), providers=["CPUExecutionProvider"]
+            ort_format_model.read_bytes(),
+            sess_options=_session_options(1, str(ort_format_model.parent)),
+            providers=["CPUExecutionProvider"],
         )
     for threads in (1, None):
-        assert _session_options(threads).get_session_config_entry("session.load_model_format") == "ONNX"
+        assert _session_options(threads, "x").get_session_config_entry("session.load_model_format") == "ONNX"
 
 
 @pytest.mark.parametrize("value", [2**32 + 1, 2**63 + 1, 2**64 + 1])
 def test_data_location_is_read_as_int32(value: int) -> None:
-    # protobuf truncates an enum varint to 32 bits; ONNX Runtime 1.32.0 treats 2**32 + 1 as EXTERNAL (measured)
+    # protobuf truncates an enum varint to 32 bits: on raw bytes, ONNX Runtime 1.32.0 read the external file for
+    # data_location 2**32 + 1 and refused it for 2**32 (measured, with both controls firing)
     with pytest.raises(IntegrityError, match="external data"):
         reject_external_data(_ld(7, _ld(5, _varint(14 << 3) + _varint(value))))
 
@@ -254,3 +258,66 @@ def test_field_keys_are_read_as_uint32(high: int) -> None:
     model = _varint(high | 7 << 3 | 2) + _varint(len(init)) + init
     with pytest.raises(IntegrityError, match="external data"):
         reject_external_data(model)
+
+
+def _vi(field: int, value: int) -> bytes:  # a varint field
+    return _varint(field << 3) + _varint(value)
+
+
+def _external_add_model(location: bytes) -> bytes:
+    """y = x + w, with w one float32 stored as external data at `location`; hand-built, so no onnx needed."""
+    float1 = _ld(1, _vi(1, 1) + _ld(2, _ld(1, _vi(1, 1))))  # TypeProto.tensor_type: FLOAT, shape [1]
+    w = _vi(1, 1) + _vi(2, 1) + _ld(8, b"w")  # dims [1], FLOAT, name
+    for key, value in ((b"location", location), (b"offset", b"0"), (b"length", b"4")):
+        w += _ld(13, _ld(1, key) + _ld(2, value))
+    w += _vi(14, 1)  # data_location EXTERNAL
+    node = _ld(1, b"x") + _ld(1, b"w") + _ld(2, b"y") + _ld(4, b"Add")
+    graph = (
+        _ld(1, node)
+        + _ld(2, b"g")
+        + _ld(5, w)
+        + _ld(11, _ld(1, b"x") + _ld(2, float1))
+        + _ld(12, _ld(1, b"y") + _ld(2, float1))
+    )
+    return _vi(1, 8) + _ld(8, _ld(1, b"") + _vi(2, 17)) + _ld(7, graph)  # ir_version 8, opset 17
+
+
+def test_bytes_session_never_reads_the_working_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A model loaded from bytes resolves external data against the cwd: ONNX Runtime 1.32.0 read ./w.bin with the
+    # optimizer off (measured). The folder pin must refuse it whatever the optimization level.
+    (tmp_path / "w.bin").write_bytes(struct.pack("<f", 7.0))
+    monkeypatch.chdir(tmp_path)
+    model = _external_add_model(b"w.bin")
+    with pytest.raises(IntegrityError):
+        reject_external_data(model)  # the first layer
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    off = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
+    x = {"x": np.zeros(1, np.float32)}
+
+    control = ort.SessionOptions()  # without the pin: proves the model is a working external-data model
+    control.intra_op_num_threads = 1
+    control.graph_optimization_level = off
+    assert ort.InferenceSession(model, sess_options=control, providers=["CPUExecutionProvider"]).run(None, x)[0] == 7.0
+
+    for level in (off, ort.GraphOptimizationLevel.ORT_ENABLE_ALL):
+        options = _session_options(1, str(empty))
+        options.graph_optimization_level = level
+        with pytest.raises(Exception, match="does not exist"):
+            ort.InferenceSession(model, sess_options=options, providers=["CPUExecutionProvider"])
+
+
+def test_engine_pins_external_data_to_an_empty_private_dir(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[tuple[Path, list[Path]]] = []
+
+    def capture(model: Any, sess_options: Any, **k: Any) -> Any:
+        folder = Path(sess_options.get_session_config_entry("session.model_external_initializers_file_folder_path"))
+        seen.append((folder, list(folder.iterdir())))
+        raise RuntimeError("stop")
+
+    monkeypatch.setattr(ort, "InferenceSession", capture)
+    with pytest.raises(RuntimeError, match="stop"):
+        VitsOnnxEngine(MODEL, DEFAULTS, device="cpu", threads=1)
+    ((folder, contents),) = seen
+    assert contents == [] and folder != Path.cwd() and folder != MODEL.parent
+    assert not folder.exists()  # removed once the session is built

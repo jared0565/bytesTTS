@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import tempfile
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,7 +38,9 @@ _CUDA_ADVICE = (
 #   TensorProto: external_data = 13, data_location = 14 (DataLocation.EXTERNAL = 1)
 # ONNX Runtime 1.32.0 has no session option that refuses external data (none of its 105 config keys does;
 # session.model_external_initializers_file_folder_path only moves where the files are resolved), so this
-# check is the guard, and the session is built from bytes so ORT never holds a path to resolve against.
+# check is the guard. Behind it, the session is built from bytes with external data pinned to an empty private
+# directory: a model loaded from bytes resolves external data against the CWD (measured: with the optimizer off,
+# ORT read ./w.bin), and the pin makes any reference this scan missed resolve to nothing, at every level.
 # The scan must read the model exactly as ORT will:
 #   * ORT sniffs bytes 4..8 for "ORTM" and then loads its FlatBuffers format, which this scan cannot read.
 #     Such bytes are refused here, and the session pins session.load_model_format=ONNX (measured: a real
@@ -145,9 +148,10 @@ class VitsDefaults:
         )
 
 
-def _session_options(threads: int | None) -> Any:
+def _session_options(threads: int | None, external_data_dir: str) -> Any:
     options = ort.SessionOptions()
     options.add_session_config_entry("session.load_model_format", "ONNX")  # never sniff for FlatBuffers
+    options.add_session_config_entry("session.model_external_initializers_file_folder_path", external_data_dir)
     if threads is not None:  # as spike/ort_safe.py
         options.intra_op_num_threads = threads
         options.inter_op_num_threads = 1
@@ -180,7 +184,10 @@ class VitsOnnxEngine:
 
         model = Path(model_path).read_bytes()
         reject_external_data(model)  # before ONNX Runtime sees a single byte
-        self._session = ort.InferenceSession(model, sess_options=_session_options(threads), providers=providers)
+        with tempfile.TemporaryDirectory(prefix="bytestts-no-external-data-") as empty:  # read only while building
+            self._session = ort.InferenceSession(
+                model, sess_options=_session_options(threads, empty), providers=providers
+            )
 
         actual = self.provider
         if device == "cuda" and actual != _CUDA:
