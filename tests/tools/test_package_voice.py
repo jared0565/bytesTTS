@@ -16,6 +16,7 @@ from onnx import numpy_helper
 
 from bytestts import BytesTTS
 from bytestts.catalog.manifest import VoiceManifest, verify_package
+from bytestts.errors import IntegrityError
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -104,6 +105,14 @@ def test_speakers_are_carried(converted_multi: Path, tmp_path: Path) -> None:
     assert m.speakers == ["alice", "carol", "bob"] and "speakers.json" in m.files  # listed in id order
     tts = BytesTTS.load_path(tmp_path / "pkg", device="cpu", threads=TEST_THREADS)
     assert tts.synthesize("Hi.", speaker="bob").duration > 0
+
+
+def test_a_multi_speaker_model_needs_its_speakers(converted_multi: Path, tmp_path: Path) -> None:
+    # here because only this file builds a multi-speaker model: a package that drops its speakers is broken
+    package(converted_multi, tmp_path / "pkg")
+    edit_json(tmp_path / "pkg" / "voice.json", lambda m: m.update(speakers=[], featured=[]))
+    with pytest.raises(IntegrityError, match="speaker id"):
+        BytesTTS.load_path(tmp_path / "pkg", device="cpu", threads=TEST_THREADS)
 
 
 def test_vocabulary_must_fit_the_embedding(converted: Path, tmp_path: Path) -> None:

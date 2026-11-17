@@ -196,10 +196,11 @@ class VitsOnnxEngine:
             _log.warning("CUDA is listed but the session runs on %s; keeping CPU. %s", actual, _CUDA_ADVICE)
 
         self._needs_sid = "sid" in {i.name for i in self._session.get_inputs()}
+        # the model and its package's speakers.json disagree: the package is broken, whoever passed the mapping
         if self._needs_sid and not speakers:
-            raise ValueError("this model takes a speaker id: pass its speakers mapping")
+            raise IntegrityError("this model takes a speaker id, but its voice lists no speakers")
         if speakers and not self._needs_sid:
-            raise ValueError("this model has a single speaker, but a speakers mapping was given")
+            raise IntegrityError("this model has a single speaker, but its voice lists speakers")
         self._speakers = dict(speakers or {})
         self.defaults = defaults
 

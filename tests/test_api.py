@@ -152,6 +152,34 @@ def test_sample_rates_must_agree(tmp_path: Path) -> None:
         load(d)
 
 
+@pytest.mark.parametrize(
+    "edit",
+    [
+        lambda c: c.pop("use_phonemes"),  # a missing key
+        lambda c: c.__setitem__("characters", "abc"),  # a wrong type
+        lambda c: c.update(use_phonemes=True, phoneme_language=None),  # a phoneme voice with no phoneme language
+        lambda c: c["characters"].update(punctuations="!a"),  # "a" twice in the vocabulary, found by the frontend
+    ],
+    ids=["missing-key", "wrong-type", "no-phoneme-language", "duplicate-symbol"],
+)
+def test_bad_text_settings_are_an_integrity_error(tmp_path: Path, edit: Any) -> None:
+    # a pinned config.json can still be malformed: the error must be BytesTTS's (CLI exit 3), not KeyError & co.
+    d = copy_tree(TINY, tmp_path / "v")
+    edit_json(d / "config.json", edit)
+    repin(d, "config.json")
+    with pytest.raises(IntegrityError, match=r"config\.json"):
+        load(d)
+
+
+def test_speakers_for_a_single_speaker_model_refused(tmp_path: Path) -> None:
+    d = copy_tree(TINY, tmp_path / "v")  # the tiny model takes no speaker id
+    (d / "speakers.json").write_bytes(json.dumps({"a": 0, "b": 1}).encode())
+    repin(d, "speakers.json")
+    edit_json(d / "voice.json", lambda m: m.__setitem__("speakers", ["a", "b"]))
+    with pytest.raises(IntegrityError, match="single speaker"):
+        load(d)
+
+
 def test_fine_tuned_voice_exposes_its_card(tmp_path: Path) -> None:
     d = copy_tree(TINY, tmp_path / "v")
     card = {"consent": {"statement": "I, A. Speaker, consent."}, "speaker": "A. Speaker"}

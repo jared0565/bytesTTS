@@ -54,6 +54,15 @@ def _config(directory: Path, manifest: VoiceManifest) -> tuple[dict[str, Any], V
     return config, defaults
 
 
+def _frontend(config: Mapping[str, Any]) -> TextFrontend:
+    """The voice's text frontend. A malformed config.json is the package's fault: IntegrityError, not KeyError & co.
+    NotSupported (an unknown cleaner or symbol layout) and FrontendUnavailable (no espeak-ng) pass unchanged."""
+    try:
+        return TextFrontend(FrontendConfig.from_voice_config(config))
+    except (AttributeError, KeyError, TypeError, ValueError) as e:
+        raise IntegrityError(f"{CONFIG}: bad or missing text settings ({type(e).__name__}: {e})") from None
+
+
 class BytesTTS:
     """A loaded voice. Make one with `load` (a catalogue voice) or `load_path` (a voice package directory)."""
 
@@ -85,7 +94,7 @@ class BytesTTS:
         if engine_type is None:
             raise NotSupported(f"voice engine {manifest.engine!r} is not supported by this version of BytesTTS")
         config, defaults = _config(directory, manifest)
-        frontend = TextFrontend(FrontendConfig.from_voice_config(config))
+        frontend = _frontend(config)
         engine = engine_type(
             directory / "model.onnx",
             defaults,
