@@ -24,6 +24,20 @@ def test_clip() -> None:
     assert np.frombuffer(Audio(np.array([-2.0], np.float32), 8000).to_wav_bytes()[44:], "<i2")[0] == -32768
 
 
+def test_quantiser_scale_is_32768() -> None:  # the golden writer's scale; 32767 or 32769 shifts this sample
+    pcm = np.frombuffer(Audio(np.array([0.999], np.float32), 8000).to_wav_bytes()[44:], "<i2")
+    assert pcm.tolist() == [32735]
+
+
+def test_rate_one_is_valid() -> None:
+    assert Audio(np.zeros(1, np.float32), 1).sample_rate == 1
+
+
+def test_concat_zero_pause_is_valid() -> None:
+    a = Audio(np.ones(10, np.float32), 100)
+    assert concat([a, a], pause_s=0.0).samples.shape == (20,)
+
+
 def test_duration() -> None:
     assert Audio(np.zeros(22050, np.float32), 22050).duration == 1.0
 

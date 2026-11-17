@@ -104,6 +104,8 @@ disallow_untyped_calls = false
 disallow_any_generics = false
 warn_return_any = false
 
+# onnxruntime and pysbd ship no stubs. inflect does, but aramid's gate runs mypy on the machine
+# interpreter, which lacks it; `uv run mypy` (dev venv, CI) still checks it fully (Task 4 ledger).
 [[tool.mypy.overrides]]
-module = ["onnxruntime.*", "pysbd.*"]
+module = ["onnxruntime.*", "pysbd.*", "inflect", "inflect.*"]
 ignore_missing_imports = true

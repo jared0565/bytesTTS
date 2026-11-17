@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: MPL-2.0
 import ast
+import re
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,6 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def yaml_safe_load(path: Path) -> Any:
     return yaml.safe_load(path.read_text("utf-8"))
+
+
+# Attacker-controlled contexts (GitHub's "untrusted input" list): any github.event field and the PR head ref.
+_UNTRUSTED = re.compile(r"\$\{\{\s*github\.(event\b|head_ref\b)")
+
+
+def interpolates_untrusted(run: str) -> bool:
+    """True if a run script expands an untrusted context, however the expression is spaced."""
+    return bool(_UNTRUSTED.search(run))
 
 
 def _py_files(*dirs: str) -> list[Path]:
@@ -43,10 +54,26 @@ def test_spdx_headers() -> None:
         assert f.read_text("utf-8").startswith("# SPDX-License-Identifier: MPL-2.0"), f
 
 
+@pytest.mark.parametrize(
+    ("run", "untrusted"),
+    [
+        ('echo "${{ github.event.issue.title }}"', True),
+        ('echo "${{github.event.pull_request.body}}"', True),  # no spaces is the same expression
+        ('echo "${{   github.event.head_commit.message }}"', True),
+        ('git checkout "${{ github.head_ref }}"', True),  # the PR branch name is attacker-chosen
+        ('echo "${{ matrix.python }}"', False),
+        ('echo "${{ env.ESPEAK_TAG }}"', False),
+    ],
+)
+def test_untrusted_interpolation_detector(run: str, untrusted: bool) -> None:
+    assert interpolates_untrusted(run) is untrusted
+
+
 def test_workflows_do_not_interpolate_event_text_in_run() -> None:
-    wfs = list((ROOT / ".github" / "workflows").glob("*.yml"))
+    wf_dir = ROOT / ".github" / "workflows"
+    wfs = [*wf_dir.glob("*.yml"), *wf_dir.glob("*.yaml")]
     assert wfs  # an empty glob must not pass
     for wf in wfs:
         for job in yaml_safe_load(wf)["jobs"].values():
             for step in job.get("steps", []):
-                assert "${{ github.event" not in step.get("run", ""), (wf, step)
+                assert not interpolates_untrusted(step.get("run", "")), (wf, step)
