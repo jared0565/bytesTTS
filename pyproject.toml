@@ -13,8 +13,15 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
-# Core is exactly these five (plan, Global Constraints). PyTorch appears only in [train] and tools/.
-dependencies = ["onnxruntime", "numpy", "pysbd", "platformdirs", "requests"]
+# Core: the plan's five, plus inflect (MIT; English numbers, Task 4, 2026-11-17). PyTorch only in [train] and tools/.
+dependencies = [
+    "onnxruntime",
+    "numpy",
+    "pysbd",
+    "platformdirs",
+    "requests",
+    "inflect>=7.6.0",
+]
 
 [project.optional-dependencies]
 # onnxruntime-gpu only: users install CUDA 13 + cuDNN 9 themselves; no proprietary NVIDIA wheels here (P0.9).
