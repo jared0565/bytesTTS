@@ -3,12 +3,16 @@
 
 Every file is pinned by size and sha256 in the catalogue. A download goes to a unique `.part` file beside its
 destination, is verified, then renamed into place; on any failure the `.part` file is deleted. Redirects are
-followed by hand so that every hop is checked (https only; plain http only from 127.0.0.1 or localhost) before it
-is requested. Archives are never extracted.
+followed by hand so that every hop is checked before it is requested: https only, with plain http allowed only to
+127.0.0.1 or localhost (local test servers and mirrors). A hop that came from https may never go back to http, nor
+reach localhost or a non-global IP address, so a hostile redirect cannot send a request to a local or private
+service. A redirect to an https *hostname* that resolves to an internal address is not blocked (that would need
+DNS pinning); TLS then requires that host to present a valid certificate for the name. Archives are never extracted.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import tempfile
@@ -35,13 +39,28 @@ _HEADERS = {"Accept-Encoding": "identity"}
 Progress = Callable[[int, int], None]
 
 
-def _check_url(url: str) -> None:
+def _is_internal(host: str) -> bool:
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        return not ipaddress.ip_address(host).is_global  # loopback, private, link-local, unspecified, mapped
+    except ValueError:
+        return False  # a name: not resolved here
+
+
+def _check_url(url: str, *, after: str | None = None) -> None:
+    """Refuse `url` unless it may be requested; `after` is the URL that redirected to it, if any."""
     parts = urlsplit(url)
-    if parts.scheme == "https" and parts.hostname:
+    host = parts.hostname or ""
+    from_https = after is not None and urlsplit(after).scheme == "https"
+    if parts.scheme == "https" and host and not (from_https and _is_internal(host)):
         return
-    if parts.scheme == "http" and parts.hostname in _LOOPBACK:
+    if parts.scheme == "http" and host in _LOOPBACK and not from_https:
         return
-    raise ValueError(f"refusing to download {url!r}: https only (plain http only from 127.0.0.1 or localhost)")
+    raise ValueError(
+        f"refusing to download {url!r}: https only (plain http only to 127.0.0.1 or localhost)"
+        + (f", and a redirect from https may not go to http or inward (from {after!r})" if from_https else "")
+    )
 
 
 def _verified(path: Path, sha256: str, size: int) -> bool:
@@ -68,12 +87,13 @@ def _replace_into(part: Path, dest: Path, already_right: Callable[[], bool]) -> 
 
 
 def _fetch(url: str, out: BinaryIO, *, size: int, timeout: tuple[float, float], progress: Progress | None) -> None:
+    previous: str | None = None
     with requests.Session() as session:
         for _ in range(MAX_REDIRECTS + 1):
-            _check_url(url)  # every hop, before it is requested
+            _check_url(url, after=previous)  # every hop, before it is requested
             with session.get(url, stream=True, allow_redirects=False, timeout=timeout, headers=_HEADERS) as r:
                 if r.is_redirect:
-                    url = urljoin(url, r.headers["Location"])
+                    previous, url = url, urljoin(url, r.headers["Location"])
                     continue
                 r.raise_for_status()
                 announced = r.headers.get("Content-Length", "")

@@ -376,3 +376,55 @@ def test_no_part_files_survive_a_failed_voice(server: Server, home: Path, monkey
         ensure_voice("tiny")
     assert not [p for p in home.rglob("*") if p.name.endswith(".part")]
     assert os.path.isdir(home)
+
+
+# --- redirects out of https (the catalogue's own URLs) ---
+
+
+def _fake_https(monkeypatch: pytest.MonkeyPatch, redirects: dict[str, str]) -> list[str]:
+    """requests.Session.get answering each URL in `redirects` with a 302 there; any other URL is 'unreachable'."""
+    seen: list[str] = []
+
+    def get(self: requests.Session, url: str, **kw: Any) -> requests.Response:
+        seen.append(url)
+        if url not in redirects:
+            raise requests.ConnectionError("offline test")
+        r = requests.Response()
+        r.status_code, r.url, r._content_consumed = 302, url, True  # type: ignore[attr-defined]
+        r.headers["Location"] = redirects[url]
+        return r
+
+    monkeypatch.setattr(requests.Session, "get", get)
+    return seen
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "http://127.0.0.1:8080/admin",  # a downgrade into a local service
+        "http://localhost/admin",
+        "https://127.0.0.1/admin",
+        "https://localhost/admin",
+        "https://api.localhost/admin",
+        "https://10.0.0.1/admin",
+        "https://192.168.1.1/admin",
+        "https://169.254.169.254/latest/meta-data",  # cloud metadata
+        "https://[::1]/admin",
+        "https://[::ffff:127.0.0.1]/admin",
+        "https://0.0.0.0/admin",
+    ],
+)
+def test_https_never_redirects_inward(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
+    seen = _fake_https(monkeypatch, {"https://mirror.example/f": target})
+    with pytest.raises(ValueError):
+        download_file("https://mirror.example/f", tmp_path / "f", sha256=SHA, size=N)
+    assert seen == ["https://mirror.example/f"] and leftovers(tmp_path) == []  # the inward hop was never requested
+
+
+def test_https_redirects_to_other_public_hosts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = _fake_https(
+        monkeypatch, {"https://huggingface.co/f": "https://cdn-lfs.hf.co/f", "https://cdn-lfs.hf.co/f": "/g"}
+    )
+    with pytest.raises(requests.ConnectionError):
+        download_file("https://huggingface.co/f", tmp_path / "f", sha256=SHA, size=N)
+    assert seen == ["https://huggingface.co/f", "https://cdn-lfs.hf.co/f", "https://cdn-lfs.hf.co/g"]
