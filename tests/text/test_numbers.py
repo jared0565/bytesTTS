@@ -40,6 +40,12 @@ def test_16_digits_are_spoken_digit_by_digit() -> None:
         "1" * 5000 + "th",
         "1" * 2500 + "." + "2" * 2500,
         "-" + "7" * 5000,
+        # CPython's limit counts leading zeros; the cap does not (aramid llm-review 10b577d7)
+        "0" * 5000 + "1",
+        "$" + "0" * 5000 + "1",
+        "$1." + "0" * 5000 + "1",
+        "0" * 5000 + "1st",
+        "-" + "0" * 5000 + "1",
     ],
 )
 def test_long_runs_never_crash_and_stay_fast(text: str) -> None:

@@ -49,6 +49,12 @@ def _too_long(digits: str) -> bool:
     return len(digits.lstrip("0")) > MAX_NUMBER_DIGITS
 
 
+def _int(digits: str) -> int:
+    """int() of a digit string that passed _too_long. CPython's 4,300-digit limit counts leading zeros,
+    so they are stripped first: "000…0001" must not crash (aramid llm-review 10b577d7)."""
+    return int(digits.lstrip("0") or "0")
+
+
 def _remove_commas(m: re.Match[str]) -> str:
     return m.group(1).replace(",", "")
 
@@ -63,7 +69,7 @@ def _currency_amount(digits: str) -> tuple[bool, int | None, str]:
         return False, 0, "0"
     if _too_long(digits):
         return True, None, digits.lstrip("0")  # huge: plural unit; _number_re spells the digits later
-    value = int(digits)
+    value = _int(digits)
     return value > 0, value, str(value)
 
 
@@ -93,6 +99,8 @@ def _expand_ordinal(m: re.Match[str]) -> str:
     digits = m.group(0)[:-2]
     if _too_long(digits):
         return f"{_spell_digits(digits)} {m.group(1)}"
+    if len(digits) > MAX_NUMBER_DIGITS:  # zero-padded past the cap: don't hand inflect thousands of zeros
+        return str(_engine().number_to_words((digits.lstrip("0") or "0") + m.group(1)))
     return str(_engine().number_to_words(m.group(0)))
 
 
@@ -101,7 +109,7 @@ def _expand_number(m: re.Match[str]) -> str:
     digits = token.lstrip("-")
     if _too_long(digits):
         return ("minus " if token.startswith("-") else "") + _spell_digits(digits)
-    num = int(token)
+    num = -_int(digits) if token.startswith("-") else _int(digits)
     p = _engine()
     if 1000 < num < 3000:
         if num == 2000:
