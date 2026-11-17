@@ -1,0 +1,23 @@
+{
+  "approved": "2026-11-16",
+  "asr": {
+    "beam_size": 5,
+    "compute_type": "int8",
+    "model": "Systran/faster-whisper-large-v3",
+    "package": "faster-whisper==1.2.1",
+    "revision": "edaa852ec7e145841d8ffdb056a99866b5f0a478"
+  },
+  "comment": "Set before any measurement. cpu and cuda are the maintainer's reference machine, ci-cpu is a CI runner. A change needs the maintainer, with the measured value and the reason.",
+  "rtf": {
+    "ci-cpu": 1.0,
+    "cpu": 0.3,
+    "cuda": 0.05
+  },
+  "wer": {
+    "de": 0.15,
+    "en": 0.1,
+    "es": 0.15,
+    "fr": 0.15,
+    "it": 0.15
+  }
+}
