@@ -106,3 +106,31 @@ def test_workflows_do_not_interpolate_event_text_in_run() -> None:
         for job in yaml_safe_load(wf)["jobs"].values():
             for step in job.get("steps", []):
                 assert not interpolates_untrusted(step.get("run", "")), (wf, step)
+
+
+def test_uncapped_ort_session_is_refused() -> None:  # tests/conftest.py guard: this PC resets under all-core ORT
+    import onnxruntime as ort
+
+    with pytest.raises(pytest.fail.Exception, match="intra_op_num_threads"):
+        ort.InferenceSession(b"not a model")
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = 4
+    with pytest.raises(pytest.fail.Exception, match="intra_op_num_threads"):
+        ort.InferenceSession(b"not a model", sess_options=so)
+
+
+def test_capped_ort_session_reaches_onnx_runtime() -> None:
+    import onnxruntime as ort
+
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = 1
+    with pytest.raises(Exception) as e:  # any ORT parse error; only the guard's failure would be wrong
+        ort.InferenceSession(b"not a model", sess_options=so)
+    assert not isinstance(e.value, pytest.fail.Exception)
+
+
+def test_thread_environment_is_capped() -> None:
+    import os
+
+    for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+        assert os.environ.get(var) == "1", var
