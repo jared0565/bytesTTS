@@ -8,6 +8,10 @@ All notable changes to BytesTTS are recorded here. The format follows
 
 ### Security
 
+- The control panel's server listens on `127.0.0.1` only and answers only its own page: it checks `Host`, `Origin`
+  and `Sec-Fetch-Site`, requires a per-launch secret in the `Authorization` header (never a cookie), serves its
+  page under a strict Content-Security-Policy, and saves through one-use tickets, so no file path passes through
+  the page. Requests are not logged. See [Security model](docs/knowledge-base/security-model.md#the-control-panel).
 - `load_path` reads each voice file once and uses exactly the bytes it verified. Before, a file was hashed and then
   opened again, so a file swapped on disk in between could reach ONNX Runtime unverified.
 - Catalogue URLs with userinfo (`https://a@b/...`) are refused.
@@ -28,6 +32,14 @@ All notable changes to BytesTTS are recorded here. The format follows
 - **Library:** `BytesTTS.load_path` and `BytesTTS.load`, `synthesize` and `stream` with `speed` and `speaker`,
   `Audio` with WAV output, `VoiceInfo` and `list_voices`, and an error hierarchy under `BytesTTSError`.
 - **Command line:** `bytestts say`, `bytestts voices` and `bytestts download`, with stable exit codes.
+- **Control panel:** `bytestts gui` opens a local panel to choose, download, repair and inspect voices, speak a
+  text with speed, speaker, GPU and thread settings, play the result and save it as WAV. It opens its own window on
+  Windows (WebView2, through pywebview) and the browser elsewhere, or with `--browser`; `--no-window`, `--port`
+  and `--max-threads` (or `BYTESTTS_GUI_MAX_THREADS`) are the other options. It needs the new `gui` extra
+  (FastAPI, uvicorn, and pywebview on Windows).
+- **espeak-ng lookup:** on Windows, BytesTTS also finds espeak-ng in
+  `%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\`, where the documented `msiexec` command unpacks it, so
+  `BYTESTTS_ESPEAK` is no longer needed there.
 - **ONNX engine:** VITS on ONNX Runtime on CPU or CUDA, with `device="auto"` checking that CUDA really works, and
   `threads` to cap CPU use.
 - **Text frontend:** sentence splitting that stays linear on long texts, English cleaners with number, currency

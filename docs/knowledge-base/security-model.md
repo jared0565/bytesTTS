@@ -1,7 +1,7 @@
 # Security model
 
-BytesTTS downloads model files and runs a separate program (espeak-ng) on user text. This page describes what it
-trusts, what it checks, and where its protection ends. To report a problem, see [SECURITY.md](../../SECURITY.md).
+BytesTTS downloads model files and runs a separate program (espeak-ng) on user text, and its control panel runs a
+local web server. This page describes what it trusts, what it checks, and where its protection ends. To report a problem, see [SECURITY.md](../../SECURITY.md).
 
 ## What is trusted
 
@@ -63,6 +63,41 @@ built from the verified bytes, with ONNX Runtime's external-data directory point
   a redirect to a public internationalized name is refused too.
 - Archives are never extracted.
 
+## The control panel
+
+`bytestts gui` runs a small web server for its page. Every web page open in your browser can send requests to a
+server on your own computer, so the panel checks each request before acting on it.
+
+- **Loopback only.** The server listens on `127.0.0.1` and has no option to listen anywhere else. On Windows it
+  holds its port exclusively, so another program cannot listen on the same port.
+- **Its own address only.** The `Host` header must be `127.0.0.1:PORT` or `localhost:PORT`. This stops DNS
+  rebinding, where a web page's own hostname is made to point at `127.0.0.1`.
+- **Its own page only.** A request that carries an `Origin` header must carry the panel's own origin, and an API
+  request whose `Sec-Fetch-Site` header is present must say `same-origin`. No CORS headers are sent.
+- **A secret on every API call, in a header only.** Each launch makes a new random secret and puts it in the address
+  it prints. The page reads it once, keeps it in `sessionStorage`, removes it from the address bar, and sends it on
+  every API request as `Authorization: Bearer`; the server compares it in constant time. No cookie is set or read: a
+  cookie would also be sent with requests from pages on other `127.0.0.1` ports. Recordings reach the player
+  through `fetch` with the header, as blob URLs, never as a link an `<audio>` element could load without it.
+- **Strict input.** Request bodies are JSON with a size cap, and unknown fields are refused. The text, speed, voice,
+  speaker, device and threads are each checked. No field takes a file path.
+- **Saving without paths in the page.** In the window, the Save dialog is opened by Python, not by the page. The page
+  gets back a random ticket that can be used once and expires after 10 minutes, and sends the recording with it. The
+  server checks that the recording is a valid 16-bit PCM WAV, writes it to a temporary file beside the target, and
+  renames it into place. The page never sees the folder, and error messages name only the file.
+- **No bridge into Python.** The window gives the page no access to Python functions: the page talks to the server
+  exactly as a browser tab does, and the same checks apply. The window runs WebView2 in private mode, so nothing is
+  kept between launches, with its developer tools and reload keys turned off.
+- **The page's own rules.** The page, its script and its style sheet come from the installed package only, with
+  `Content-Security-Policy: default-src 'self'; media-src 'self' blob:; frame-ancestors 'none'`,
+  `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. The page has no inline script or style and
+  loads nothing from the internet. File names, error messages and voice attributions are inserted as text, never as
+  HTML, and links in attributions are shown as text with a Copy button, never opened.
+- **Nothing private in the terminal.** Requests are not logged, so neither the secret nor your text appears in the
+  terminal. Error replies are one line, never a traceback.
+- **One CPU task at a time.** A second task is refused (the page waits for the first instead), so the panel keeps at
+  most the Threads setting busy, plus one download.
+
 ## Known limits
 
 - **DNS.** A redirect to an https *hostname* that resolves to an internal address is not blocked; that would need
@@ -75,5 +110,8 @@ built from the verified bytes, with ONNX Runtime's external-data directory point
 - **Authenticity.** `load_path` verifies a package against its own manifest, so a package made by someone else is
   internally consistent, not endorsed. Catalogue voices are checked against the pins shipped inside BytesTTS.
 - **espeak-ng itself** processes your text. Keep it up to date from its official releases.
+- **The control panel guards against web pages, not against programs on your computer.** A program running under
+  your account can read the address the terminal printed, just as it can read your files. In the browser, an
+  extension allowed to read all sites can read the panel's page too.
 - **Generated speech** can imitate the voice it was trained on. Fine-tuned voices therefore require a consent
   statement. Do not use voices to deceive people.

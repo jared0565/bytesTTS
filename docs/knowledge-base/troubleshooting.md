@@ -7,7 +7,7 @@ Find the message you see, or the CLI exit code, and follow the fix. Every error 
 |---|---|---|
 | 2 | `NoSpeakableText`, usage errors | [Text and usage](#text-and-usage) |
 | 3 | `VoiceNotFound`, `IntegrityError`, `ConsentMissing` | [Voices](#voices) |
-| 4 | `FrontendUnavailable`, `NotSupported` | [espeak-ng](#espeak-ng), [GPU](#gpu), [Unsupported voices](#unsupported-voices) |
+| 4 | `FrontendUnavailable`, `NotSupported` | [espeak-ng](#espeak-ng), [GPU](#gpu), [Unsupported voices](#unsupported-voices), [Control panel](#control-panel) |
 | 1 | anything else | [Other failures](#other-failures) |
 | 130 | Ctrl+C | |
 
@@ -30,7 +30,7 @@ Use a speed from 0.5 (slower) to 2.0 (faster).
 
 **Numbers or symbols are read oddly.** The English voice expands numbers, currency, ordinals, years and common
 abbreviations; `:` and `;` become pauses, so `3:30` is read "three, thirty". Write the text the way it should be
-said ("half past three") when that matters. The [User Guide](../user-guide.md#6-how-text-is-spoken) lists the rules.
+said ("half past three") when that matters. The [User Guide](../user-guide.md#7-how-text-is-spoken) lists the rules.
 
 **Non-ASCII text comes out wrong from the CLI.** `bytestts say` reads text as UTF-8 bytes. Save files as UTF-8 (a
 BOM is fine). On Windows, `echo` in `cmd.exe` writes in the console code page, so prefer `--file` for non-ASCII
@@ -91,8 +91,9 @@ as described in [SECURITY.md](../../SECURITY.md).
 
 **`espeak-ng not found.`**, **`espeak-ng executable not found at …`**, **`no espeak-ng-data under …`**,
 **`espeak-ng failed (exit code …)`**, **`espeak-ng could not run: …`** (`FrontendUnavailable`, exit 4)
-See [Installing espeak-ng](espeak-ng.md#common-problems). The usual fix is setting `BYTESTTS_ESPEAK` (and, for the
-Windows unpacked layout or a custom Linux build, `BYTESTTS_ESPEAK_DATA`).
+See [Installing espeak-ng](espeak-ng.md#common-problems). On Windows, unpacking it into
+`%LOCALAPPDATA%\bytestts-tools\espeak-ng` is enough; installed elsewhere, set `BYTESTTS_ESPEAK` (and, for a custom
+Linux build, `BYTESTTS_ESPEAK_DATA`).
 
 ## GPU
 
@@ -114,6 +115,42 @@ The voice needs something this version of BytesTTS lacks. Upgrade BytesTTS, or u
 
 **`this engine cannot clone a voice from reference audio`** (`NotSupported`)
 VITS voices speak only as their trained speakers. Voice cloning is not available.
+
+## Control panel
+
+**`bytestts gui: the app window needs pywebview …; opening the browser instead`**, **`bytestts gui: the app window
+could not start: …`**, **`… did not load within 30 s`** (the panel opens in the browser instead)
+The window needs pywebview and the Microsoft Edge WebView2 Runtime. Install the extra with
+`pip install "bytestts[gui] @ git+https://github.com/jared0565/bytesTTS"`. If the message names WebView2, install
+the WebView2 Runtime from Microsoft (Windows 11 includes it). The panel works the same in the browser meanwhile.
+
+**`the control panel needs fastapi and uvicorn: …`** (`NotSupported`, exit 4)
+The `gui` extra is not installed. Install it as above.
+
+**`cannot listen on 127.0.0.1:N: …`** (exit 1)
+Another program, or another copy of the panel, is using that port. Leave out `--port` to let the system pick a free
+one, or choose another number.
+
+**`--max-threads must be from 1 to N …`**, **`BYTESTTS_GUI_MAX_THREADS must be a whole number from 1 to N …`**
+(exit 2)
+The thread cap must be between 1 and your number of CPU cores. Fix the option, or the variable in your environment.
+
+**The GPU switch is greyed out.** ONNX Runtime does not offer CUDA. The reason is shown beside the switch: install
+the `gpu` extra with the CUDA 13 runtime and cuDNN 9, as in [GPU and performance](gpu-and-performance.md).
+
+**The Threads box stops at a low number.** It stops at the panel's thread cap, shown beside it as "(max N)". The cap
+comes from `--max-threads` or `BYTESTTS_GUI_MAX_THREADS`; without either it is the number of CPU cores. See the
+[User Guide](../user-guide.md#threads).
+
+**`This panel's address has changed: open the address printed in the terminal.`**
+The page no longer holds the panel's current secret, usually because the panel was restarted (each launch makes a
+new one) or the address was opened without its `?s=...` part. Open the address the terminal printed last.
+
+**`That file is not UTF-8 text`**, **`… is larger than 1 MB`**
+Open text file reads UTF-8 text files of up to 1 MB. Save the file as UTF-8 in your editor, or split a longer text.
+
+**`the Save dialog is already open`** (in the window)
+Finish or cancel the Save dialog that is open; it may be behind the window.
 
 ## Other failures
 

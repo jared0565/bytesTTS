@@ -95,11 +95,26 @@ bytestts voices                      # what the catalogue offers
 bytestts download en-ljspeech        # fetch ahead of time, e.g. for offline use
 ```
 
+## Control panel
+
+A local window with buttons for everything above: choose and download a voice, type or open a text, set the
+speed, speaker, GPU and threads, then Speak, listen, and Save the recording as a WAV file.
+
+```
+pip install "bytestts[gui] @ git+https://github.com/jared0565/bytesTTS"
+bytestts gui
+```
+
+On Windows it opens its own window (it uses the Microsoft Edge WebView2 Runtime, which Windows 11 includes); on
+Linux, or with `--browser`, it opens in your web browser. It runs only on your computer: the panel listens on
+`127.0.0.1` and refuses requests that do not come from its own page. See
+[Control panel](docs/user-guide.md#5-control-panel) in the user guide.
+
 ## Documentation
 
 | Document | What it covers |
 |---|---|
-| [User Guide](docs/user-guide.md) | Installation, the Python API, the command line, voices, the cache, configuration |
+| [User Guide](docs/user-guide.md) | Installation, the control panel, the Python API, the command line, voices, the cache, configuration |
 | [Knowledge Base](docs/knowledge-base/README.md) | Troubleshooting, espeak-ng, GPU and performance, voices and licences, the security model, FAQ |
 | [Design](docs/design.md) | How BytesTTS works inside: the text frontend, the ONNX engine, voice packages, voice conversion |
 | [Voice licences](docs/licences.md) | Every voice's model licence, data licence and attribution |

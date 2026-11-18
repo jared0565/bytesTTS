@@ -1,19 +1,20 @@
 # BytesTTS User Guide
 
-This guide covers installing BytesTTS, speaking text from Python and from the command line, working with voices,
-and configuring the library. For problems, see the [Knowledge Base](knowledge-base/README.md); for how it works
+This guide covers installing BytesTTS, speaking text from the control panel, from Python and from the command line,
+working with voices, and configuring the library. For problems, see the [Knowledge Base](knowledge-base/README.md); for how it works
 inside, see [Design](design.md).
 
 - [1. Requirements](#1-requirements)
 - [2. Installation](#2-installation)
 - [3. Voices](#3-voices)
 - [4. Python API](#4-python-api)
-- [5. Command line](#5-command-line)
-- [6. How text is spoken](#6-how-text-is-spoken)
-- [7. Speed, speakers, devices and threads](#7-speed-speakers-devices-and-threads)
-- [8. Voice packages and the cache](#8-voice-packages-and-the-cache)
-- [9. Configuration reference](#9-configuration-reference)
-- [10. Logging](#10-logging)
+- [5. Control panel](#5-control-panel)
+- [6. Command line](#6-command-line)
+- [7. How text is spoken](#7-how-text-is-spoken)
+- [8. Speed, speakers, devices and threads](#8-speed-speakers-devices-and-threads)
+- [9. Voice packages and the cache](#9-voice-packages-and-the-cache)
+- [10. Configuration reference](#10-configuration-reference)
+- [11. Logging](#11-logging)
 
 ## 1. Requirements
 
@@ -52,12 +53,12 @@ This installs the `bytestts` package and the `bytestts` command.
    msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng
    ```
 
-3. Point BytesTTS at it (for the current window; use *System Properties > Environment Variables* to make it
-   permanent):
+BytesTTS looks in that folder by itself, so nothing else is needed. If you unpacked it somewhere else, point
+BytesTTS at it (for the current window; use *System Properties > Environment Variables* to make it permanent):
 
-   ```
-   set BYTESTTS_ESPEAK=%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe
-   ```
+```
+set BYTESTTS_ESPEAK=C:\path\to\eSpeak NG\espeak-ng.exe
+```
 
 **Linux:** install your distribution's `espeak-ng` package (`sudo apt install espeak-ng` on Debian and Ubuntu), or
 build the 1.52.0 tag from source for exactly the tested version.
@@ -225,7 +226,108 @@ except IntegrityError as e:
     print(f"The voice package is damaged: {e}")
 ```
 
-## 5. Command line
+## 5. Control panel
+
+The control panel puts the whole speech workflow behind buttons: choose and download a voice, type or open a text,
+Speak, listen, and Save the recording.
+
+### Installing and starting it
+
+```
+pip install "bytestts[gui] @ git+https://github.com/jared0565/bytesTTS"
+bytestts gui
+```
+
+The `gui` extra adds FastAPI and uvicorn, plus pywebview on Windows. `bytestts gui` prints the panel's address and
+opens it:
+
+- **On Windows**, in its own window titled BytesTTS. The window uses the Microsoft Edge WebView2 Runtime, which
+  Windows 11 includes; on Windows 10, install it from Microsoft if it is missing.
+- **On Linux**, or when the window cannot start, in your web browser. The terminal says why it fell back.
+
+```
+bytestts gui [--port N] [--browser | --no-window] [--max-threads N]
+```
+
+| Option | Effect |
+|---|---|
+| `--port N` | Listen on `127.0.0.1:N` instead of a free port the system picks. |
+| `--browser` | Open the panel in your web browser instead of the window. |
+| `--no-window` | Only print the address; open it yourself in a browser. |
+| `--max-threads N` | The most CPU threads the panel may use (see [Threads](#threads)). |
+
+The address looks like `http://127.0.0.1:PORT/?s=...`. The part after `?s=` is a secret made for this launch only:
+the panel answers only requests that carry it. The page removes it from the address bar as soon as it loads.
+
+The panel keeps running until you close the window, press **Quit**, or press Ctrl+C in the terminal. In the browser,
+closing the tab does not stop it: use **Quit**.
+
+### The controls
+
+| Control | What it does |
+|---|---|
+| **Voice** | The catalogue voices, marked *(downloaded)* or *(needs repair)*. |
+| **Download** | Shown while the selected voice is missing, with its size. Shows a progress bar in MB; **Cancel** stops it and removes the partial files. |
+| **Repair** | Shown instead of Download when a downloaded voice fails its integrity check. It fetches again only the files that fail. |
+| **(i)** | The voice's language, licence, data licence, size, sample rate and attribution. **Copy attribution** copies the credit text; links in it are shown as text, never opened. |
+| **Speaker** | The voice's speakers. Disabled for a voice with one speaker. |
+| **Speed** | 0.5 (slower) to 2.0 (faster) in steps of 0.05. **Reset** sets 1.00. |
+| **GPU** | Off runs on the CPU, on runs on CUDA. It is off at every launch, and greyed out with the reason when CUDA is not available (see [The GPU switch](#the-gpu-switch)). |
+| **Threads** | The CPU threads for one Speak, 1 at every launch. The box stops at the cap shown beside it. |
+| **Text** | Up to 5,000 characters, with a counter. Past 5,000 the counter turns red, Speak is disabled, and the status line says how many characters to remove. |
+| **Open text file** | Loads a UTF-8 text file of up to 1 MB into the box (a byte order mark is dropped). Other encodings are refused with "That file is not UTF-8 text". |
+| **Clear** | Empties the text box. |
+| **Speak** | Speaks the text, showing which sentence it is on. When it finishes, the recording loads into the player and plays. If the panel is busy with another task, Speak waits for it. |
+| **Stop** | Ends speaking after the current sentence, keeping the sentences already made, and stops playback. |
+| **Player** | Play and pause, a seek bar and volume, for the last recording. |
+| **Save** | Saves the recording as a WAV file (see [Saving](#saving)). |
+| **Status line** | Ready, the current task, or a one-line error with the same wording as the command line. |
+| **Quit** | Stops the panel and closes the window. In the browser the page then says the panel is closed. |
+
+When espeak-ng is missing, the status line shows how to install it at launch, and phoneme voices cannot speak until
+it is installed. Character voices such as `es-css10` work without it.
+
+### Saving
+
+Recordings are 16-bit PCM WAV files at the voice's sample rate, named after the voice and the time, for example
+`en-ljspeech 14-03-27.wav`.
+
+- **In the window**, Save opens the Windows Save dialog. It starts in your Documents folder, then in the folder you
+  last saved to. The name must end in `.wav`.
+- **In the browser**, Save downloads the file to the browser's download folder.
+
+A recording you have not saved is lost when the panel closes, so the panel asks first. Closing the window (its X,
+Alt+F4, or Ctrl+C in the terminal) asks "Close and lose unsaved recordings?", and **Quit** asks "Quit and lose the
+unsaved recording?". In the browser, leaving or reloading the page asks too. The window has no reload: F5 and Ctrl+R
+do nothing there. With the browser, Ctrl+C in the terminal stops the panel at once, without asking.
+
+### Threads
+
+The panel runs one CPU task at a time, with as many threads as the Threads box says. The box's maximum is the cap:
+
+1. `--max-threads N`, if given;
+2. otherwise the `BYTESTTS_GUI_MAX_THREADS` environment variable;
+3. otherwise the number of CPU cores.
+
+The cap must be a whole number from 1 to the number of cores; anything else stops `bytestts gui` with a usage
+error (exit 2). To keep the panel light on every launch, set the variable once (Windows):
+
+```
+setx BYTESTTS_GUI_MAX_THREADS 2
+```
+
+### The GPU switch
+
+The GPU switch is enabled only when ONNX Runtime offers CUDA, which needs the `gpu` extra, the CUDA 13 runtime and
+cuDNN 9 (see [GPU](#gpu) under Installation). Without them it stays greyed out with "GPU needs the [gpu] extra
+with CUDA 13 and cuDNN 9".
+
+### Not in this version
+
+The panel speaks one text at a time and saves WAV only. A Files list, Split and Merge, and saving in other formats
+are planned for a later version.
+
+## 6. Command line
 
 ```
 bytestts --version
@@ -284,7 +386,7 @@ Downloads a catalogue voice (or all of them with `--all`) into the cache ahead o
 
 Errors are printed as one line on standard error, never as a traceback.
 
-## 6. How text is spoken
+## 7. How text is spoken
 
 1. **Sentences.** The text is split into sentences with [pysbd](https://github.com/nipunsadvilkar/pySBD), in the
    voice's language when pysbd knows it and English otherwise. Long texts are split in windows, so time grows
@@ -307,7 +409,7 @@ Errors are printed as one line on standard error, never as a traceback.
    very long sentence without punctuation is spoken without running out of memory.
 6. **Synthesis.** Each chunk is one ONNX Runtime call; the results are joined with 0.45 s pauses between sentences.
 
-## 7. Speed, speakers, devices and threads
+## 8. Speed, speakers, devices and threads
 
 - **Speed.** `speed=2.0` speaks twice as fast, `0.5` half as fast. It scales the voice's own length setting, so the
   pitch does not change.
@@ -320,7 +422,7 @@ Errors are printed as one line on standard error, never as a traceback.
   from spinning, which keeps the rest of the machine responsive. Leaving it `None` is fastest on a dedicated
   machine.
 
-## 8. Voice packages and the cache
+## 9. Voice packages and the cache
 
 ### Package layout
 
@@ -347,17 +449,18 @@ or under `$BYTESTTS_HOME/voices/` when `BYTESTTS_HOME` is set. Each voice gets a
 its manifest, so an updated voice never mixes with an old one. Files already present and correct are reused; a damaged file is
 downloaded again. Deleting the cache directory is always safe.
 
-## 9. Configuration reference
+## 10. Configuration reference
 
 | Environment variable | Effect |
 |---|---|
 | `BYTESTTS_HOME` | Where downloaded voices are cached (default: the user cache directory above). |
-| `BYTESTTS_ESPEAK` | The espeak-ng executable. Default: `espeak-ng` on `PATH`. |
+| `BYTESTTS_ESPEAK` | The espeak-ng executable. Default: `espeak-ng` on `PATH`, then (Windows) `%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe`. |
 | `BYTESTTS_ESPEAK_DATA` | The directory that contains `espeak-ng-data`, when it is not beside the executable. |
+| `BYTESTTS_GUI_MAX_THREADS` | The control panel's thread cap, when `--max-threads` is not given (see [Threads](#threads)). |
 
 Everything else is an argument: `device`, `threads`, `speed`, `speaker` and `offline`.
 
-## 10. Logging
+## 11. Logging
 
 BytesTTS logs through the standard `logging` module under the `bytestts` logger and never prints from library
 code. Two warnings you may see: a character the voice cannot speak was dropped, and CUDA is installed but the session

@@ -22,18 +22,20 @@ No administrator rights are needed.
    ```
 
    This creates `%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\` with `espeak-ng.exe` and `espeak-ng-data\`.
-3. Tell BytesTTS where it is:
+   BytesTTS looks in that folder by itself, so nothing else is needed.
+3. Check it:
 
    ```
-   setx BYTESTTS_ESPEAK "%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe"
+   "%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe" --version
    ```
 
-   `setx` applies to new windows; use `set` instead for the current one only.
-4. Check it in a new window:
+If you unpacked it into another folder, tell BytesTTS where it is:
 
-   ```
-   "%BYTESTTS_ESPEAK%" --version
-   ```
+```
+setx BYTESTTS_ESPEAK "C:\path\to\eSpeak NG\espeak-ng.exe"
+```
+
+`setx` applies to new windows; use `set` instead for the current one only.
 
 If you install espeak-ng with the normal installer instead, its folder is usually added to `PATH` and BytesTTS finds
 it there.
@@ -72,6 +74,9 @@ Add the three `export` lines to your shell profile to keep them.
 2. Otherwise `espeak-ng` on `PATH`, searching **absolute `PATH` entries only**. The current directory, and empty or
    relative `PATH` entries, are never searched, so an `espeak-ng` file planted in a downloaded folder cannot run. On
    Windows only `espeak-ng.exe` counts (never a `.bat` or `.cmd`); on Linux the file must be executable.
+3. Otherwise, on Windows only, `%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe`, the folder the
+   steps above unpack into. `LOCALAPPDATA` must be an absolute path, so an unset or relative value never points the
+   lookup at the current directory.
 
 Its data directory (`espeak-ng-data`) is taken from:
 
@@ -93,7 +98,7 @@ Windows console code page. Each call has a 30-second time limit.
 
 | Message | Fix |
 |---|---|
-| `espeak-ng not found.` | Install espeak-ng and set `BYTESTTS_ESPEAK`, or put its folder on `PATH` as an absolute path. |
+| `espeak-ng not found.` | Install espeak-ng: on Windows, unpack it into the folder above; elsewhere set `BYTESTTS_ESPEAK`, or put its folder on `PATH` as an absolute path. |
 | `espeak-ng executable not found at ...` | `BYTESTTS_ESPEAK` points at a file that does not exist; check the path and quotes. |
 | `no espeak-ng-data under ...` | `BYTESTTS_ESPEAK_DATA` must be the folder that contains `espeak-ng-data`. |
 | `espeak-ng failed (exit code ...)` | Run `"%BYTESTTS_ESPEAK%" --version` (or `espeak-ng --version`) by hand; on Linux with a custom prefix, set `LD_LIBRARY_PATH`. |
