@@ -7,6 +7,7 @@ Every request passes the Guard (protection.py) first. Every error body is {"erro
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 import threading
 from importlib import resources
@@ -125,7 +126,13 @@ def create_app(*, port: int, secret: str, max_threads: int, session: Session, lo
 
     @app.exception_handler(Exception)
     async def failure(request: Request, exc: Exception) -> JSONResponse:
-        return _error(500, one_line(exc))
+        # the detail goes to the terminal only: an OS error's text can hold a path (aramid llm/a05)
+        if sys.stderr is not None:
+            print(
+                f"bytestts gui: unexpected error in {request.method} {request.url.path}: {one_line(exc)}",
+                file=sys.stderr,
+            )
+        return _error(500, f"the panel's server hit an unexpected error ({type(exc).__name__})")
 
     for path, (name, media_type) in _STATIC.items():
 
@@ -301,14 +308,20 @@ def create_app(*, port: int, secret: str, max_threads: int, session: Session, lo
             except saving.BadAudio as e:
                 return _error(400, one_line(e))
             where = target.parent if target is not None else None
-            fd, name = tempfile.mkstemp(prefix="bytestts-", suffix=".part" if target else ".wav", dir=where)
-            os.close(fd)
-            result = Path(name)
-            temporary.append(result)
-            saving.copy_wav(temporary[0], result)
-            if target is not None:
-                saving.replace_into_place(result, target)
-                return {"saved": target.name}
+            try:
+                fd, name = tempfile.mkstemp(prefix="bytestts-", suffix=".part" if target else ".wav", dir=where)
+                os.close(fd)
+                result = Path(name)
+                temporary.append(result)
+                saving.copy_wav(temporary[0], result)
+                if target is not None:
+                    saving.replace_into_place(result, target)
+                    return {"saved": target.name}
+            except OSError as e:
+                if target is None:
+                    raise
+                # the OS message holds the chosen path, which stays here under its ticket (aramid llm/a05)
+                return _error(500, f"could not save {target.name}: {e.strerror or type(e).__name__}")
             temporary.remove(result)  # the response deletes it once sent
             return FileResponse(
                 result, media_type="audio/wav", background=BackgroundTask(result.unlink, missing_ok=True)
