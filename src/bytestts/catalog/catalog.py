@@ -10,8 +10,9 @@ from importlib import resources
 from bytestts.catalog.manifest import VoiceManifest, parse_json
 from bytestts.errors import IntegrityError
 
-# Design 6.6: files are fetched from a commit, never a branch: https, /resolve/<40-hex sha>/, no query or fragment
-_PINNED_URL = re.compile(r"https://[^/?#\s]+/[^?#\s]*/resolve/[0-9a-f]{40}/[^?#\s]+")
+# Design 6.6: files are fetched from a commit, never a branch: https, /resolve/<40-hex sha>/, no query or fragment,
+# and no userinfo: in https://hf.co@x.example/... the host is x.example, which a reader of the catalogue would miss
+_PINNED_URL = re.compile(r"https://[^/?#@\s]+/[^?#\s]*/resolve/[0-9a-f]{40}/[^?#\s]+")
 
 
 @dataclass(frozen=True)

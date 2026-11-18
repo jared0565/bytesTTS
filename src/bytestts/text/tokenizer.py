@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-# Derived from Coqui TTS v0.22.0: TTS/tts/utils/text/characters.py (vocab construction),
+# Derived from Coqui TTS v0.22.0, TTS/tts/utils/text/characters.py (vocab construction),
 # TTS/tts/models/vits.py (VitsCharacters) and TTS/tts/utils/text/tokenizer.py (encode, blanks, bos/eos)
 """Phoneme text to token IDs, with the same IDs TTS-dev's tokenizer produces.
 

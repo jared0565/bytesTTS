@@ -22,7 +22,7 @@ _log = logging.getLogger(__name__)
 _CUDA, _CPU = "CUDAExecutionProvider", "CPUExecutionProvider"
 _CUDA_ADVICE = (
     "the CUDA execution provider is listed but the session runs on CPU: install CUDA 13 and cuDNN 9, "
-    "then reinstall onnxruntime-gpu after onnxruntime (P0.2: listed is not working)"
+    "then reinstall onnxruntime-gpu after onnxruntime"  # P0.2: being listed is not the same as working
 )
 
 # --- external-data refusal --------------------------------------------------------------------------------

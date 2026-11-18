@@ -109,6 +109,8 @@ def main(argv: list[str] | None = None) -> int:
     import torch
 
     torch.set_num_threads(1)
+    if torch.get_num_interop_threads() != 1:  # torch takes one set per process; a caller may have pinned it already
+        torch.set_num_interop_threads(1)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("converted", type=Path)
     ap.add_argument("out", type=Path)

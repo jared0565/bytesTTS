@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-# Derived from Coqui TTS v0.22.0 (the generator's checkpoint layout); the format here is safetensors only
+# Derived from Coqui TTS v0.22.0, TTS/tts/models/vits.py (the generator's checkpoint layout); safetensors only here
 """Save and load a VitsGenerator as generator.safetensors + model_config.json. No pickle, strict keys."""
 
 from __future__ import annotations
