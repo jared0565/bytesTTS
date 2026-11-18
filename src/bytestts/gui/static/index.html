@@ -3,8 +3,103 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BytesTTS</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
 </head>
 <body>
+<main id="panel" class="panel">
+  <header class="masthead">
+    <h1>BytesTTS</h1>
+    <span id="version" class="quiet"></span>
+  </header>
+
+  <section class="row" aria-label="Voice">
+    <label for="voice">Voice</label>
+    <select id="voice"></select>
+    <button id="download" type="button" hidden>Download</button>
+    <button id="repair" type="button" hidden>Repair</button>
+    <progress id="download-bar" max="1" value="0" aria-label="Download progress" hidden></progress>
+    <span id="download-text" class="quiet figures" hidden></span>
+    <button id="cancel" type="button" hidden>Cancel</button>
+    <button id="info" type="button" class="round" aria-label="About this voice">i</button>
+    <span class="gap"></span>
+    <label for="speaker">Speaker</label>
+    <select id="speaker"></select>
+  </section>
+
+  <section class="row" aria-label="Settings">
+    <label for="speed">Speed</label>
+    <input id="speed" type="range" min="0.5" max="2" step="0.05" value="1">
+    <output id="speed-value" for="speed" class="figures">1.00</output>
+    <button id="speed-reset" type="button">Reset</button>
+    <span class="gap"></span>
+    <input id="gpu" type="checkbox">
+    <label for="gpu">GPU</label>
+    <span id="gpu-reason" class="quiet"></span>
+    <span class="gap"></span>
+    <label for="threads">Threads</label>
+    <input id="threads" type="number" min="1" max="1" step="1" value="1">
+    <span id="threads-max" class="quiet figures"></span>
+  </section>
+
+  <section class="text-block" aria-label="Text">
+    <div class="text-head">
+      <label for="text">Text</label>
+      <span id="counter" class="figures">0 / 5000</span>
+    </div>
+    <textarea id="text" spellcheck="true" placeholder="Type or paste the text to speak."></textarea>
+    <div class="row">
+      <input id="file" type="file" accept=".txt,text/plain" class="visually-hidden">
+      <label for="file" class="button-like">Open text file</label>
+      <button id="clear" type="button">Clear</button>
+    </div>
+  </section>
+
+  <section class="row speak-row" aria-label="Speak">
+    <button id="speak" type="button" class="primary">Speak</button>
+    <button id="stop" type="button" disabled>Stop</button>
+    <span id="progress" class="figures"></span>
+  </section>
+
+  <section class="row player-row" aria-label="Player">
+    <audio id="player" controls></audio>
+    <button id="save" type="button" disabled>Save</button>
+  </section>
+
+  <footer class="row status-row">
+    <p id="status" class="status" role="status" data-state="busy">Starting</p>
+    <button id="quit" type="button">Quit</button>
+  </footer>
+</main>
+
+<div id="closed" class="closed" hidden>
+  <p>BytesTTS is closed. You can close this tab.</p>
+</div>
+
+<dialog id="info-dialog" aria-labelledby="info-title">
+  <h2 id="info-title"></h2>
+  <dl>
+    <dt>Language</dt><dd id="info-language"></dd>
+    <dt>Licence</dt><dd id="info-licence"></dd>
+    <dt>Data licence</dt><dd id="info-data-licence"></dd>
+    <dt>Size</dt><dd id="info-size" class="figures"></dd>
+    <dt>Sample rate</dt><dd id="info-rate" class="figures"></dd>
+    <dt>Attribution</dt><dd><span id="info-attribution"></span></dd>
+  </dl>
+  <form method="dialog" class="row dialog-buttons">
+    <button id="copy-attribution" type="button">Copy attribution</button>
+    <button type="submit">Close</button>
+  </form>
+</dialog>
+
+<dialog id="quit-dialog" aria-labelledby="quit-question">
+  <p id="quit-question">Quit and lose the unsaved recording?</p>
+  <form method="dialog" class="row dialog-buttons">
+    <button type="submit" value="stay">Keep working</button>
+    <button type="submit" value="quit" class="danger">Quit</button>
+  </form>
+</dialog>
 </body>
 </html>
