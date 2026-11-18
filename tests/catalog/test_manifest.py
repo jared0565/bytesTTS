@@ -14,6 +14,7 @@ from bytestts.catalog.manifest import (
     MAX_JSON_BYTES,
     FileEntry,
     VoiceManifest,
+    load_package,
     safe_name,
     sha256_file,
     verify_package,
@@ -50,6 +51,22 @@ def test_verify_ok() -> None:
     m = verify_package(TINY)
     assert (m.id, m.engine, m.origin, m.sample_rate) == ("tiny", "vits-onnx", "catalog", 22050)
     assert set(m.files) == {"model.onnx", "config.json"} and isinstance(m.files["model.onnx"], FileEntry)
+
+
+def test_load_package_holds_the_bytes_it_verified() -> None:
+    package = load_package(TINY)
+    assert package.manifest == verify_package(TINY)
+    assert set(package.data) == set(package.manifest.files)
+    for name, data in package.data.items():
+        assert data == (TINY / name).read_bytes(), name
+    assert package.json("config.json") == json.loads((TINY / "config.json").read_bytes())
+
+
+def test_pinned_json_keeps_the_size_cap(tmp_path: Path) -> None:  # pinning a file does not lift MAX_JSON_BYTES
+    d = copy_tree(TINY, tmp_path)
+    pin(d, "card.json", b'{"pad": "' + b"x" * MAX_JSON_BYTES + b'"}')
+    with pytest.raises(IntegrityError, match=r"card\.json is too large"):
+        load_package(d).json("card.json")
 
 
 def test_tamper_detected(tmp_path: Path) -> None:

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 import json
+import os
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -194,6 +196,44 @@ def test_fine_tuned_voice_without_consent_refused(tmp_path: Path) -> None:
     edit_json(d / "voice.json", lambda m: m.__setitem__("origin", "fine-tuned"))
     with pytest.raises(ConsentMissing):
         load(d)
+
+
+@pytest.mark.parametrize("card", [b"[1, 2]", b'"a card"', b"null"])
+def test_a_card_must_be_a_json_object(tmp_path: Path, card: bytes) -> None:  # a catalogue voice's card too
+    d = copy_tree(TINY, tmp_path / "v")
+    (d / "card.json").write_bytes(card)
+    repin(d, "card.json")
+    with pytest.raises(IntegrityError, match=r"card\.json must be a JSON object"):
+        load(d)
+
+
+_RECORDING: list[tuple[str, list[str]]] = []  # (directory, sink) while a test records opens
+
+
+def _record_opens(event: str, args: tuple[Any, ...]) -> None:  # an audit hook: io.open and os.open both raise it
+    if event == "open" and _RECORDING and isinstance(args[0], (str, bytes, os.PathLike)):
+        directory, sink = _RECORDING[-1]
+        path = os.path.normcase(os.path.abspath(os.fsdecode(args[0])))
+        if os.path.dirname(path) == directory:
+            sink.append(os.path.basename(path))
+
+
+sys.addaudithook(_record_opens)  # audit hooks cannot be removed; it is inert while _RECORDING is empty
+
+
+def test_each_package_file_is_read_once(tmp_path: Path) -> None:
+    """What is used is what was hashed: a file opened again after its check could have been swapped in between."""
+    d = copy_tree(TINY, tmp_path / "v")
+    (d / "card.json").write_bytes(b'{"speaker": "LJ"}')
+    repin(d, "card.json")
+    opened: list[str] = []
+    _RECORDING.append((os.path.normcase(os.path.abspath(d)), opened))
+    try:
+        load(d)
+    finally:
+        _RECORDING.clear()
+    listed = json.loads((d / "voice.json").read_bytes())["files"]
+    assert sorted(opened) == sorted(["voice.json", *listed])
 
 
 def test_listed_speakers_need_speakers_json_pinned(tmp_path: Path) -> None:
