@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a feature, a voice or a language
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The problem or use case, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How BytesTTS could support it, if you have an idea.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Anything you tried or considered instead.
+  - type: textarea
+    id: voice
+    attributes:
+      label: For a new voice
+      description: The source model, its licence, and the licence of the data it was trained on.

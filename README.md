@@ -1,55 +1,73 @@
 # BytesTTS
 
-Text-to-speech for Python: VITS voices on ONNX Runtime, as a library and a command-line tool. It runs on CPU or an
-NVIDIA GPU, on Windows and Linux, with Python 3.11 to 3.14. PyTorch is not needed to speak, only to convert or
-train voices.
+[![CI](https://github.com/jared0565/bytesTTS/actions/workflows/ci.yml/badge.svg)](https://github.com/jared0565/bytesTTS/actions/workflows/ci.yml)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
+![Python 3.11 | 3.12 | 3.13 | 3.14](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
 
-**Status: pre-release.** One English voice, `en-ljspeech`, is converted from Coqui TTS and verified against it.
-The downloadable voice catalogue opens once the voice files are published; until then a voice is loaded from a
-voice package directory (`--voice-path`, `BytesTTS.load_path`). BytesTTS is not on PyPI yet.
+Text-to-speech for Python: [VITS](https://arxiv.org/abs/2106.06103) voices running on ONNX Runtime, as a library
+and a command-line tool. It runs on CPU or an NVIDIA GPU, on Windows and Linux, with Python 3.11 to 3.14.
+PyTorch is not needed to speak, only to convert or train voices.
+
+```python
+from bytestts import BytesTTS
+
+tts = BytesTTS.load_path("voices/en-ljspeech")
+tts.synthesize("BytesTTS is working.").save("hello.wav")
+```
+
+## Features
+
+- **Small runtime.** Synthesis needs only `onnxruntime`, `numpy`, `pysbd`, `platformdirs`, `requests` and
+  `inflect`: no PyTorch, no compiler, no system packages besides espeak-ng for phoneme voices.
+- **Faithful voices.** Each voice's text is prepared exactly as it was in training (its cleaner, phonemes and
+  symbol set). The converted `en-ljspeech` voice is tested against Coqui TTS's own output: the PyTorch port matches
+  it with identical durations and a signal-to-error ratio of at least 60 dB, and the ONNX model matches the port
+  with identical durations and at least 50 dB.
+- **Safe by default.** No pickle is ever opened at run time. Every voice file is checked against a pinned SHA-256
+  before use, ONNX models that reference external files are refused, downloads are https-only on every redirect,
+  and espeak-ng gets text on standard input, never on its command line.
+- **Library and CLI.** `synthesize` for a whole text, `stream` for one sentence at a time, and `bytestts say` for
+  files, pipes and scripts, with clear exit codes.
+- **Clear licensing.** The library is MPL-2.0; every voice carries its model licence, data licence and required
+  credit.
+
+## Status
+
+**Pre-release (0.1.0, not yet on PyPI).** One English voice, `en-ljspeech`, is converted from Coqui TTS and
+verified against it. The downloadable voice catalogue opens once the voice files are published; until then a voice
+is loaded from a voice package directory with `BytesTTS.load_path` or `bytestts say --voice-path`. German,
+Spanish, French and Italian voices are planned. See the [changelog](CHANGELOG.md).
 
 ## Install
 
-From a clone of this repository:
+BytesTTS is installed from this repository:
 
 ```
-pip install .
+pip install "bytestts @ git+https://github.com/jared0565/bytesTTS"
 ```
 
-### CPU or GPU
+or from a clone with `pip install .`. Python 3.11 to 3.14 on Windows or Linux.
 
-The default install runs on CPU through `onnxruntime`. For an NVIDIA GPU:
+**espeak-ng.** Phoneme voices, `en-ljspeech` included, need [espeak-ng](https://github.com/espeak-ng/espeak-ng)
+**1.52.0**. On Windows, without administrator rights:
 
-1. Install the CUDA 13 runtime and cuDNN 9 for CUDA 13 from NVIDIA. BytesTTS does not bundle NVIDIA's libraries.
-2. Install the `gpu` extra, then reinstall `onnxruntime-gpu` so its files are the ones on disk (`onnxruntime` and
-   `onnxruntime-gpu` share files, and whichever is installed last wins):
+```
+msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng
+set BYTESTTS_ESPEAK=%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe
+```
 
-   ```
-   pip install ".[gpu]"
-   pip install --force-reinstall --no-deps onnxruntime-gpu
-   ```
+(`espeak-ng.msi` is on the [1.52.0 release page](https://github.com/espeak-ng/espeak-ng/releases/tag/1.52.0).) On
+Linux, install your distribution's `espeak-ng` package or build the `1.52.0` tag. Details:
+[Installing espeak-ng](docs/knowledge-base/espeak-ng.md).
 
-`device="auto"` (the default) uses CUDA when ONNX Runtime can actually run on it, and otherwise CPU, with a warning
-when CUDA is installed but cannot run. `device="cuda"` fails with advice instead of falling back.
+**NVIDIA GPU (optional).** Install the CUDA 13 runtime and cuDNN 9 from NVIDIA, then:
 
-### espeak-ng
+```
+pip install "bytestts[gpu] @ git+https://github.com/jared0565/bytesTTS"
+pip install --force-reinstall --no-deps onnxruntime-gpu
+```
 
-Voices that speak from phonemes, `en-ljspeech` included, need [espeak-ng](https://github.com/espeak-ng/espeak-ng).
-BytesTTS runs it as a separate program and passes text over standard input; it does not link to it. BytesTTS is
-tested with espeak-ng **1.52.0**; other versions may pronounce some words differently.
-
-- **Windows** (no administrator rights needed): download `espeak-ng.msi` from the
-  [1.52.0 release](https://github.com/espeak-ng/espeak-ng/releases/tag/1.52.0), unpack it, and point BytesTTS at it:
-
-  ```
-  msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng
-  set BYTESTTS_ESPEAK=%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe
-  ```
-
-- **Linux:** install your distribution's `espeak-ng` package, or build the `1.52.0` tag from source.
-
-BytesTTS looks for espeak-ng in `BYTESTTS_ESPEAK`, then on `PATH`. If its data is not next to the executable, set
-`BYTESTTS_ESPEAK_DATA` to the directory that contains `espeak-ng-data`.
+See [GPU and performance](docs/knowledge-base/gpu-and-performance.md) for why the second line is needed.
 
 ## Quick start
 
@@ -58,40 +76,48 @@ Python:
 ```python
 from bytestts import BytesTTS
 
-tts = BytesTTS.load_path("path/to/en-ljspeech")  # a voice package directory
-audio = tts.synthesize("BytesTTS is working.", speed=1.0)
-audio.save("hello.wav")
+tts = BytesTTS.load_path("path/to/en-ljspeech")      # a voice package directory
+audio = tts.synthesize("Hello there. How are you?", speed=1.0)
+audio.save("hello.wav")                               # 16-bit PCM WAV
+print(audio.duration, audio.sample_rate)
 
-for chunk in tts.stream("A longer text. One chunk per sentence."):
-    print(chunk.duration)
+for sentence in tts.stream("A longer text. One chunk per sentence."):
+    print(sentence.duration)                          # play or send each one as it is ready
 ```
 
 Command line:
 
 ```
 bytestts say "BytesTTS is working." --voice-path path/to/en-ljspeech -o hello.wav
-bytestts say --file story.txt --voice-path path/to/en-ljspeech -o - > story.wav
+bytestts say --file story.txt --voice-path path/to/en-ljspeech -o story.wav
+echo Hello from a pipe | bytestts say - --voice-path path/to/en-ljspeech -o - > hello.wav
 ```
 
-Once the catalogue is published, `--voice ID` and `BytesTTS.load(ID)` download a voice on first use and verify every
-file against its pinned SHA-256; `bytestts voices` lists the catalogue and `bytestts download` fetches voices ahead
-of time.
+## Documentation
 
-Useful options:
-
-- `speed` (0.5 to 2.0) and, for multi-speaker voices, `speaker`.
-- `threads` (`--threads N`, or `threads=` on `load`/`load_path`) caps the CPU threads ONNX Runtime uses. The
-  default lets ONNX Runtime choose, which is usually one thread per physical core.
-- `BYTESTTS_HOME` moves the voice cache.
+| Document | What it covers |
+|---|---|
+| [User Guide](docs/user-guide.md) | Installation, the Python API, the command line, voices, the cache, configuration |
+| [Knowledge Base](docs/knowledge-base/README.md) | Troubleshooting, espeak-ng, GPU and performance, voices and licences, the security model, FAQ |
+| [Design](docs/design.md) | How BytesTTS works inside: the text frontend, the ONNX engine, voice packages, voice conversion |
+| [Voice licences](docs/licences.md) | Every voice's model licence, data licence and attribution |
+| [Contributing](CONTRIBUTING.md) | Development setup, tests, code rules, pull requests |
+| [Security](SECURITY.md) | How to report a vulnerability |
+| [Changelog](CHANGELOG.md) | What changed in each version |
 
 ## Voices and licences
 
 The library is licensed under the [Mozilla Public License 2.0](LICENSE). Each voice is a separate download with its
-own model licence, data licence and required credit, listed in [docs/licences.md](docs/licences.md) and returned by
-`list_voices()` as `VoiceInfo.licence`, `.data_licence` and `.attribution`. Keep the attribution when you use or
+own model licence, data licence and required credit, listed in [docs/licences.md](docs/licences.md) and available
+in code as `VoiceInfo.licence`, `.data_licence` and `.attribution`. Keep the attribution when you use or
 redistribute a voice. Third-party credits are in [NOTICE](NOTICE).
 
-## More
+| Voice | Language | Model licence | Data licence |
+|---|---|---|---|
+| `en-ljspeech` | English (US) | Apache-2.0 | Public domain |
 
-[docs/design.md](docs/design.md) describes how BytesTTS works: the text frontend, the ONNX engine, voice packages
-and how voices are converted.
+## Contributing and support
+
+Bug reports and feature requests are welcome in [Issues](https://github.com/jared0565/bytesTTS/issues); please read
+the [contributing guide](CONTRIBUTING.md) before opening a pull request, and report security problems privately as
+described in [SECURITY.md](SECURITY.md).

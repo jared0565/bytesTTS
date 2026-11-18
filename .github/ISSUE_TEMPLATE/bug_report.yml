@@ -1,0 +1,64 @@
+name: Bug report
+description: Something does not work as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Check the [Troubleshooting](https://github.com/jared0565/bytesTTS/blob/main/docs/knowledge-base/troubleshooting.md) page first.
+        For a security problem, do not open an issue: see [SECURITY.md](https://github.com/jared0565/bytesTTS/blob/main/SECURITY.md).
+        Leave private text out of the report.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest code or command that shows the problem.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message
+      description: The full `error:` line or traceback, if any.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: BytesTTS version
+      description: Output of `bytestts --version`, or the commit you installed.
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: espeak
+    attributes:
+      label: espeak-ng version
+      description: Output of `espeak-ng --version`, for phoneme voices.
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: cpu or cuda; for cuda, the GPU, CUDA and cuDNN versions.

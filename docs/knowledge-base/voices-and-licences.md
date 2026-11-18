@@ -1,0 +1,78 @@
+# Voices and licences
+
+## What a voice is
+
+A BytesTTS voice is a trained [VITS](https://arxiv.org/abs/2106.06103) model exported to ONNX, plus everything
+needed to feed it text exactly as it was trained: its text cleaner, whether it reads phonemes or characters, its
+symbol set, and its default noise and length settings. A **voice package** holds these files:
+
+| File | Contents |
+|---|---|
+| `voice.json` | The manifest: id, version, language, engine, sample rate, licences, attribution, origin, and the SHA-256 and size of every other file |
+| `model.onnx` | The model |
+| `config.json` | The text and synthesis settings |
+| `speakers.json` | Speaker names to model speaker IDs (multi-speaker voices only) |
+| `card.json` | The voice card with its consent statement (fine-tuned voices only) |
+
+## Where voices come from
+
+Each voice has an **origin** in its `voice.json`:
+
+- **`catalog`**: published by BytesTTS. Today these are converted from [Coqui TTS](https://github.com/coqui-ai/TTS)
+  releases: the weights are converted, not retrained.
+- **`fine-tuned`**: a voice trained further on a person's recordings. These must carry a voice card with that
+  person's consent statement, and BytesTTS refuses to load one without it.
+
+### How a Coqui voice is converted (maintainers)
+
+Coqui's releases are PyTorch pickles, which can run code when they are opened. They are therefore converted once,
+by maintainers, inside an isolated sandbox with no network:
+
+1. The release archive is pinned by URL, size and SHA-256 in `tools/convert/sources.json` before it is opened.
+2. `tools/convert/convert_coqui.py` (sandbox only; it refuses to run on Windows) scans the pickle for unexpected
+   code, loads it with `torch.load(weights_only=True)`, checks every weight against BytesTTS's PyTorch port of
+   VITS, and writes safetensors and JSON.
+3. `tools/convert/package_voice.py` reads only the safetensors and JSON, exports `model.onnx`, and writes and
+   verifies the package.
+4. Parity tests check the result against Coqui's own output (identical durations, signal-to-error ratio ≥ 60 dB
+   for the PyTorch port; ≥ 50 dB for the ONNX model against the port).
+
+See [Design](../design.md#converting-voices-maintainers) for the details.
+
+## Available voices
+
+| Voice | Language | Speakers | Model licence | Data licence | Status |
+|---|---|---|---|---|---|
+| `en-ljspeech` | English (US) | 1 | Apache-2.0 | Public domain | Converted and parity-tested; files not yet published |
+
+Planned: German, Spanish, French and Italian voices. A voice is added to the [licence register](../licences.md)
+before it is added to the catalogue. A test checks that each register row matches its voice's manifest exactly.
+
+## Licences
+
+There are three separate licences to keep apart:
+
+1. **The BytesTTS code** is licensed under the [Mozilla Public License 2.0](../../LICENSE). You can use it in open
+   or closed software. If you change BytesTTS's own files and distribute them, those files stay under MPL-2.0.
+2. **Each voice's model** has its own licence: Apache-2.0 for `en-ljspeech`.
+3. **Each voice's training data** has its own licence: public domain for `en-ljspeech` (The LJ Speech Dataset).
+
+Each voice also has an **attribution**: the credit to keep when you use or redistribute the voice. All three
+strings ship in the voice's `voice.json`, and in code:
+
+```python
+from bytestts import list_voices
+
+for v in list_voices():
+    print(v.id, v.licence, v.data_licence)
+    print(v.attribution)
+```
+
+For a loaded voice, use `tts.info.licence`, `tts.info.data_licence` and `tts.info.attribution`.
+
+The full register, with sources and checksums, is [docs/licences.md](../licences.md). Third-party credits for the
+code (Coqui TTS, VITS) are in [NOTICE](../../NOTICE). espeak-ng is GPL-3.0-or-later. BytesTTS runs it as a
+separate program that you install yourself, and does not include it.
+
+This page explains how the licences fit together; it is not legal advice. Read each licence for what it actually
+requires.

@@ -1,0 +1,123 @@
+# Troubleshooting
+
+Find the message you see, or the CLI exit code, and follow the fix. Every error BytesTTS raises on purpose is a
+`BytesTTSError` subclass with a one-line message; the CLI prints it after `error:` and exits with the code below.
+
+| Exit code | Exception | Section |
+|---|---|---|
+| 2 | `NoSpeakableText`, usage errors | [Text and usage](#text-and-usage) |
+| 3 | `VoiceNotFound`, `IntegrityError`, `ConsentMissing` | [Voices](#voices) |
+| 4 | `FrontendUnavailable`, `NotSupported` | [espeak-ng](#espeak-ng), [GPU](#gpu), [Unsupported voices](#unsupported-voices) |
+| 1 | anything else | [Other failures](#other-failures) |
+| 130 | Ctrl+C | |
+
+## Text and usage
+
+**`the text has nothing this voice can speak`** (`NoSpeakableText`, exit 2)
+The text is empty, only whitespace or punctuation, or made only of characters the voice has no symbol for. Check
+what you passed; with `bytestts say -`, make sure something is actually piped in.
+
+**`character '…' (U+…) is not in the voice's vocabulary; dropped`** (a logged warning)
+The character was removed and the rest was spoken. It is logged once per character, and the text itself is never
+logged. Emoji and symbols from other scripts are the usual cause. Replace them before synthesis if they matter.
+
+**`speed must be between 0.5 and 2.0, not …`** (`ValueError`; exit 2 from the CLI)
+Use a speed from 0.5 (slower) to 2.0 (faster).
+
+**`threads must be an int >= 1 or None, not …`** (`ValueError`)
+`threads=0` is refused because ONNX Runtime would read it as "all cores". Use `None` for ONNX Runtime's default.
+
+**Numbers or symbols are read oddly.** English voices expand numbers, currency, ordinals, years and common
+abbreviations; `:` and `;` become pauses, so `3:30` is read "three, thirty". Write the text the way it should be
+said ("half past three") when that matters. The [User Guide](../user-guide.md#6-how-text-is-spoken) lists the rules.
+
+**Non-ASCII text comes out wrong from the CLI.** `bytestts say` reads text as UTF-8 bytes. Save files as UTF-8 (a
+BOM is fine). On Windows, `echo` in `cmd.exe` writes in the console code page, so prefer `--file` for non-ASCII
+text.
+
+## Voices
+
+**`unknown voice …`** (`VoiceNotFound`, exit 3)
+The id is not in the catalogue. Run `bytestts voices` to see what is available. The catalogue is empty until the
+voice files are published. Until then, use `--voice-path` with a voice package directory.
+
+**`… is not cached and offline mode is on`** (`VoiceNotFound`)
+`BytesTTS.load(..., offline=True)` never downloads. Download the voice once with `bytestts download ID` while
+online.
+
+**`speaker '…' is not in this voice`** / **`… this voice has a single speaker`** (`VoiceNotFound`)
+Check `tts.info.speakers`. A single-speaker voice takes no `speaker` argument.
+
+**`… is missing`**, **`… size is … bytes, the manifest pins …`**, **`… sha256 does not match the manifest`**
+(`IntegrityError`, exit 3)
+A file in the voice package was deleted, truncated or changed after the package was made. Re-copy or re-download
+the package. For a cached catalogue voice, delete its directory under the [cache](../user-guide.md#the-cache); it is
+downloaded again on next use.
+
+**`… is a symbolic link, which is refused`**, **`unsafe file name …`**, **`voice.json does not list …`**
+(`IntegrityError`)
+Voice packages must hold real files with plain names, all listed in `voice.json`. Copy the files rather than
+linking them.
+
+**`config.json: bad or missing text settings (…)`**, **`… synthesis settings`**, **`… must be a JSON object`**
+(`IntegrityError`)
+The package's `config.json` is damaged or was not made by BytesTTS's packager. Rebuild the package.
+
+**`the model stores tensors as external data …`**, **`the model is in ORT format …`**, **`malformed ONNX model …`**
+(`IntegrityError`)
+BytesTTS loads only self-contained ONNX models. It refuses models that point at files outside themselves, as a
+safety rule (see [Security model](security-model.md)). Re-export the model as a single `.onnx` file.
+
+**`this model takes a speaker id, but its voice lists no speakers`** (or the reverse) (`IntegrityError`)
+The model and the package's `speakers.json` disagree. The package is broken; rebuild it.
+
+**`a fine-tuned voice must list card.json …`**, **`card.json has no consent statement`** (`ConsentMissing`, exit 3)
+A voice marked as fine-tuned must carry a voice card with the speaker's consent statement, pinned in `voice.json`.
+BytesTTS will not load it without one.
+
+**`… the download does not match its pinned size and sha256`**, **`… sent more than the pinned … bytes`**
+(`IntegrityError`)
+The server sent something other than the published file. Nothing was kept. Try again later. If it repeats, report it
+as described in [SECURITY.md](../../SECURITY.md).
+
+## espeak-ng
+
+**`espeak-ng not found.`**, **`espeak-ng executable not found at …`**, **`no espeak-ng-data under …`**,
+**`espeak-ng failed (exit code …)`**, **`espeak-ng could not run: …`** (`FrontendUnavailable`, exit 4)
+See [Installing espeak-ng](espeak-ng.md#common-problems). The usual fix is setting `BYTESTTS_ESPEAK` (and, for the
+Windows unpacked layout or a custom Linux build, `BYTESTTS_ESPEAK_DATA`).
+
+## GPU
+
+**`CUDA execution provider not available`** (`NotSupported`, exit 4)
+`device="cuda"` was asked for, but the installed ONNX Runtime has no CUDA support. Install the `gpu` extra and
+reinstall `onnxruntime-gpu`, as in [GPU and performance](gpu-and-performance.md).
+
+**`the CUDA execution provider is listed but the session runs on CPU …`** (`NotSupported` with `device="cuda"`, a
+warning with `device="auto"`)
+The GPU build is installed but cannot start, usually because the CUDA 13 runtime or cuDNN 9 is missing or not on
+the library path. See [GPU and performance](gpu-and-performance.md#checking-the-gpu).
+
+## Unsupported voices
+
+**`voice engine '…' is not supported by this version of BytesTTS`**, **`text cleaner '…' is not supported`**,
+**`unsupported characters_class …`**, **`phonemizer '…' is not supported; only espeak-ng is`** (`NotSupported`,
+exit 4)
+The voice needs something this version of BytesTTS lacks. Upgrade BytesTTS, or use a voice made for this version.
+
+**`this engine cannot clone a voice from reference audio`** (`NotSupported`)
+VITS voices speak only as their trained speakers. Voice cloning is not available.
+
+## Other failures
+
+**Exit 1 with a network message.** A download failed: no connection, a proxy, or a TLS problem.
+
+**`refusing to download …: https only …`** Downloads use https, and every redirect is checked before it is
+followed. A redirect from https back to http, to `localhost` or to a private IP address is refused. Plain http is
+allowed only to `127.0.0.1` or `localhost`, for local mirrors. See [Security model](security-model.md#downloads).
+
+**It is slow, or the PC becomes unresponsive.** See [GPU and performance](gpu-and-performance.md).
+
+**Still stuck?** [Open an issue](https://github.com/jared0565/bytesTTS/issues/new/choose) with the full `error:`
+line, `bytestts --version`, your Python version, your operating system and, for phoneme voices,
+`espeak-ng --version`. Leave out any private text.

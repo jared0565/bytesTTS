@@ -2,6 +2,7 @@
 name = "bytestts"
 dynamic = ["version"]
 description = "Text-to-speech for Python: VITS voices on ONNX Runtime, as a library and a CLI"
+readme = "README.md"
 license = "MPL-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.11,<3.15"
@@ -22,6 +23,14 @@ dependencies = [
     "requests",
     "inflect>=7.6.0",
 ]
+
+keywords = ["text-to-speech", "tts", "speech-synthesis", "vits", "onnx", "onnxruntime"]
+
+[project.urls]
+Homepage = "https://github.com/jared0565/bytesTTS"
+Documentation = "https://github.com/jared0565/bytesTTS/blob/main/docs/user-guide.md"
+Issues = "https://github.com/jared0565/bytesTTS/issues"
+Changelog = "https://github.com/jared0565/bytesTTS/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 # onnxruntime-gpu only: users install CUDA 13 + cuDNN 9 themselves; no proprietary NVIDIA wheels here (P0.9).

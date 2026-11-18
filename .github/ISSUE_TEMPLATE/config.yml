@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/jared0565/bytesTTS/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.
+  - name: Knowledge Base
+    url: https://github.com/jared0565/bytesTTS/blob/main/docs/knowledge-base/README.md
+    about: Troubleshooting, espeak-ng, GPU, voices, licences and the FAQ.
