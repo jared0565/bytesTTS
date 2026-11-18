@@ -20,7 +20,7 @@ inside, see [Design](design.md).
 - Windows or Linux, 64-bit.
 - Python 3.11, 3.12, 3.13 or 3.14.
 - [espeak-ng](https://github.com/espeak-ng/espeak-ng) 1.52.0 for voices that speak from phonemes (`en-ljspeech`
-  does). Voices that use plain characters do not need it.
+  does). Voices that read plain characters, such as `es-css10` and `fr-css10`, do not need it.
 - Optional: an NVIDIA GPU with the CUDA 13 runtime and cuDNN 9.
 
 ## 2. Installation
@@ -87,7 +87,7 @@ python -c "import bytestts; print(bytestts.__version__)"
 
 A **voice** is a trained model plus the settings that turn text into its input. BytesTTS loads voices from **voice
 packages**: a directory holding `voice.json` (the manifest), `model.onnx` and `config.json`, and `speakers.json` for
-voices with several speakers. Every file is checked against the SHA-256 and size in `voice.json` before it is used.
+voices with a speaker table. Every file is checked against the SHA-256 and size in `voice.json` before it is used.
 
 There are two ways to get a voice:
 
@@ -103,6 +103,8 @@ Available voices:
 | Voice | Language | Speakers | Size | Model licence | Data licence | Files |
 |---|---|---|---|---|---|---|
 | `en-ljspeech` | English (US) | 1 | 114.3 MB | Apache-2.0 | Public domain | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) |
+| `es-css10` | Spanish | 1 (`tux`) | 70.9 MB | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-es-css10) |
+| `fr-css10` | French | 1 (`gilles`) | 70.9 MB | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-fr-css10) |
 
 Each voice has its own licence and required attribution: see [Voices and licences](knowledge-base/voices-and-licences.md)
 and [docs/licences.md](licences.md).
@@ -158,7 +160,8 @@ tts.stream(text, *, speaker=None, speed=1.0) -> Iterator[Audio]
   whole text is done. Its arguments, and the text itself, are checked when you call it, not when you start
   iterating.
 - `speed` is from 0.5 (slower) to 2.0 (faster); anything else raises `ValueError`.
-- `speaker` picks a speaker of a multi-speaker voice; for a single-speaker voice leave it `None`.
+- `speaker` picks a speaker of a multi-speaker voice; for a single-speaker voice leave it `None` (or pass its one
+  listed name).
 
 ```python
 from bytestts import BytesTTS
@@ -291,6 +294,12 @@ Errors are printed as one line on standard error, never as a traceback.
    ninety nine", `21st` becomes "twenty first"), common abbreviations (`Dr.` becomes "doctor", `Co.` "company")
    and symbols (`&` becomes "and"; `;` and `:` become commas, so `3:30` is read "three, thirty"). Numbers longer
    than 15 digits are read digit by digit.
+
+   The Spanish and French voices (`multilingual_cleaners`) lowercase the text, turn `;` and `:` into commas and
+   hyphens into spaces, and drop brackets and double quotes. They expand nothing. Their alphabets have no digits, so
+   digits are dropped with a warning: write numbers as words ("dos euros con cincuenta", "deux euros cinquante").
+   Typographic apostrophes (’ and ‘) are read as `'`. Characters such as `¿`, `¡`, `«` and `»` are not in their
+   alphabets either and are dropped, as Coqui TTS drops them.
 3. **Phonemes or characters.** Phoneme voices send the cleaned text to espeak-ng; character voices use it as is.
 4. **Tokens.** Symbols are mapped to the voice's token IDs. A character the voice has no symbol for is dropped, with
    one logged warning per character (emoji, for example). If nothing speakable remains, `NoSpeakableText` is raised.
@@ -320,7 +329,7 @@ Errors are printed as one line on standard error, never as a traceback.
 | `voice.json` | The manifest: `id`, `version`, `language`, `engine`, `sample_rate`, `licence`, `data_licence`, `attribution`, `origin`, `files` (each file's `sha256` and `size`), `speakers`, `featured` |
 | `model.onnx` | The exported VITS generator |
 | `config.json` | The text settings (cleaner, phonemes, symbol set) and default noise and length scales |
-| `speakers.json` | Speaker names to model speaker IDs (multi-speaker voices only) |
+| `speakers.json` | Speaker names to model speaker IDs (voices with a speaker table only) |
 | `card.json` | The voice card with its consent statement (fine-tuned voices only) |
 
 `load_path` reads only files that `voice.json` lists, and refuses file names that are not plain names, symbolic

@@ -11,7 +11,7 @@ symbol set, and its default noise and length settings. A **voice package** holds
 | `voice.json` | The manifest: id, version, language, engine, sample rate, licences, attribution, origin, and the SHA-256 and size of every other file |
 | `model.onnx` | The model |
 | `config.json` | The text and synthesis settings |
-| `speakers.json` | Speaker names to model speaker IDs (multi-speaker voices only) |
+| `speakers.json` | Speaker names to model speaker IDs (voices with a speaker table only) |
 | `card.json` | The voice card with its consent statement (fine-tuned voices only) |
 
 ## Where voices come from
@@ -44,11 +44,13 @@ See [Design](../design.md#converting-voices-maintainers) for the details.
 | Voice | Language | Speakers | Model licence | Data licence | Files |
 |---|---|---|---|---|---|
 | `en-ljspeech` | English (US) | 1 | Apache-2.0 | Public domain | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), 114.3 MB |
+| `es-css10` | Spanish | 1 | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-es-css10), 70.9 MB |
+| `fr-css10` | French | 1 | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-fr-css10), 70.9 MB |
 
 Catalogue files are downloaded from a Hugging Face commit named in BytesTTS's own catalogue, never from a branch,
 so a later change to that repository cannot change what an installed BytesTTS downloads.
 
-Planned: German, Spanish, French and Italian voices. A voice is added to the [licence register](../licences.md)
+Planned: German and Italian voices. A voice is added to the [licence register](../licences.md)
 before it is added to the catalogue. A test checks that each register row matches its voice's manifest exactly.
 
 ## Licences
@@ -57,8 +59,13 @@ There are three separate licences to keep apart:
 
 1. **The BytesTTS code** is licensed under the [Mozilla Public License 2.0](../../LICENSE). You can use it in open
    or closed software. If you change BytesTTS's own files and distribute them, those files stay under MPL-2.0.
-2. **Each voice's model** has its own licence: Apache-2.0 for `en-ljspeech`.
-3. **Each voice's training data** has its own licence: public domain for `en-ljspeech` (The LJ Speech Dataset).
+2. **Each voice's model** has its own licence: Apache-2.0 for `en-ljspeech`, BSD-3-Clause for `es-css10` and
+   `fr-css10`.
+3. **Each voice's training data** has its own licence: public domain for `en-ljspeech` (The LJ Speech Dataset),
+   CC0-1.0 for `es-css10` and `fr-css10` (CSS10, whose recordings are public-domain LibriVox audiobooks).
+
+BSD-3-Clause asks that a redistribution in binary form reproduce its copyright notice, conditions and disclaimer.
+For the Spanish and French models these are in [NOTICE](../../NOTICE) and on each voice's model card.
 
 Each voice also has an **attribution**: the credit to keep when you use or redistribute the voice. All three
 strings ship in the voice's `voice.json`, and in code:

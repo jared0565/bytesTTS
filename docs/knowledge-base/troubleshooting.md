@@ -20,6 +20,7 @@ what you passed; with `bytestts say -`, make sure something is actually piped in
 **`character '…' (U+…) is not in the voice's vocabulary; dropped`** (a logged warning)
 The character was removed and the rest was spoken. It is logged once per character, and the text itself is never
 logged. Emoji and symbols from other scripts are the usual cause. Replace them before synthesis if they matter.
+With the Spanish and French voices, digits and `¿ ¡ « »` are dropped this way too: write numbers as words.
 
 **`speed must be between 0.5 and 2.0, not …`** (`ValueError`; exit 2 from the CLI)
 Use a speed from 0.5 (slower) to 2.0 (faster).
@@ -27,7 +28,7 @@ Use a speed from 0.5 (slower) to 2.0 (faster).
 **`threads must be an int >= 1 or None, not …`** (`ValueError`)
 `threads=0` is refused because ONNX Runtime would read it as "all cores". Use `None` for ONNX Runtime's default.
 
-**Numbers or symbols are read oddly.** English voices expand numbers, currency, ordinals, years and common
+**Numbers or symbols are read oddly.** The English voice expands numbers, currency, ordinals, years and common
 abbreviations; `:` and `;` become pauses, so `3:30` is read "three, thirty". Write the text the way it should be
 said ("half past three") when that matters. The [User Guide](../user-guide.md#6-how-text-is-spoken) lists the rules.
 
@@ -38,7 +39,8 @@ text.
 ## Voices
 
 **`unknown voice …`** (`VoiceNotFound`, exit 3)
-The id is not in the catalogue. Run `bytestts voices` to see what is available (today: `en-ljspeech`). For a voice
+The id is not in the catalogue. Run `bytestts voices` to see what is available (today: `en-ljspeech`, `es-css10`
+and `fr-css10`). For a voice
 package directory, use `--voice-path` (or `BytesTTS.load_path`) instead of `--voice`.
 
 **`… is not cached and offline mode is on`** (`VoiceNotFound`)

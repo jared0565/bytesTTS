@@ -10,7 +10,14 @@ the conversion tools described in [Design](../design.md#converting-voices-mainta
 
 ### Which languages are supported?
 
-English today (`en-ljspeech`, US English). German, Spanish, French and Italian voices are planned.
+English (`en-ljspeech`, US English), Spanish (`es-css10`) and French (`fr-css10`). German and Italian voices are
+planned.
+
+### Why are numbers skipped in Spanish or French?
+
+The Spanish and French voices' alphabets have no digits, and their text cleaner expands nothing, so a digit is
+dropped with a warning. Write numbers as words ("dos euros con cincuenta", "deux euros cinquante").
+Expanding numbers for these languages is planned. The English voice expands numbers itself.
 
 ### Do I need PyTorch?
 
@@ -19,7 +26,8 @@ used to convert and export voices.
 
 ### Do I need espeak-ng?
 
-Only for voices that speak from phonemes, which includes `en-ljspeech`. See [Installing espeak-ng](espeak-ng.md).
+Only for voices that speak from phonemes, which includes `en-ljspeech`. The Spanish and French voices read
+characters and do not need it. See [Installing espeak-ng](espeak-ng.md).
 BytesTTS is tested with espeak-ng 1.52.0.
 
 ### Does it work offline?
@@ -38,7 +46,7 @@ It is built and tested on Windows and Linux only. It may work on macOS, but that
 
 ### What audio format does it produce?
 
-`Audio` holds mono float32 samples at the voice's sample rate (22,050 Hz for `en-ljspeech`). `save` and
+`Audio` holds mono float32 samples at the voice's sample rate (22,050 Hz for every catalogue voice). `save` and
 `to_wav_bytes` write 16-bit PCM WAV. To get another format, convert the WAV with a tool such as ffmpeg, or pass
 `audio.samples` to an audio library.
 
@@ -65,7 +73,7 @@ No. VITS voices speak only as the speakers they were trained on.
 The BytesTTS code is MPL-2.0, which allows use in commercial and closed-source software, provided BytesTTS's own
 files that you change stay under MPL-2.0. Each voice has its own model and data licence and an attribution to
 keep: see [Voices and licences](voices-and-licences.md). `en-ljspeech` is Apache-2.0 (model) and public domain
-(data). This is not legal advice.
+(data); `es-css10` and `fr-css10` are BSD-3-Clause (model) and CC0-1.0 (data). This is not legal advice.
 
 ### Is it thread-safe?
 

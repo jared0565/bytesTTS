@@ -20,8 +20,8 @@ tts.synthesize("BytesTTS is working.").save("hello.wav")
 - **Small runtime.** Synthesis needs only `onnxruntime`, `numpy`, `pysbd`, `platformdirs`, `requests` and
   `inflect`: no PyTorch, no compiler, no system packages besides espeak-ng for phoneme voices.
 - **Faithful voices.** Each voice's text is prepared exactly as it was in training (its cleaner, phonemes and
-  symbol set). The converted `en-ljspeech` voice is tested against Coqui TTS's own output: the PyTorch port matches
-  it with identical durations and a signal-to-error ratio of at least 60 dB, and the ONNX model matches the port
+  symbol set). Every catalogue voice is tested against Coqui TTS's own output: the PyTorch port matches it with
+  identical durations and a signal-to-error ratio of at least 60 dB, and the ONNX model matches the port
   with identical durations and at least 50 dB.
 - **Safe by default.** No pickle is ever opened at run time. Every voice file is checked against a pinned SHA-256
   before use, ONNX models that reference external files are refused, downloads are https-only on every redirect,
@@ -33,10 +33,10 @@ tts.synthesize("BytesTTS is working.").save("hello.wav")
 
 ## Status
 
-**Pre-release (0.1.0, not yet on PyPI).** The catalogue has one English voice, `en-ljspeech`, converted from Coqui
-TTS and tested against it. It downloads on first use from
-[Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), pinned to a commit and checked by SHA-256.
-German, Spanish, French and Italian voices are planned. See the [changelog](CHANGELOG.md).
+**Pre-release (0.1.0, not yet on PyPI).** The catalogue has three voices, converted from Coqui TTS and tested
+against it: `en-ljspeech` (US English), `es-css10` (Spanish) and `fr-css10` (French). Each downloads on first use
+from its own Hugging Face repository, pinned to a commit and checked by SHA-256. German and Italian voices are
+planned. See the [changelog](CHANGELOG.md).
 
 ## Install
 
@@ -49,7 +49,7 @@ pip install "bytestts @ git+https://github.com/jared0565/bytesTTS"
 or from a clone with `pip install .`. Python 3.11 to 3.14 on Windows or Linux.
 
 **espeak-ng.** Phoneme voices, `en-ljspeech` included, need [espeak-ng](https://github.com/espeak-ng/espeak-ng)
-**1.52.0**. On Windows, without administrator rights:
+**1.52.0**; the Spanish and French voices read characters and do not. On Windows, without administrator rights:
 
 ```
 msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng
@@ -117,6 +117,10 @@ redistribute a voice. Third-party credits are in [NOTICE](NOTICE).
 | Voice | Language | Model licence | Data licence |
 |---|---|---|---|
 | [`en-ljspeech`](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) | English (US) | Apache-2.0 | Public domain |
+| [`es-css10`](https://huggingface.co/fbmacagba/bytestts-es-css10) | Spanish | BSD-3-Clause | CC0-1.0 |
+| [`fr-css10`](https://huggingface.co/fbmacagba/bytestts-fr-css10) | French | BSD-3-Clause | CC0-1.0 |
+
+The Spanish and French voices cannot read digits: write numbers as words ("dos euros con cincuenta").
 
 ## Contributing and support
 

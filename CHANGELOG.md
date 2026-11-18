@@ -41,5 +41,16 @@ All notable changes to BytesTTS are recorded here. The format follows
 - **`en-ljspeech`:** converted from Coqui TTS, checked against Coqui's own output by parity tests, and published in
   the catalogue: `BytesTTS.load("en-ljspeech")` downloads it from
   [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), pinned to commit `8ec2c68`.
+- **`es-css10` and `fr-css10`:** Spanish and French voices converted from Coqui TTS (trained on CSS10), checked
+  against Coqui's own output by parity tests, and published in the catalogue from
+  [fbmacagba/bytestts-es-css10](https://huggingface.co/fbmacagba/bytestts-es-css10) and
+  [fbmacagba/bytestts-fr-css10](https://huggingface.co/fbmacagba/bytestts-fr-css10), pinned to commits `797e2a7`
+  and `0e41251`. They read characters, so they need no espeak-ng. They cannot read digits: write numbers
+  as words.
+- **Voice conversion:** Coqui voices with a language embedding and one language convert and export, with the
+  language fixed inside the model; voices with several languages are refused. A speaker table is sized from the
+  archive's `speaker_ids.json`.
+- **Text frontend:** `multilingual_cleaners`, and typographic apostrophes (’ and ‘) read as `'` by character voices
+  whose alphabet has only the ASCII one.
 - **Documentation:** README, user guide, knowledge base, design notes and the voice licence register.
 - **CI:** Windows and Linux, Python 3.11 to 3.14, against espeak-ng 1.52.0 built from a verified commit.

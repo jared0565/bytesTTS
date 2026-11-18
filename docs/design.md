@@ -16,7 +16,7 @@ Inference needs no PyTorch: the core dependencies are `onnxruntime`, `numpy`, `p
 ```
 text ─▶ cleaners and number expansion ─▶ sentence split (pysbd)
      ─▶ phonemes from espeak-ng over stdin, or characters ─▶ token IDs (chunks of at most 500)
-     ─▶ ONNX Runtime: input, input_lengths, scales [noise, length, noise_dp], sid for multi-speaker voices
+     ─▶ ONNX Runtime: input, input_lengths, scales [noise, length, noise_dp], sid for voices with a speaker table
      ─▶ float32 waveform per chunk ─▶ joined with short pauses ─▶ Audio
 ```
 
@@ -40,7 +40,7 @@ A **voice package** is a directory:
 | `voice.json` | The manifest: id, version, language, engine, sample rate, speakers, licences, attribution, and each file's SHA-256 and size |
 | `model.onnx` | The exported generator |
 | `config.json` | The text frontend settings and default scales |
-| `speakers.json` | Speaker names to IDs, for multi-speaker voices |
+| `speakers.json` | Speaker names to IDs, for voices with a speaker table |
 
 `BytesTTS.load_path` reads every file once, checks its size and SHA-256 against `voice.json`, and then uses those
 exact bytes: no file is opened again after its check, so nothing can be swapped in between.
@@ -69,9 +69,14 @@ archive ─sha256 pin─▶ [sandbox: scan the pickle for unexpected globals ─
   support yet. It writes nothing unless the whole conversion succeeds.
 - `tools/convert/package_voice.py` runs on the maintainer's machine from safetensors and JSON only, exports
   `model.onnx`, and writes and verifies the package.
-- The PyTorch port is derived from Coqui TTS v0.22.0 (see `NOTICE`). For `en-ljspeech`, the port reproduces Coqui
-  TTS's own output on a fixed set of sentences with identical durations and a signal-to-error ratio of at least
-  60 dB, and the ONNX model reproduces the port at 50 dB or better.
+- The PyTorch port is derived from Coqui TTS v0.22.0 (see `NOTICE`). For every catalogue voice, the port
+  reproduces Coqui TTS's own output on a fixed set of sentences with identical durations and a signal-to-error ratio
+  of at least 60 dB, and the ONNX model reproduces the port at 50 dB or better.
+- Coqui voices with a language embedding are supported when they have exactly one language, as the CSS10 Spanish
+  and French voices do. The port looks up language 0 inside the model, so the exported graph has no language input
+  and runs exactly as Coqui TTS does with that language selected. Voices with several languages are refused.
+- A one-row speaker table (the CSS10 voices name their single reader) keeps the `sid` input; the engine passes the
+  first listed speaker when none is given, the id Coqui TTS picks for such a voice.
 
 ## Testing
 
