@@ -38,8 +38,8 @@ text.
 ## Voices
 
 **`unknown voice …`** (`VoiceNotFound`, exit 3)
-The id is not in the catalogue. Run `bytestts voices` to see what is available. The catalogue is empty until the
-voice files are published. Until then, use `--voice-path` with a voice package directory.
+The id is not in the catalogue. Run `bytestts voices` to see what is available (today: `en-ljspeech`). For a voice
+package directory, use `--voice-path` (or `BytesTTS.load_path`) instead of `--voice`.
 
 **`… is not cached and offline mode is on`** (`VoiceNotFound`)
 `BytesTTS.load(..., offline=True)` never downloads. Download the voice once with `bytestts download ID` while

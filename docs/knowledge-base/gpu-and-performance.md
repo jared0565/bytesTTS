@@ -38,11 +38,11 @@ When CUDA is listed but not working, the CUDA 13 or cuDNN 9 libraries are missin
 ## CPU threads
 
 ```python
-tts = BytesTTS.load_path("voices/en-ljspeech", threads=2)
+tts = BytesTTS.load("en-ljspeech", threads=2)
 ```
 
 ```
-bytestts say "..." --voice-path voices/en-ljspeech --threads 2 -o out.wav
+bytestts say "..." --voice en-ljspeech --threads 2 -o out.wav
 ```
 
 - `threads=None` (the default) lets ONNX Runtime pick, usually one thread per physical core. It is the fastest on a

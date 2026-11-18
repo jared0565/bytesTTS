@@ -41,9 +41,12 @@ See [Design](../design.md#converting-voices-maintainers) for the details.
 
 ## Available voices
 
-| Voice | Language | Speakers | Model licence | Data licence | Status |
+| Voice | Language | Speakers | Model licence | Data licence | Files |
 |---|---|---|---|---|---|
-| `en-ljspeech` | English (US) | 1 | Apache-2.0 | Public domain | Converted and parity-tested; files not yet published |
+| `en-ljspeech` | English (US) | 1 | Apache-2.0 | Public domain | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), 114.3 MB |
+
+Catalogue files are downloaded from a Hugging Face commit named in BytesTTS's own catalogue, never from a branch,
+so a later change to that repository cannot change what an installed BytesTTS downloads.
 
 Planned: German, Spanish, French and Italian voices. A voice is added to the [licence register](../licences.md)
 before it is added to the catalogue. A test checks that each register row matches its voice's manifest exactly.

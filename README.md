@@ -11,7 +11,7 @@ PyTorch is not needed to speak, only to convert or train voices.
 ```python
 from bytestts import BytesTTS
 
-tts = BytesTTS.load_path("voices/en-ljspeech")
+tts = BytesTTS.load("en-ljspeech")  # downloaded and verified on first use
 tts.synthesize("BytesTTS is working.").save("hello.wav")
 ```
 
@@ -33,10 +33,10 @@ tts.synthesize("BytesTTS is working.").save("hello.wav")
 
 ## Status
 
-**Pre-release (0.1.0, not yet on PyPI).** One English voice, `en-ljspeech`, is converted from Coqui TTS and
-verified against it. The downloadable voice catalogue opens once the voice files are published; until then a voice
-is loaded from a voice package directory with `BytesTTS.load_path` or `bytestts say --voice-path`. German,
-Spanish, French and Italian voices are planned. See the [changelog](CHANGELOG.md).
+**Pre-release (0.1.0, not yet on PyPI).** The catalogue has one English voice, `en-ljspeech`, converted from Coqui
+TTS and tested against it. It downloads on first use from
+[Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), pinned to a commit and checked by SHA-256.
+German, Spanish, French and Italian voices are planned. See the [changelog](CHANGELOG.md).
 
 ## Install
 
@@ -76,7 +76,7 @@ Python:
 ```python
 from bytestts import BytesTTS
 
-tts = BytesTTS.load_path("path/to/en-ljspeech")  # a voice package directory
+tts = BytesTTS.load("en-ljspeech")  # or BytesTTS.load_path(directory) for a voice package you have
 audio = tts.synthesize("Hello there. How are you?", speed=1.0)
 audio.save("hello.wav")  # 16-bit PCM WAV
 print(audio.duration, audio.sample_rate)
@@ -88,9 +88,11 @@ for sentence in tts.stream("A longer text. One chunk per sentence."):
 Command line:
 
 ```
-bytestts say "BytesTTS is working." --voice-path path/to/en-ljspeech -o hello.wav
-bytestts say --file story.txt --voice-path path/to/en-ljspeech -o story.wav
-echo Hello from a pipe | bytestts say - --voice-path path/to/en-ljspeech -o - > hello.wav
+bytestts say "BytesTTS is working." --voice en-ljspeech -o hello.wav
+bytestts say --file story.txt --voice en-ljspeech -o story.wav
+echo Hello from a pipe | bytestts say - --voice en-ljspeech -o - > hello.wav
+bytestts voices                      # what the catalogue offers
+bytestts download en-ljspeech        # fetch ahead of time, e.g. for offline use
 ```
 
 ## Documentation
@@ -114,7 +116,7 @@ redistribute a voice. Third-party credits are in [NOTICE](NOTICE).
 
 | Voice | Language | Model licence | Data licence |
 |---|---|---|---|
-| `en-ljspeech` | English (US) | Apache-2.0 | Public domain |
+| [`en-ljspeech`](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) | English (US) | Apache-2.0 | Public domain |
 
 ## Contributing and support
 

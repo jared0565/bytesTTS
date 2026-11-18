@@ -17,6 +17,8 @@ you must keep when you use or redistribute it. The same three strings ship in ea
     Coqui's model list. BytesTTS converts the weights to ONNX; it does not retrain them.
   - Data: [The LJ Speech Dataset](https://keithito.com/LJ-Speech-Dataset/), whose page gives its licence as Public
     Domain. The recordings come from LibriVox, the texts from works published between 1884 and 1964.
+  - Published files: [fbmacagba/bytestts-en-ljspeech](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) on
+    Hugging Face; the catalogue pins commit `8ec2c68f8187a2d68fbf97c657b2ccf4f73fbfb0`.
 
 A voice is added here before it is added to the catalogue; `tests/test_licence_register.py` checks that every row
 matches its voice's manifest exactly.

@@ -2,10 +2,11 @@
 
 ### Where do I get a voice?
 
-The voice catalogue opens once the voice files are published. Until then, `bytestts voices` lists nothing, and a
-voice is loaded from a voice package directory with `BytesTTS.load_path(...)` or `bytestts say --voice-path ...`.
-Maintainers make packages with the conversion tools described in [Design](../design.md#converting-voices-maintainers).
-The first published voice will be `en-ljspeech`.
+From the catalogue: `BytesTTS.load("en-ljspeech")`, or `bytestts say ... --voice en-ljspeech`, downloads the voice
+on first use (114 MB, from [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech)) and checks every
+file against the SHA-256 pinned inside BytesTTS. `bytestts voices` lists what the catalogue offers. A voice package
+directory you already have loads with `BytesTTS.load_path(...)` or `--voice-path`. Maintainers make packages with
+the conversion tools described in [Design](../design.md#converting-voices-maintainers).
 
 ### Which languages are supported?
 
@@ -23,8 +24,9 @@ BytesTTS is tested with espeak-ng 1.52.0.
 
 ### Does it work offline?
 
-Yes, once a voice is on disk. `load_path` never touches the network. `BytesTTS.load(voice_id, offline=True)` uses
-only the cache and raises `VoiceNotFound` if the voice was never downloaded.
+Yes, once a voice is on disk. Download it ahead of time with `bytestts download en-ljspeech`; after that,
+`BytesTTS.load("en-ljspeech")` loads it from the cache. `BytesTTS.load(voice_id, offline=True)` never downloads and
+raises `VoiceNotFound` if the voice is not cached. `load_path` never touches the network.
 
 ### Does it work on macOS?
 

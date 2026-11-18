@@ -91,17 +91,18 @@ voices with several speakers. Every file is checked against the SHA-256 and size
 
 There are two ways to get a voice:
 
-- **A voice package directory** you already have: `BytesTTS.load_path(directory)` or
-  `bytestts say --voice-path directory`. This works today.
 - **The catalogue**: `BytesTTS.load("en-ljspeech")` or `bytestts say --voice en-ljspeech` downloads the voice on
-  first use into the cache and verifies it. The catalogue opens once the voice files are published; until then it
-  is empty and `bytestts voices` lists nothing.
+  first use into the cache, checks every file's size and SHA-256 against the pins shipped inside BytesTTS, and
+  loads it from the cache after that. `bytestts voices` lists the catalogue; `bytestts download ID` fetches a voice
+  ahead of time.
+- **A voice package directory** you already have: `BytesTTS.load_path(directory)` or
+  `bytestts say --voice-path directory`.
 
 Available voices:
 
-| Voice | Language | Speakers | Model licence | Data licence |
-|---|---|---|---|---|
-| `en-ljspeech` | English (US) | 1 | Apache-2.0 | Public domain |
+| Voice | Language | Speakers | Size | Model licence | Data licence | Files |
+|---|---|---|---|---|---|---|
+| `en-ljspeech` | English (US) | 1 | 114.3 MB | Apache-2.0 | Public domain | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) |
 
 Each voice has its own licence and required attribution: see [Voices and licences](knowledge-base/voices-and-licences.md)
 and [docs/licences.md](licences.md).
@@ -162,7 +163,7 @@ tts.stream(text, *, speaker=None, speed=1.0) -> Iterator[Audio]
 ```python
 from bytestts import BytesTTS
 
-tts = BytesTTS.load_path("voices/en-ljspeech", threads=2)
+tts = BytesTTS.load("en-ljspeech", threads=2)
 audio = tts.synthesize("The meeting moved to Friday, the 21st. Dr. Smith will chair it.", speed=0.9)
 audio.save("meeting.wav")
 ```
@@ -211,7 +212,7 @@ Invalid arguments (`speed` out of range, `threads` below 1, an unknown `device`)
 from bytestts import BytesTTS, FrontendUnavailable, IntegrityError, NoSpeakableText
 
 try:
-    tts = BytesTTS.load_path("voices/en-ljspeech")
+    tts = BytesTTS.load("en-ljspeech")
     tts.synthesize(user_text).save("out.wav")
 except NoSpeakableText:
     print("Nothing to say.")
@@ -250,10 +251,10 @@ Speaks text into a WAV file.
 Give exactly one text source: `TEXT`, `-` or `--file`.
 
 ```
-bytestts say "Hello there." --voice-path voices/en-ljspeech -o hello.wav
-bytestts say --file chapter1.txt --voice-path voices/en-ljspeech --speed 1.1 -o chapter1.wav
-type notes.txt | bytestts say - --voice-path voices/en-ljspeech -o notes.wav        (Windows)
-cat notes.txt | bytestts say - --voice-path voices/en-ljspeech -o - | aplay          (Linux)
+bytestts say "Hello there." --voice en-ljspeech -o hello.wav
+bytestts say --file chapter1.txt --voice en-ljspeech --speed 1.1 -o chapter1.wav
+type notes.txt | bytestts say - --voice en-ljspeech -o notes.wav        (Windows)
+cat notes.txt | bytestts say - --voice en-ljspeech -o - | aplay          (Linux)
 ```
 
 Text is read as bytes and decoded as UTF-8, so non-ASCII text works whatever the console's code page.

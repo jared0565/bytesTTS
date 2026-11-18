@@ -35,7 +35,8 @@ All notable changes to BytesTTS are recorded here. The format follows
   redirect hop is checked.
 - **Conversion tools:** sandboxed conversion of Coqui TTS VITS checkpoints, a PyTorch port of the VITS generator,
   ONNX export and voice packaging.
-- **`en-ljspeech`:** converted from Coqui TTS and checked against Coqui's own output by parity tests. Its files are
-  not published yet, so the catalogue is empty.
+- **`en-ljspeech`:** converted from Coqui TTS, checked against Coqui's own output by parity tests, and published in
+  the catalogue: `BytesTTS.load("en-ljspeech")` downloads it from
+  [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), pinned to commit `8ec2c68`.
 - **Documentation:** README, user guide, knowledge base, design notes and the voice licence register.
 - **CI:** Windows and Linux, Python 3.11 to 3.14, against espeak-ng 1.52.0 built from a verified commit.
