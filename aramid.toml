@@ -5,7 +5,9 @@ agent_block_armed = false
 bake_started = "2026-11-16"
 
 [tests]
-command = ["uv", "run", "--no-sync", "pytest", "-q"]   # --no-sync: a push never downloads torch
+# CI's environment (ci.yml "Sync"), so a fresh checkout such as the mutation checker's has every test dependency.
+# The main .venv already matches it; a fresh one installs from uv's cache, or the network the first time.
+command = ["uv", "run", "--extra", "train", "--extra", "server", "--extra", "torch-cpu", "pytest", "-q"]
 timeout_s = 300
 
 [fuzz]   # REPLACES aramid's defaults (ARAMID.md:165-168), so the twelve defaults are kept
