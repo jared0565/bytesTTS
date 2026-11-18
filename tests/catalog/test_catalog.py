@@ -50,6 +50,22 @@ def test_en_ljspeech_ships_in_the_catalogue() -> None:
     assert urls == {name: pinned + name for name in ("model.onnx", "config.json")}
 
 
+@pytest.mark.parametrize(
+    ("voice_id", "language", "speaker", "commit"),
+    [
+        ("es-css10", "es", "tux", "797e2a7d138faeaa5e9d04c329886ab7a814381e"),
+        ("fr-css10", "fr", "gilles", "0e41251da1d1f9ea08f673f24ee9a64e7f759049"),
+    ],
+)
+def test_css10_voices_ship_in_the_catalogue(voice_id: str, language: str, speaker: str, commit: str) -> None:
+    m = load_catalog()[voice_id]
+    assert (m.language, m.engine, m.origin, m.sample_rate) == (language, "vits-onnx", "catalog", 22050)
+    assert (m.licence, m.data_licence, m.speakers) == ("BSD-3-Clause", "CC0-1.0", [speaker])
+    pinned = f"https://huggingface.co/fbmacagba/bytestts-{voice_id}/resolve/{commit}/"
+    urls = {name: entry.url for name, entry in m.files.items()}
+    assert urls == {name: pinned + name for name in ("model.onnx", "config.json", "speakers.json")}
+
+
 @pytest.mark.network
 @pytest.mark.parametrize("voice_id", sorted(load_catalog()))
 def test_shipped_voice_downloads_and_verifies(voice_id: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

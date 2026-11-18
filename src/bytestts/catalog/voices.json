@@ -24,6 +24,70 @@
       "sample_rate": 22050,
       "speakers": [],
       "version": "1"
+    },
+    {
+      "attribution": "Model: Coqui TTS tts_models/es/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 Spanish, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Tux), public domain.",
+      "data_licence": "CC0-1.0",
+      "engine": "vits-onnx",
+      "featured": [],
+      "files": {
+        "config.json": {
+          "sha256": "76520efb7d924fa3bd521dc45c2ea56e4f2b430e01e7951ec8c7ac67c635244f",
+          "size": 1182,
+          "url": "https://huggingface.co/fbmacagba/bytestts-es-css10/resolve/797e2a7d138faeaa5e9d04c329886ab7a814381e/config.json"
+        },
+        "model.onnx": {
+          "sha256": "d3ab1a54ff5c701b4e61ff57dfe101d027976fca7509ceb0427155b5458086f1",
+          "size": 70926577,
+          "url": "https://huggingface.co/fbmacagba/bytestts-es-css10/resolve/797e2a7d138faeaa5e9d04c329886ab7a814381e/model.onnx"
+        },
+        "speakers.json": {
+          "sha256": "8ae60787f980e9b4ac31f3d3f3fe15a12df68d533196df48d55621c2c2570283",
+          "size": 15,
+          "url": "https://huggingface.co/fbmacagba/bytestts-es-css10/resolve/797e2a7d138faeaa5e9d04c329886ab7a814381e/speakers.json"
+        }
+      },
+      "id": "es-css10",
+      "language": "es",
+      "licence": "BSD-3-Clause",
+      "origin": "catalog",
+      "sample_rate": 22050,
+      "speakers": [
+        "tux"
+      ],
+      "version": "1"
+    },
+    {
+      "attribution": "Model: Coqui TTS tts_models/fr/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 French, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Gilles G. Le Blanc), public domain.",
+      "data_licence": "CC0-1.0",
+      "engine": "vits-onnx",
+      "featured": [],
+      "files": {
+        "config.json": {
+          "sha256": "7fad27183ec99f74af756f219cad65c5068d3f0aa052462b0889d76d1aed8fb2",
+          "size": 1182,
+          "url": "https://huggingface.co/fbmacagba/bytestts-fr-css10/resolve/0e41251da1d1f9ea08f673f24ee9a64e7f759049/config.json"
+        },
+        "model.onnx": {
+          "sha256": "c378692ea7c7664de6453bd63a4cf17d9b395c40a4b0ef29550ef6cd5b362a24",
+          "size": 70926577,
+          "url": "https://huggingface.co/fbmacagba/bytestts-fr-css10/resolve/0e41251da1d1f9ea08f673f24ee9a64e7f759049/model.onnx"
+        },
+        "speakers.json": {
+          "sha256": "8c3b8426864766a99d104c97bb5877a997e2827e9043c7521495c5509f9c0c5f",
+          "size": 18,
+          "url": "https://huggingface.co/fbmacagba/bytestts-fr-css10/resolve/0e41251da1d1f9ea08f673f24ee9a64e7f759049/speakers.json"
+        }
+      },
+      "id": "fr-css10",
+      "language": "fr",
+      "licence": "BSD-3-Clause",
+      "origin": "catalog",
+      "sample_rate": 22050,
+      "speakers": [
+        "gilles"
+      ],
+      "version": "1"
     }
   ]
 }
