@@ -27,8 +27,11 @@ Before anything in a package is used:
   field of the right type.
 - Only files listed in `voice.json` are read. Their names must be plain (1 to 128 characters from `A-Z a-z 0-9 . _ -`)
   so no name can reach outside the directory, and symbolic links are refused.
-- Every file must match its pinned size and SHA-256.
-- A fine-tuned voice must carry a pinned voice card with a consent statement.
+- Every file is read once and must match its pinned size and SHA-256. Those exact bytes are then used: no file is
+  opened again after its check, so a file swapped on disk in between cannot reach ONNX Runtime or the text
+  frontend.
+- A voice card, if listed, must be a JSON object. A fine-tuned voice must carry a pinned card with a consent
+  statement.
 
 ## ONNX models
 
@@ -62,8 +65,11 @@ built from the verified bytes, with ONNX Runtime's external-data directory point
 
 - **DNS.** A redirect to an https *hostname* that resolves to an internal address is not blocked; that would need
   DNS pinning. TLS still requires the host to present a valid certificate for that name.
-- **Check, then use.** A file is verified, then read again to be used. Anyone who can write to the voice directory
-  in between could swap the file. Keep voice directories and the cache writable only by your own account.
+- **Consent is declared, not proven.** A package states its own origin, and only `fine-tuned` packages must carry
+  a consent statement. Whoever builds a package can mislabel it, or write a statement nobody made, and BytesTTS
+  cannot tell. The check is a rule for the voices BytesTTS publishes, not a barrier against a dishonest packager.
+- **Your own files.** Keep voice directories and the cache writable only by your own account: anyone who can write
+  there can replace a whole package, manifest included.
 - **Authenticity.** `load_path` verifies a package against its own manifest, so a package made by someone else is
   internally consistent, not endorsed. Catalogue voices are checked against the pins shipped inside BytesTTS.
 - **espeak-ng itself** processes your text. Keep it up to date from its official releases.

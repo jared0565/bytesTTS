@@ -61,7 +61,12 @@ linking them.
 
 **`config.json: bad or missing text settings (…)`**, **`… synthesis settings`**, **`… must be a JSON object`**
 (`IntegrityError`)
-The package's `config.json` is damaged or was not made by BytesTTS's packager. Rebuild the package.
+The package's `config.json` (or `card.json`) is damaged or was not made by BytesTTS's packager. Rebuild the
+package.
+
+**`… read … bytes, the manifest pins …`** (`IntegrityError`)
+The file changed size while it was being read. Something else is writing to the voice directory; stop it and try
+again.
 
 **`the model stores tensors as external data …`**, **`the model is in ORT format …`**, **`malformed ONNX model …`**
 (`IntegrityError`)

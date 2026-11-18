@@ -42,14 +42,15 @@ A **voice package** is a directory:
 | `config.json` | The text frontend settings and default scales |
 | `speakers.json` | Speaker names to IDs, for multi-speaker voices |
 
-`BytesTTS.load_path` verifies every file against `voice.json` before loading it.
+`BytesTTS.load_path` reads every file once, checks its size and SHA-256 against `voice.json`, and then uses those
+exact bytes: no file is opened again after its check, so nothing can be swapped in between.
 
 The **catalogue** (`bytestts/catalog/voices.json`) ships inside the package. Each entry is a manifest whose files
 carry download URLs pinned to a repository commit (`/resolve/<40-hex commit>/`), never a branch. The downloader
 checks each file's size and SHA-256, writes to a temporary file and renames it into place, uses connect and read
-timeouts, follows only a few redirects and checks every hop's URL before requesting it, and never extracts archives. Downloads are cached under the user cache
-directory (or `BYTESTTS_HOME`), in a directory keyed by the manifest's digest, so an updated voice never mixes with a
-stale one. `offline=True` never downloads.
+timeouts, follows only a few redirects and checks every hop's URL before requesting it, and never extracts
+archives. Downloads are cached under the user cache directory (or `BYTESTTS_HOME`), in a directory keyed by the
+manifest's digest, so an updated voice never mixes with a stale one. `offline=True` never downloads.
 
 ## Converting voices (maintainers)
 

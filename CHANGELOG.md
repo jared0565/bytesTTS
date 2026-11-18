@@ -6,6 +6,19 @@ All notable changes to BytesTTS are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- `load_path` reads each voice file once and uses exactly the bytes it verified. Before, a file was hashed and then
+  opened again, so a file swapped on disk in between could reach ONNX Runtime unverified.
+- Catalogue URLs with userinfo (`https://a@b/...`) are refused.
+
+### Fixed
+
+- A voice card that is not a JSON object is refused (`IntegrityError`) for every voice, not only fine-tuned ones.
+- The CUDA advice no longer quotes an internal plan reference.
+- The voice packager pins PyTorch's inter-op threads as well as its intra-op threads.
+- The package ships `py.typed`, so type checkers use its annotations.
+
 ### Added
 
 - First public version of the code, 0.1.0 (pre-release, not yet on PyPI).
