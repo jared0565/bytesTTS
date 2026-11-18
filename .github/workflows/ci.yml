@@ -73,7 +73,7 @@ jobs:
 
       # --- sync and checks -----------------------------------------------------------------------
       - name: Sync (CI standard)
-        run: uv sync --extra train --extra server --extra torch-cpu
+        run: uv sync --extra train --extra server --extra torch-cpu --extra gui
 
       - name: Tests
         run: uv run pytest

@@ -7,7 +7,7 @@ bake_started = "2026-11-16"
 [tests]
 # CI's environment (ci.yml "Sync"), so a fresh checkout such as the mutation checker's has every test dependency.
 # The main .venv already matches it; a fresh one installs from uv's cache, or the network the first time.
-command = ["uv", "run", "--extra", "train", "--extra", "server", "--extra", "torch-cpu", "pytest", "-q"]
+command = ["uv", "run", "--extra", "train", "--extra", "server", "--extra", "torch-cpu", "--extra", "gui", "pytest", "-q"]
 timeout_s = 300
 
 [fuzz]   # REPLACES aramid's defaults (ARAMID.md:165-168), so the twelve defaults are kept
@@ -17,4 +17,7 @@ skip_name_patterns = [
   "main", "save*", "*download*", "ensure_voice", "*phonemize*", "find_espeak",
   "export_onnx", "package", "convert*", "concat", "synthesize*", "stream",
   "run_version", "espeak_version",           # tools/dev/matrix.py: start processes (Task 2)
+  # the control panel: these open a window or a browser, start a server, or move and write files (gui plan Task 1)
+  "open_window", "run_panel", "announce", "replace_into_place", "copy_wav", "receive_body",
+  "*_window*", "*browser*",
 ]

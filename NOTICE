@@ -58,3 +58,15 @@ The es-css10 and fr-css10 models are distributed under these terms:
 CSS10 (the es-css10 and fr-css10 training data):
   Kyubyong Park and Thomas Mulc. "CSS10: A Collection of Single Speaker
   Speech Datasets for 10 Languages." Interspeech 2019.
+
+Software used by the control panel ([gui] extra, Windows only):
+  These packages are installed from PyPI when you install bytestts[gui] on
+  Windows. BytesTTS does not redistribute them.
+  - pywebview (BSD-3-Clause, Copyright Roman Sirokov) draws the panel's
+    window. Its wheel bundles the Microsoft WebView2 SDK 1.0.3856.49
+    (Microsoft.Web.WebView2.Core.dll, Microsoft.Web.WebView2.WinForms.dll
+    and WebView2Loader.dll), Copyright Microsoft Corporation, under a
+    BSD-3-Clause-style licence. The SDK's NOTICE names Antlr3.Runtime and
+    StringTemplate4, both BSD-3-Clause.
+  - pythonnet (MIT), with its Python.Runtime.dll.
+  - clr_loader (MIT, Copyright Benedikt Reinartz), with its ClrLoader.dll.

@@ -41,3 +41,16 @@ you must keep when you use or redistribute it. The same three strings ship in ea
 
 A voice is added here before it is added to the catalogue; `tests/test_licence_register.py` checks that every row
 matches its voice's manifest exactly.
+
+## Software used by the control panel
+
+On Windows, `pip install "bytestts[gui]"` also installs the packages that draw the control panel's window. BytesTTS
+does not redistribute them; each keeps its own licence:
+
+- **pywebview** (BSD-3-Clause, Copyright Roman Sirokov). Its wheel bundles the Microsoft WebView2 SDK 1.0.3856.49
+  (`Microsoft.Web.WebView2.Core.dll`, `Microsoft.Web.WebView2.WinForms.dll` and `WebView2Loader.dll`), Copyright
+  Microsoft Corporation, under a BSD-3-Clause-style licence. The SDK's NOTICE names Antlr3.Runtime and
+  StringTemplate4, both BSD-3-Clause.
+- **pythonnet** (MIT), with its `Python.Runtime.dll`.
+- **clr_loader** (MIT, Copyright Benedikt Reinartz), with its `ClrLoader.dll`. Its package metadata names no
+  licence, so the licence check lists it as reviewed by hand at version 0.3.1.

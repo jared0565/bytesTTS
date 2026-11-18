@@ -34,6 +34,15 @@ REVIEWED: dict[str, str] = {
     "AND MIT AND Zlib",
 }
 
+# Distributions whose metadata names no licence at all (no License-Expression, licence classifier or License field),
+# reviewed by hand against the licence file their wheel ships. Keyed on the exact version: any other version fails
+# again until it is re-reviewed, and a licence that later appears in the metadata is judged normally.
+NO_METADATA_REVIEWED: dict[str, str] = {
+    # [gui] on Windows, via pywebview -> pythonnet. The wheel ships LICENSE (MIT, Benedikt Reinartz); its METADATA
+    # has License-File but no License field or classifier (read 2026-11-18).
+    "clr-loader": "0.3.1",
+}
+
 _ALLOWED = frozenset(
     {
         "MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "MPL-2.0", "ISC",
@@ -193,6 +202,8 @@ def violations(dists: Iterable[Any]) -> list[str]:
             continue
         expr = licence_of(d)
         if REVIEWED.get(name) == expr:
+            continue
+        if not expr and NO_METADATA_REVIEWED.get(name) == str(d.metadata.get("Version")):
             continue
         verdict = classify(expr)
         if verdict in ("denied", "unknown"):

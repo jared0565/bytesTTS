@@ -36,6 +36,9 @@ Changelog = "https://github.com/jared0565/bytesTTS/blob/main/CHANGELOG.md"
 # onnxruntime-gpu only: users install CUDA 13 + cuDNN 9 themselves; no proprietary NVIDIA wheels here (P0.9).
 gpu = ["onnxruntime-gpu"]
 server = ["fastapi", "uvicorn"]
+# The control panel (`bytestts gui`). pywebview (the app window, WebView2) only on Windows; elsewhere the panel
+# opens in the browser. soundfile joins in stage 2, the first stage to use it.
+gui = ["fastapi", "uvicorn", "pywebview>=6.2.1,<7; sys_platform == 'win32'"]
 train = ["torch", "safetensors", "onnx", "soundfile"]
 # Selector extras: they only choose torch's index. Pick exactly one with [train].
 torch-cpu = ["torch"]
@@ -45,7 +48,7 @@ torch-cu130 = ["torch"]
 bytestts = "bytestts.cli:main"
 
 [dependency-groups]
-dev = ["pytest", "ruff", "mypy", "pyyaml", "types-requests"]
+dev = ["pytest", "ruff", "mypy", "pyyaml", "types-requests", "httpx2"]  # httpx2: Starlette's test client
 eval = ["faster-whisper==1.2.1"]  # maintainer-only ASR for WER (P0.1); never shipped
 
 [build-system]
@@ -119,5 +122,5 @@ warn_return_any = false
 # (Task 4 and Task 9 ledger).
 [[tool.mypy.overrides]]
 module = ["onnxruntime.*", "pysbd.*", "inflect", "inflect.*", "torch", "torch.*",
-          "safetensors", "safetensors.*", "onnx", "onnx.*"]
+          "safetensors", "safetensors.*", "onnx", "onnx.*", "webview", "webview.*"]
 ignore_missing_imports = true

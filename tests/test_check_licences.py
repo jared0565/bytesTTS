@@ -27,11 +27,16 @@ class FakeDist:
     """Duck-types the part of importlib.metadata.Distribution the checker reads: .metadata."""
 
     def __init__(
-        self, fields: dict[str, Any] | None = None, *, name: str = "fake-dist", lic: str | None = None
+        self,
+        fields: dict[str, Any] | None = None,
+        *,
+        name: str = "fake-dist",
+        lic: str | None = None,
+        version: str = "1.0",
     ) -> None:
         msg = Message()
         msg["Name"] = name
-        msg["Version"] = "1.0"
+        msg["Version"] = version
         for key, value in (fields or {}).items():
             for v in value if isinstance(value, list) else [value]:
                 msg[key] = v
@@ -94,3 +99,15 @@ def test_reviewed_exception_holds_only_for_the_reviewed_expression(monkeypatch: 
     assert cl.violations([FakeDist({"License-Expression": "MIT AND Zlib"}, name="Some_Dist")]) == []
     assert cl.violations([FakeDist({"License-Expression": "MIT AND Zlib AND GPL-3.0-only"}, name="some-dist")]) != []
     assert cl.violations([FakeDist({"License-Expression": "MIT AND Zlib"}, name="other-dist")]) != []
+
+
+def test_reviewed_metadata_free_dist_passes_at_its_version() -> None:
+    assert cl.violations([FakeDist(name="clr-loader", version="0.3.1")]) == []
+
+
+def test_reviewed_metadata_free_dist_fails_at_another_version() -> None:
+    assert len(cl.violations([FakeDist(name="clr-loader", version="0.3.2")])) == 1
+
+
+def test_metadata_free_exception_needs_empty_metadata() -> None:  # a licence that later appears is judged normally
+    assert len(cl.violations([FakeDist(name="clr-loader", version="0.3.1", lic="GPL-3.0-only")])) == 1
