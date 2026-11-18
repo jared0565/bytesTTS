@@ -54,6 +54,14 @@ def test_spdx_headers() -> None:
         assert f.read_text("utf-8").startswith("# SPDX-License-Identifier: MPL-2.0"), f
 
 
+def test_derived_from_lines_follow_the_notice_format() -> None:  # NOTICE promises "<version>, <original path>"
+    files = _py_files("src", "tools", "tests")
+    lines = [(f, line) for f in files for line in f.read_text("utf-8").splitlines()[:3] if "Derived from" in line]
+    assert lines  # the port's files carry them: an empty list means the scan broke
+    for f, line in lines:
+        assert re.match(r"# Derived from Coqui TTS v0\.22\.0, TTS/\S+", line), (f, line)
+
+
 @pytest.mark.parametrize(
     ("run", "untrusted"),
     [

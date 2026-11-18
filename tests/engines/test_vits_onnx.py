@@ -67,8 +67,9 @@ def test_cuda_unavailable_raises(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.filterwarnings("ignore:Specified provider:UserWarning")  # ORT notices the faked CUDA listing
 def test_cuda_listed_but_not_working_raises(monkeypatch: pytest.MonkeyPatch) -> None:  # P0.2: listed is not working
     monkeypatch.setattr(ort, "get_available_providers", lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"])
-    with pytest.raises(NotSupported, match="CUDA 13"):
+    with pytest.raises(NotSupported, match="CUDA 13") as caught:
         VitsOnnxEngine(MODEL, DEFAULTS, device="cuda", threads=1)  # on a CPU-only install
+    assert "P0." not in str(caught.value)  # users get advice, not the project's internal plan references
 
 
 @pytest.mark.filterwarnings("ignore:Specified provider:UserWarning")  # ORT notices the faked CUDA listing

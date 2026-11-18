@@ -3,7 +3,10 @@
 
 import importlib.util
 import json
+import os
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -139,6 +142,22 @@ def test_cli(converted: Path, tmp_path: Path) -> None:
     args += ["--licence", "MIT", "--data-licence", "MIT", "--attribution", "someone"]
     assert pv.main(args) == 0
     assert json.loads((tmp_path / "pkg" / "voice.json").read_bytes())["attribution"] == "someone"
+
+
+def test_cli_runs_torch_single_threaded() -> None:  # intra- AND inter-op: all-core load resets the development PC
+    # a fresh process: this one's torch is already pinned by the test conftest, so checking it here proves nothing
+    probe = (
+        "import importlib.util, sys, torch\n"
+        f"spec = importlib.util.spec_from_file_location('pv', {str(ROOT / 'tools/convert/package_voice.py')!r})\n"
+        "pv = importlib.util.module_from_spec(spec); spec.loader.exec_module(pv)\n"
+        "try:\n    pv.main(['--help'])\nexcept SystemExit:\n    pass\n"
+        "print(torch.get_num_threads(), torch.get_num_interop_threads())\n"
+    )
+    env = {**os.environ, "OMP_NUM_THREADS": "4", "MKL_NUM_THREADS": "4"}  # not the conftest's caps: main must pin
+    out = subprocess.run(  # noqa: S603 -- fixed argv: this interpreter and a script built here
+        [sys.executable, "-P", "-c", probe], capture_output=True, text=True, env=env, check=True
+    )
+    assert out.stdout.split()[-2:] == ["1", "1"], out.stdout
 
 
 def test_tools_never_torch_load() -> None:

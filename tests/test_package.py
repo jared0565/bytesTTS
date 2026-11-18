@@ -2,6 +2,7 @@
 import subprocess
 import sys
 import textwrap
+from importlib import resources
 
 import pytest
 
@@ -19,6 +20,10 @@ from bytestts.errors import (
 
 def test_version() -> None:
     assert bytestts.__version__ == "0.1.0"
+
+
+def test_package_ships_its_type_information() -> None:  # PEP 561: without py.typed, mypy ignores our annotations
+    assert resources.files("bytestts").joinpath("py.typed").is_file()
 
 
 def test_errors_hierarchy() -> None:

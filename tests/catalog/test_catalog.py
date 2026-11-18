@@ -99,6 +99,9 @@ def test_parse_catalog() -> None:
             entry(files={"model.onnx": FileEntry(SHA, 10, URL.replace("0123456789abcdef" * 2 + "01234567", "main"))})
         ),
         _catalog(entry(files={"model.onnx": FileEntry(SHA, 10, URL + "?download=1")})),
+        # userinfo: the host is what follows the "@", so the reader of the catalogue would be misled
+        _catalog(entry(files={"model.onnx": FileEntry(SHA, 10, URL.replace("huggingface.co", "hf.co@x.example"))})),
+        _catalog(entry(files={"model.onnx": FileEntry(SHA, 10, URL.replace("huggingface.co", "u:p@huggingface.co"))})),
         json.dumps({"voices": {}}),
         json.dumps({"voices": [], "extra": 1}),
         json.dumps([]),
