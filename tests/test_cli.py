@@ -223,6 +223,17 @@ def test_voices_lists_the_catalogue(monkeypatch: pytest.MonkeyPatch, capsys: pyt
     assert len(lines) == 1 and lines[0].startswith("de-tiny")
 
 
+@pytest.mark.parametrize(
+    ("speakers", "shown"), [([], "1 speaker"), (["tux"], "1 speaker"), (["p1", "p2"], "2 speakers")]
+)
+def test_voices_counts_speakers(
+    speakers: list[str], shown: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:  # a one-row speaker table (the CSS10 voices) is one speaker, as is none
+    monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": _tiny(speakers=speakers)})
+    assert main(["voices"]) == 0
+    assert capsys.readouterr().out.split("\t")[2] == shown
+
+
 def test_download_one_and_all(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(catalog, "load_catalog", lambda: {"a": _tiny(id="a"), "b": _tiny(id="b")})
     fetched: list[str] = []

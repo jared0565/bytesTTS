@@ -117,7 +117,8 @@ def _say(args: argparse.Namespace) -> int:
 
 def _voices(args: argparse.Namespace) -> int:
     for v in list_voices(args.language):
-        speakers = f"{len(v.speakers)} speakers" if v.speakers else "1 speaker"
+        count = max(1, len(v.speakers))  # an empty speaker table is one speaker
+        speakers = f"{count} speaker" if count == 1 else f"{count} speakers"
         print(f"{v.id}\t{v.language}\t{speakers}\t{v.licence}\t{v.size_bytes / 1e6:.1f} MB")
     return EXIT_OK
 
