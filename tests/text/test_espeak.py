@@ -81,6 +81,7 @@ def test_require_espeak_fails_when_required(monkeypatch: pytest.MonkeyPatch) -> 
 def test_missing_espeak_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PATH", "")
     monkeypatch.delenv("BYTESTTS_ESPEAK", raising=False)
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)  # this PC has espeak-ng in the documented folder
     with pytest.raises(FrontendUnavailable, match="espeak-ng"):
         find_espeak()
 
@@ -97,6 +98,7 @@ def _stub(directory: Path, name: str = "espeak-ng.exe" if os.name == "nt" else "
 def _path_only(monkeypatch: pytest.MonkeyPatch, *entries: str) -> None:
     monkeypatch.delenv("BYTESTTS_ESPEAK", raising=False)
     monkeypatch.delenv("BYTESTTS_ESPEAK_DATA", raising=False)
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)  # no documented-folder fallback unless a test sets it
     monkeypatch.setenv("PATH", os.pathsep.join(entries))
 
 
@@ -125,6 +127,27 @@ def test_lookup_ignores_batch_files_on_windows(monkeypatch: pytest.MonkeyPatch, 
     _path_only(monkeypatch, str(tmp_path / "bin"))
     with pytest.raises(FrontendUnavailable, match="not found"):
         find_espeak()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="the documented folder is Windows-only")
+def test_documented_folder_is_the_last_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    exe = _stub(tmp_path / "bytestts-tools" / "espeak-ng" / "eSpeak NG")
+    (tmp_path / "empty").mkdir()
+    _path_only(monkeypatch, str(tmp_path / "empty"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert find_espeak().executable == exe
+
+
+@pytest.mark.skipif(os.name != "nt", reason="the documented folder is Windows-only")
+def test_path_and_env_still_beat_the_documented_folder(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _stub(tmp_path / "bytestts-tools" / "espeak-ng" / "eSpeak NG")
+    on_path = _stub(tmp_path / "bin")
+    _path_only(monkeypatch, str(tmp_path / "bin"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert find_espeak().executable == on_path
+    env_exe = _stub(tmp_path / "envdir")
+    monkeypatch.setenv("BYTESTTS_ESPEAK", str(env_exe))
+    assert find_espeak().executable == env_exe
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")

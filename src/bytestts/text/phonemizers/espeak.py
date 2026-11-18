@@ -30,8 +30,9 @@ INSTALL_HINT = (
     f"espeak-ng {PINNED_VERSION} is required for this voice. "
     "Windows, no admin rights: download espeak-ng.msi from "
     f"https://github.com/espeak-ng/espeak-ng/releases/tag/{PINNED_VERSION}, run "
-    r"`msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng`, then set "
-    r"BYTESTTS_ESPEAK to ...\eSpeak NG\espeak-ng.exe and BYTESTTS_ESPEAK_DATA to ...\eSpeak NG. "
+    r"`msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng`; BytesTTS finds it there. "
+    r"Installed elsewhere, set BYTESTTS_ESPEAK to ...\eSpeak NG\espeak-ng.exe and BYTESTTS_ESPEAK_DATA to "
+    r"...\eSpeak NG. "
     "Linux: install the espeak-ng package, or build the tag from source."
 )
 
@@ -51,17 +52,28 @@ def _data_path_for(executable: Path) -> Path | None:
 
 
 def find_espeak(executable: str | os.PathLike[str] | None = None) -> EspeakInstall:
-    """The argument, then $BYTESTTS_ESPEAK (+ $BYTESTTS_ESPEAK_DATA), then espeak-ng on PATH."""
+    r"""The argument, then $BYTESTTS_ESPEAK (+ $BYTESTTS_ESPEAK_DATA), then espeak-ng on PATH, then (Windows) the
+    folder INSTALL_HINT names: %LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe."""
     for candidate in (executable, os.environ.get("BYTESTTS_ESPEAK") or None):
         if candidate is not None:
             exe = Path(candidate)
             if not exe.is_file():
                 raise FrontendUnavailable(f"espeak-ng executable not found at {exe}. {INSTALL_HINT}")
             return EspeakInstall(exe, _data_path_for(exe))
-    found = _on_path()
+    found = _on_path() or _in_documented_folder()
     if found is None:
         raise FrontendUnavailable(f"espeak-ng not found. {INSTALL_HINT}")
     return EspeakInstall(found, _data_path_for(found))
+
+
+def _in_documented_folder() -> Path | None:
+    """Windows only: where INSTALL_HINT's msiexec command puts espeak-ng. LOCALAPPDATA must be an absolute path, so
+    an unset or relative value never points the lookup at the current directory."""
+    base = os.environ.get("LOCALAPPDATA")
+    if os.name != "nt" or not base or not os.path.isabs(base):
+        return None
+    candidate = Path(base) / "bytestts-tools" / "espeak-ng" / "eSpeak NG" / "espeak-ng.exe"
+    return candidate if candidate.is_file() else None
 
 
 def _on_path() -> Path | None:
