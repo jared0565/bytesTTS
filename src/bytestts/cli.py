@@ -9,6 +9,8 @@ Errors print one line to stderr, never a traceback.
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import os
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -42,6 +44,16 @@ def _threads(value: str) -> int:
     if n < 1:
         raise argparse.ArgumentTypeError("must be 1 or more (ONNX Runtime reads 0 as all cores)")
     return n
+
+
+def _port(value: str) -> int:
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not a whole number") from None
+    if not 0 <= port <= 65535:
+        raise argparse.ArgumentTypeError("must be from 0 to 65535 (0 picks a free port)")
+    return port
 
 
 def _speed(value: str) -> float:
@@ -81,6 +93,18 @@ def _parser() -> argparse.ArgumentParser:
     target.add_argument("id", nargs="?", help="the voice to download")
     target.add_argument("--all", action="store_true", help="every catalogue voice")
     download.set_defaults(run=_download)
+
+    gui = commands.add_parser("gui", help="open the control panel (the app window on Windows, else the browser)")
+    gui.add_argument("--port", type=_port, default=0, metavar="N", help="port on 127.0.0.1 (default: a free one)")
+    where = gui.add_mutually_exclusive_group()
+    where.add_argument("--browser", dest="mode", action="store_const", const="browser", help="open the browser")
+    where.add_argument(
+        "--no-window", dest="mode", action="store_const", const="none", help="print the address and serve only"
+    )
+    gui.add_argument(
+        "--max-threads", type=_threads, metavar="N", help="thread cap (default: $BYTESTTS_GUI_MAX_THREADS, else all)"
+    )
+    gui.set_defaults(run=_gui, mode="auto")
     return parser
 
 
@@ -128,6 +152,18 @@ def _download(args: argparse.Namespace) -> int:
     for voice_id in ids:
         print(f"{voice_id}\t{ensure_voice(voice_id)}")
     return EXIT_OK
+
+
+def _gui(args: argparse.Namespace) -> int:
+    if any(importlib.util.find_spec(name) is None for name in ("fastapi", "uvicorn")):
+        raise NotSupported('the control panel needs fastapi and uvicorn: pip install "bytestts[gui]"')
+    from bytestts.gui import launch  # the [gui] extra: imported only for this command
+
+    try:
+        cap = launch.thread_cap(args.max_threads, os.environ, os.cpu_count() or 1)
+    except ValueError as e:
+        raise _UsageError(str(e)) from None
+    return launch.run_panel(launch.LaunchOptions(args.port, args.mode, cap))
 
 
 _EXIT_CODES: tuple[tuple[tuple[type[Exception], ...], int], ...] = (

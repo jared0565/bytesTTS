@@ -1,0 +1,190 @@
+# SPDX-License-Identifier: MPL-2.0
+"""Launching the panel (spec §6.1): the thread cap, the mode, a real loopback server, and `bytestts gui`."""
+
+import json
+import logging
+import queue
+import re
+import socket
+import sys
+import threading
+import urllib.request
+import webbrowser
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pytest
+from gui_helpers import install, tiny_manifest, use_catalogue
+
+from bytestts import Audio
+from bytestts.cli import main
+from bytestts.gui import jobs, window
+from bytestts.gui.launch import LaunchOptions, resolve_mode, run_panel, thread_cap
+
+URL_RE = re.compile(r"^http://127\.0\.0\.1:(\d+)/\?s=([\w-]{43})$")
+
+
+def call(url: str, path: str, method: str = "GET", body: dict[str, Any] | None = None) -> tuple[int, Any]:
+    match = URL_RE.match(url)
+    assert match, url
+    port, secret = match.groups()
+    data = json.dumps(body).encode("utf-8") if body is not None else (b"" if method == "POST" else None)
+    request = urllib.request.Request(f"http://127.0.0.1:{port}{path}", data=data, method=method)
+    request.add_header("Authorization", f"Bearer {secret}")
+    if body is not None:
+        request.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(request, timeout=10) as response:  # noqa: S310 - http://127.0.0.1, built above
+        return response.status, json.loads(response.read().decode("utf-8"))
+
+
+def start_panel(options: LaunchOptions) -> tuple[threading.Thread, list[int], str]:
+    ready: queue.Queue[str] = queue.Queue()
+    result: list[int] = []
+    thread = threading.Thread(target=lambda: result.append(run_panel(options, on_ready=ready.put)), daemon=True)
+    thread.start()
+    return thread, result, ready.get(timeout=15)
+
+
+def test_thread_cap() -> None:
+    assert thread_cap(None, {}, 12) == 12
+    assert thread_cap(None, {"BYTESTTS_GUI_MAX_THREADS": "2"}, 12) == 2
+    assert thread_cap(1, {"BYTESTTS_GUI_MAX_THREADS": "2"}, 12) == 1
+    for bad in ("0", "13", "two"):
+        with pytest.raises(ValueError, match="BYTESTTS_GUI_MAX_THREADS"):
+            thread_cap(None, {"BYTESTTS_GUI_MAX_THREADS": bad}, 12)
+    with pytest.raises(ValueError, match="--max-threads"):
+        thread_cap(13, {}, 12)
+
+
+def test_resolve_mode() -> None:
+    assert resolve_mode("auto", "win32") == "window"
+    assert resolve_mode("auto", "linux") == "browser"
+    for mode in ("window", "browser", "none"):
+        assert resolve_mode(mode, "linux") == mode  # type: ignore[arg-type]
+
+
+def test_serves_on_loopback_until_quit() -> None:
+    thread, result, url = start_panel(LaunchOptions(0, "none", 1))
+    assert URL_RE.match(url)
+    status, body = call(url, "/api/status")
+    assert status == 200 and body["max_threads"] == 1 and body["save_dialog"] is False
+    assert call(url, "/api/quit", "POST")[0] == 200
+    thread.join(10)
+    assert not thread.is_alive() and result == [0]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="SO_EXCLUSIVEADDRUSE is Windows-only")
+def test_no_other_socket_can_share_the_port() -> None:
+    thread, result, url = start_panel(LaunchOptions(0, "none", 1))
+    port = int(URL_RE.match(url).group(1))  # type: ignore[union-attr]
+    try:
+        with socket.socket() as thief:
+            thief.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            with pytest.raises(OSError):
+                thief.bind(("127.0.0.1", port))
+    finally:
+        call(url, "/api/quit", "POST")
+        thread.join(10)
+    assert result == [0]
+
+
+def test_window_failure_falls_back_to_browser(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    opened: list[str] = []
+    monkeypatch.setattr(window, "open_window", lambda url, session: "no WebView2")
+
+    def browser(url: str) -> bool:
+        opened.append(url)
+        threading.Thread(target=call, args=(url, "/api/quit", "POST"), daemon=True).start()
+        return True
+
+    monkeypatch.setattr(webbrowser, "open", browser)
+    assert run_panel(LaunchOptions(0, "window", 1), on_ready=lambda url: None) == 0
+    assert len(opened) == 1 and URL_RE.match(opened[0])
+    lines = capsys.readouterr().err.strip().splitlines()
+    assert len(lines) == 1 and "no WebView2" in lines[0] and "browser" in lines[0]
+
+
+def test_window_close_stops_the_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(window, "open_window", lambda url, session: calls.append(url))  # returns None at once
+    thread, result, url = start_panel(LaunchOptions(0, "window", 1))
+    thread.join(10)
+    assert not thread.is_alive() and result == [0] and calls == [url]
+
+
+class BlockedTTS:
+    def __init__(self, gate: threading.Event) -> None:
+        self.gate = gate
+
+    def stream(self, text: str, *, speaker: str | None = None, speed: float = 1.0) -> Iterator[Audio]:
+        self.gate.wait(60)  # "never" set during the test; set afterwards to let the thread go
+        yield Audio(np.zeros(10, np.float32), 22050)
+
+
+def test_quit_while_speaking_returns(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    gate = threading.Event()
+    monkeypatch.setattr(jobs, "load_voice", lambda voice, device, threads: BlockedTTS(gate))
+    m = tiny_manifest()
+    use_catalogue(monkeypatch, tmp_path, {m.id: m})
+    install(m)
+    try:
+        thread, result, url = start_panel(LaunchOptions(0, "none", 1))
+        job = {"text": "Hello.", "voice": m.id, "speed": 1.0, "device": "cpu", "threads": 1}
+        assert call(url, "/api/jobs", "POST", job)[0] == 201
+        assert call(url, "/api/quit", "POST")[0] == 200
+        thread.join(10)
+        assert not thread.is_alive() and result == [0]
+    finally:
+        gate.set()
+
+
+def test_requests_are_not_logged(capfd: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture) -> None:
+    """uvicorn's access logger does not propagate to caplog, so the printed output is checked too."""
+    caplog.set_level(logging.INFO)
+    thread, result, url = start_panel(LaunchOptions(0, "none", 1))
+    secret = URL_RE.match(url).group(2)  # type: ignore[union-attr]
+    # the panel's own http://127.0.0.1 address (URL_RE); its request line carries ?s=<secret>
+    with urllib.request.urlopen(url, timeout=10) as page:  # noqa: S310
+        assert page.status == 200
+    call(url, "/api/status")
+    call(url, "/api/quit", "POST")
+    thread.join(10)
+    assert result == [0]
+    out, err = capfd.readouterr()
+    assert secret not in out + err and "GET /" not in out + err
+    assert not [r for r in caplog.records if r.name == "uvicorn.access" or secret in r.getMessage()]
+
+
+def test_port_in_use_is_exit_1(capsys: pytest.CaptureFixture[str]) -> None:
+    with socket.socket() as taken:
+        taken.bind(("127.0.0.1", 0))
+        port = taken.getsockname()[1]
+        assert main(["gui", "--no-window", "--port", str(port)]) == 1
+    lines = capsys.readouterr().err.strip().splitlines()
+    assert len(lines) == 1 and f"127.0.0.1:{port}" in lines[0]
+
+
+def test_missing_fastapi_is_exit_4(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    import importlib.util
+
+    real = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name, *a: None if name == "fastapi" else real(name, *a))
+    assert main(["gui", "--no-window"]) == 4
+    lines = capsys.readouterr().err.strip().splitlines()
+    assert len(lines) == 1 and "bytestts[gui]" in lines[0]
+
+
+def test_bad_cap_is_exit_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setenv("BYTESTTS_GUI_MAX_THREADS", "0")
+    assert main(["gui", "--no-window"]) == 2
+    lines = capsys.readouterr().err.strip().splitlines()
+    assert len(lines) == 1 and "BYTESTTS_GUI_MAX_THREADS" in lines[0]
+
+
+def test_bad_port_is_a_usage_error(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["gui", "--no-window", "--port", "70000"]) == 2
+    assert "--port" in capsys.readouterr().err
