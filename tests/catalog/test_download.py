@@ -424,6 +424,11 @@ def _fake_https(monkeypatch: pytest.MonkeyPatch, redirects: dict[str, str]) -> l
         "https://0x7f.0.0.1/admin",
         "https://127.0.0.1./admin",
         "https://010.0.0.1/admin",  # 8.0.0.1 to the resolver, but no spelling ipaddress accepts: refused too
+        # IDNA (UTS 46), which requests applies to a non-ASCII host, maps compatibility characters onto these
+        "https://１２７.０.０.１/admin",  # fullwidth digits: 127.0.0.1
+        "https://ｌｏｃａｌｈｏｓｔ/admin",  # fullwidth: localhost
+        "https://127。0。0。1/admin",  # ideographic full stops: 127.0.0.1
+        "https://10．0．0．1/admin",  # fullwidth full stops: 10.0.0.1
     ],
 )
 def test_https_never_redirects_inward(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
@@ -451,6 +456,14 @@ def test_https_follows_public_names_and_addresses(
     with pytest.raises(requests.ConnectionError):
         download_file("https://mirror.example/f", tmp_path / "f", sha256=SHA, size=N)
     assert seen == ["https://mirror.example/f", target]
+
+
+def test_https_redirect_hosts_must_be_ascii(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # the price of refusing the IDNA tricks above: a public internationalized name is refused as a redirect hop too
+    seen = _fake_https(monkeypatch, {"https://mirror.example/f": "https://bücher.example/f"})
+    with pytest.raises(ValueError):
+        download_file("https://mirror.example/f", tmp_path / "f", sha256=SHA, size=N)
+    assert seen == ["https://mirror.example/f"]
 
 
 def test_https_redirects_to_other_public_hosts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
