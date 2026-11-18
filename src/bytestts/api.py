@@ -11,7 +11,7 @@ from typing import Any, Literal
 from bytestts.audio import Audio, concat
 from bytestts.catalog.catalog import VoiceInfo
 from bytestts.catalog.download import ensure_voice
-from bytestts.catalog.manifest import CARD, VoiceManifest, read_json, verify_package
+from bytestts.catalog.manifest import CARD, VoicePackage, load_package
 from bytestts.engines.base import SpeechEngine, SynthesisOptions, VoiceRef
 from bytestts.engines.vits_onnx import ENGINES, VitsDefaults
 from bytestts.errors import IntegrityError, NotSupported, VoiceNotFound
@@ -23,13 +23,14 @@ SPEAKERS = "speakers.json"  # {speaker name: model speaker id}, written by the c
 Device = Literal["auto", "cpu", "cuda"]
 
 
-def _speaker_ids(directory: Path, manifest: VoiceManifest) -> dict[str, int] | None:
+def _speaker_ids(package: VoicePackage) -> dict[str, int] | None:
     """Speaker name -> model id, from the pinned speakers.json; featured speakers first, so the default is one."""
+    manifest = package.manifest
     if not manifest.speakers:
         return None
     if SPEAKERS not in manifest.files:
         raise IntegrityError(f"a voice that lists speakers must also list {SPEAKERS} in voice.json")
-    ids = read_json(directory / SPEAKERS, SPEAKERS)
+    ids = package.json(SPEAKERS)
     if not isinstance(ids, dict) or set(ids) != set(manifest.speakers):
         raise IntegrityError(f"{SPEAKERS} must map exactly the speakers voice.json lists")
     values = list(ids.values())
@@ -39,8 +40,9 @@ def _speaker_ids(directory: Path, manifest: VoiceManifest) -> dict[str, int] | N
     return {name: ids[name] for name in order}
 
 
-def _config(directory: Path, manifest: VoiceManifest) -> tuple[dict[str, Any], VitsDefaults]:
-    config = read_json(directory / CONFIG, CONFIG)
+def _config(package: VoicePackage) -> tuple[dict[str, Any], VitsDefaults]:
+    manifest = package.manifest
+    config = package.json(CONFIG)
     if not isinstance(config, dict):
         raise IntegrityError(f"{CONFIG} must be a JSON object")
     try:
@@ -61,6 +63,16 @@ def _frontend(config: Mapping[str, Any]) -> TextFrontend:
         return TextFrontend(FrontendConfig.from_voice_config(config))
     except (AttributeError, KeyError, TypeError, ValueError) as e:
         raise IntegrityError(f"{CONFIG}: bad or missing text settings ({type(e).__name__}: {e})") from None
+
+
+def _card(package: VoicePackage) -> dict[str, Any] | None:
+    """The pinned voice card, if the package lists one, whatever the voice's origin."""
+    if CARD not in package.manifest.files:
+        return None
+    card = package.json(CARD)
+    if not isinstance(card, dict):
+        raise IntegrityError(f"{CARD} must be a JSON object")
+    return card
 
 
 class BytesTTS:
@@ -87,22 +99,23 @@ class BytesTTS:
     def load_path(
         cls, path: str | os.PathLike[str], *, device: Device = "auto", threads: int | None = None
     ) -> BytesTTS:
-        """A voice package directory: every file is verified against its voice.json before use."""
-        directory = Path(path)
-        manifest = verify_package(directory)
+        """A voice package directory: every file is read once and verified against its voice.json, and only those
+        verified bytes are used (no file is opened again after its check)."""
+        package = load_package(Path(path))
+        manifest = package.manifest
         engine_type = ENGINES.get(manifest.engine)
         if engine_type is None:
             raise NotSupported(f"voice engine {manifest.engine!r} is not supported by this version of BytesTTS")
-        config, defaults = _config(directory, manifest)
+        config, defaults = _config(package)
         frontend = _frontend(config)
+        card = _card(package)
         engine = engine_type(
-            directory / "model.onnx",
+            package.data["model.onnx"],
             defaults,
-            speakers=_speaker_ids(directory, manifest),
+            speakers=_speaker_ids(package),
             device=device,
             threads=threads,  # unchanged: None keeps ONNX Runtime's defaults (P0.9)
         )
-        card = read_json(directory / CARD, CARD) if CARD in manifest.files else None
         return cls(info=VoiceInfo.from_manifest(manifest), card=card, frontend=frontend, engine=engine)
 
     def stream(self, text: str, *, speaker: str | None = None, speed: float = 1.0) -> Iterator[Audio]:

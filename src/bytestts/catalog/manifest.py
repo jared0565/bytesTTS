@@ -239,26 +239,52 @@ class VoiceManifest:
 # --- packages -------------------------------------------------------------------------------------------------
 
 
-def _verify_file(path: Path, name: str, entry: FileEntry) -> None:
+@dataclass(frozen=True)
+class VoicePackage:
+    """A verified package: its manifest and the bytes of every file it lists, each read once and then hashed.
+
+    Use these bytes, never the files again: a file re-opened after its check could have been swapped in between.
+    """
+
+    manifest: VoiceManifest
+    data: Mapping[str, bytes]
+
+    def json(self, name: str) -> Any:
+        """A listed file parsed as strict JSON. Pinning a file does not lift MAX_JSON_BYTES."""
+        data = self.data[name]
+        if len(data) > MAX_JSON_BYTES:
+            raise IntegrityError(f"{name} is too large (over {MAX_JSON_BYTES} bytes)")
+        return parse_json(data, name)
+
+
+def _read_verified(path: Path, name: str, entry: FileEntry) -> bytes:
     if path.is_symlink():
         raise IntegrityError(f"{name} is a symbolic link, which is refused")
     try:
         st = path.stat()
     except OSError:
         raise IntegrityError(f"{name} is missing") from None
-    if not stat.S_ISREG(st.st_mode):
+    if not stat.S_ISREG(st.st_mode):  # before opening it: a FIFO would block the open
         raise IntegrityError(f"{name} is not a regular file")
     if st.st_size != entry.size:
         raise IntegrityError(f"{name}: size is {st.st_size} bytes, the manifest pins {entry.size}")
-    if sha256_file(path) != entry.sha256:
+    try:
+        with path.open("rb") as f:
+            data = f.read(entry.size + 1)  # one byte more, so a file that grew since the stat is caught
+    except OSError as e:
+        raise IntegrityError(f"cannot read {name}: {e.strerror or e}") from None
+    if len(data) != entry.size:
+        raise IntegrityError(f"{name}: read {len(data)} bytes, the manifest pins {entry.size}")
+    if hashlib.sha256(data).hexdigest() != entry.sha256:
         raise IntegrityError(f"{name}: sha256 does not match the manifest")
+    return data
 
 
-def _require_consent(directory: Path, manifest: VoiceManifest) -> None:
-    if CARD not in manifest.files:  # pinned, or anyone could swap the statement
+def _require_consent(package: VoicePackage) -> None:
+    if CARD not in package.manifest.files:  # pinned, or anyone could swap the statement
         raise ConsentMissing(f"a fine-tuned voice must list {CARD}, with its consent statement, in {MANIFEST}")
     try:
-        card = read_json(directory / CARD, CARD)
+        card = package.json(CARD)
     except IntegrityError as e:
         raise ConsentMissing(f"{CARD} cannot be read: {e}") from None
     consent = card.get("consent") if isinstance(card, dict) else None
@@ -267,15 +293,20 @@ def _require_consent(directory: Path, manifest: VoiceManifest) -> None:
         raise ConsentMissing(f"{CARD} has no consent statement (consent.statement)")
 
 
-def verify_package(directory: Path) -> VoiceManifest:
-    """The package's manifest, once every listed file matches it (and a fine-tuned voice carries consent)."""
+def load_package(directory: Path) -> VoicePackage:
+    """The package, once every listed file matches its manifest (and a fine-tuned voice carries consent)."""
     directory = Path(directory)
     manifest = VoiceManifest.from_json(directory / MANIFEST)
     for name in REQUIRED_FILES:
         if name not in manifest.files:
             raise IntegrityError(f"{MANIFEST} does not list {name}")
-    for name, entry in manifest.files.items():
-        _verify_file(directory / safe_name(name), name, entry)
+    data = {name: _read_verified(directory / safe_name(name), name, e) for name, e in manifest.files.items()}
+    package = VoicePackage(manifest, MappingProxyType(data))
     if manifest.origin == "fine-tuned":
-        _require_consent(directory, manifest)
-    return manifest
+        _require_consent(package)
+    return package
+
+
+def verify_package(directory: Path) -> VoiceManifest:
+    """The package's manifest, once every listed file matches it (and a fine-tuned voice carries consent)."""
+    return load_package(directory).manifest

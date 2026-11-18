@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import tempfile
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
@@ -164,7 +165,7 @@ def _session_options(threads: int | None, external_data_dir: str) -> Any:
 class VitsOnnxEngine:
     def __init__(
         self,
-        model_path: Path,
+        model: bytes | str | os.PathLike[str],
         defaults: VitsDefaults,
         *,
         speakers: Mapping[str, int] | None = None,
@@ -182,7 +183,9 @@ class VitsOnnxEngine:
             raise NotSupported("CUDA execution provider not available")
         providers = [_CUDA, _CPU] if device != "cpu" and cuda_listed else [_CPU]
 
-        model = Path(model_path).read_bytes()
+        # bytes: what load_path verified, used as is. A path is read here (tests and tools pass one).
+        if not isinstance(model, bytes):
+            model = Path(model).read_bytes()
         reject_external_data(model)  # before ONNX Runtime sees a single byte
         with tempfile.TemporaryDirectory(prefix="bytestts-no-external-data-") as empty:  # read only while building
             self._session = ort.InferenceSession(
