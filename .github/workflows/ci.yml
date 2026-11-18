@@ -81,6 +81,9 @@ jobs:
       - name: Ruff
         run: uv run ruff check
 
+      - name: Ruff format
+        run: uv run ruff format --check  # Python code and the Python examples in the Markdown docs
+
       - name: Mypy
         run: uv run mypy
 

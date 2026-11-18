@@ -43,7 +43,8 @@ It is built and tested on Windows and Linux only. It may work on macOS, but that
 ### How do I play audio without writing a file?
 
 ```python
-import sounddevice as sd            # pip install sounddevice
+import sounddevice as sd  # pip install sounddevice
+
 for chunk in tts.stream("Hello there. This plays sentence by sentence."):
     sd.play(chunk.samples, chunk.sample_rate)
     sd.wait()

@@ -112,9 +112,17 @@ Everything public is importable from `bytestts`:
 
 ```python
 from bytestts import (
-    BytesTTS, Audio, VoiceInfo, list_voices,
-    BytesTTSError, VoiceNotFound, IntegrityError, FrontendUnavailable,
-    ConsentMissing, NotSupported, NoSpeakableText,
+    BytesTTS,
+    Audio,
+    VoiceInfo,
+    list_voices,
+    BytesTTSError,
+    VoiceNotFound,
+    IntegrityError,
+    FrontendUnavailable,
+    ConsentMissing,
+    NotSupported,
+    NoSpeakableText,
 )
 ```
 
@@ -163,11 +171,11 @@ audio.save("meeting.wav")
 
 ```python
 Audio(samples, sample_rate)
-audio.samples        # 1-D numpy float32 array, nominally in [-1, 1]
-audio.sample_rate    # samples per second, e.g. 22050
-audio.duration       # seconds (float)
-audio.to_wav_bytes() # 16-bit PCM mono WAV, clipped to full scale
-audio.save(path)     # writes the same WAV to a file
+audio.samples  # 1-D numpy float32 array, nominally in [-1, 1]
+audio.sample_rate  # samples per second, e.g. 22050
+audio.duration  # seconds (float)
+audio.to_wav_bytes()  # 16-bit PCM mono WAV, clipped to full scale
+audio.save(path)  # writes the same WAV to a file
 ```
 
 `samples` can go straight to a player such as `sounddevice.play(audio.samples, audio.sample_rate)`.
@@ -347,5 +355,6 @@ runs on CPU. To silence them:
 
 ```python
 import logging
+
 logging.getLogger("bytestts").setLevel(logging.ERROR)
 ```

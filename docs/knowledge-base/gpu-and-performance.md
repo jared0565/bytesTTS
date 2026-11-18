@@ -22,7 +22,8 @@ ONNX Runtime is installed and working.
 
 ```python
 import onnxruntime as ort
-print(ort.get_available_providers())   # should include "CUDAExecutionProvider"
+
+print(ort.get_available_providers())  # should include "CUDAExecutionProvider"
 ```
 
 Being **listed** is not the same as **working**: ONNX Runtime lists CUDA whenever the GPU build is installed, even

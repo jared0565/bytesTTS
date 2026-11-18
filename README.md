@@ -76,13 +76,13 @@ Python:
 ```python
 from bytestts import BytesTTS
 
-tts = BytesTTS.load_path("path/to/en-ljspeech")      # a voice package directory
+tts = BytesTTS.load_path("path/to/en-ljspeech")  # a voice package directory
 audio = tts.synthesize("Hello there. How are you?", speed=1.0)
-audio.save("hello.wav")                               # 16-bit PCM WAV
+audio.save("hello.wav")  # 16-bit PCM WAV
 print(audio.duration, audio.sample_rate)
 
 for sentence in tts.stream("A longer text. One chunk per sentence."):
-    print(sentence.duration)                          # play or send each one as it is ready
+    print(sentence.duration)  # play or send each one as it is ready
 ```
 
 Command line:
