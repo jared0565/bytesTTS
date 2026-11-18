@@ -42,15 +42,21 @@ class CpuSlot:
             return self._current is not None
 
 
+AskSavePath = Callable[[str, str], "str | None"]
+"""Shows the Save dialog for a file name and a file-type filter; returns the chosen path, or None on Cancel."""
+
+
 @dataclass
 class Session:
-    """One launch of the panel. `close_window` is set by the app window once it exists."""
+    """One launch of the panel. The app window sets `close_window` and `ask_save_path` while it is open; in the
+    browser both stay None."""
 
     tickets: SaveTickets
     unsaved: bool = False
     quitting: bool = False
     quit: threading.Event = field(default_factory=threading.Event)
     close_window: Callable[[], None] | None = None
+    ask_save_path: AskSavePath | None = None
 
     def request_quit(self) -> None:
         """Quit: the launcher stops the server when `quit` is set; an open window closes without asking."""

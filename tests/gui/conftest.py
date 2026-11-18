@@ -20,5 +20,9 @@ def _no_real_browser_or_window(monkeypatch: pytest.MonkeyPatch) -> Iterator[None
     def refuse_browser(*args: Any, **kwargs: Any) -> bool:
         pytest.fail("a test reached the real webbrowser.open")
 
+    def refuse_window(*args: Any, **kwargs: Any) -> str | None:
+        pytest.fail("a test reached the real bytestts.gui.window.open_window")
+
     monkeypatch.setattr(webbrowser, "open", refuse_browser)
+    monkeypatch.setattr("bytestts.gui.window.open_window", refuse_window)
     yield

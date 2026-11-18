@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import threading
 from importlib import resources
 from pathlib import Path
 from typing import Any, Literal
@@ -58,6 +59,24 @@ class JobBody(BaseModel):
     threads: int
 
 
+SAVE_TYPES = {"wav": "WAV audio (*.wav)"}  # the Save dialog's filter per extension; stage 2 adds the others
+
+
+class SaveDialogBody(BaseModel):
+    """The window's Save button: the suggested name (made file-safe here) and the extension. Never a path."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    name: str
+    extension: str
+
+
+class UnsavedBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    unsaved: bool
+
+
 def _error(status: int, message: str) -> JSONResponse:
     return JSONResponse({"error": message}, status_code=status)
 
@@ -86,6 +105,7 @@ def create_app(*, port: int, secret: str, max_threads: int, session: Session, lo
     app.add_middleware(Guard, port=port, secret=secret, raw_body_paths=frozenset({"/api/export"}))
     slot = CpuSlot()
     downloads = Downloads()
+    dialog_lock = threading.Lock()  # one Save dialog at a time
 
     def default_loader(voice: str, device: jobs_module.Device, threads: int) -> Any:
         return jobs_module.load_voice(voice, device, threads)
@@ -131,7 +151,36 @@ def create_app(*, port: int, secret: str, max_threads: int, session: Session, lo
             "text_limit": TEXT_LIMIT,
             "formats": list(FORMATS),
             "busy": slot.busy,
+            "save_dialog": session.ask_save_path is not None,
         }
+
+    @app.post("/api/save-dialog")
+    def save_dialog(body: SaveDialogBody) -> Any:
+        """Design B (spec §6.7 as revised): the server opens the window's Save dialog, on this request's thread,
+        and answers with a one-use ticket and the file's name. The path stays here, under the ticket."""
+        file_type = SAVE_TYPES.get(body.extension)
+        if file_type is None:
+            return _error(400, f"extension {body.extension} is not available")
+        ask = session.ask_save_path
+        if ask is None:
+            return _error(400, "the Save dialog is only in the app window")
+        if not dialog_lock.acquire(blocking=False):
+            return _error(409, "the Save dialog is already open")
+        try:
+            chosen = ask(f"{saving.safe_file_name(body.name)}.{body.extension}", file_type)
+        finally:
+            dialog_lock.release()
+        if chosen is None:
+            return {"ticket": None, "name": None}
+        target = Path(chosen)
+        if target.suffix.lower() != f".{body.extension}":  # never append it: that file was not asked about
+            return _error(400, f"choose a file name ending in .{body.extension}")
+        return {"ticket": session.tickets.issue(target), "name": target.name}
+
+    @app.post("/api/unsaved")
+    def set_unsaved(body: UnsavedBody) -> dict[str, bool]:
+        session.unsaved = body.unsaved
+        return {"unsaved": session.unsaved}
 
     @app.get("/api/voices")
     def voices() -> list[dict[str, Any]]:
