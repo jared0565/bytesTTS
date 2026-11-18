@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: MPL-2.0
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 from bytestts.catalog import catalog
 from bytestts.catalog.catalog import VoiceInfo, list_voices, load_catalog, parse_catalog
-from bytestts.catalog.manifest import FileEntry, VoiceManifest
+from bytestts.catalog.download import ensure_voice
+from bytestts.catalog.manifest import FileEntry, VoiceManifest, verify_package
 from bytestts.errors import IntegrityError
 
 SHA = "a" * 64
@@ -38,6 +40,23 @@ def entry(**kw: Any) -> dict[str, Any]:
 def test_shipped_catalogue_loads() -> None:
     voices = load_catalog()  # the packaged voices.json, through importlib.resources
     assert all(isinstance(m, VoiceManifest) and m.id == key for key, m in voices.items())
+
+
+def test_en_ljspeech_ships_in_the_catalogue() -> None:
+    m = load_catalog()["en-ljspeech"]
+    assert (m.language, m.engine, m.origin, m.sample_rate) == ("en", "vits-onnx", "catalog", 22050)
+    pinned = "https://huggingface.co/fbmacagba/bytestts-en-ljspeech/resolve/8ec2c68f8187a2d68fbf97c657b2ccf4f73fbfb0/"
+    urls = {name: entry.url for name, entry in m.files.items()}
+    assert urls == {name: pinned + name for name in ("model.onnx", "config.json")}
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("voice_id", sorted(load_catalog()))
+def test_shipped_voice_downloads_and_verifies(voice_id: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The real download of every catalogue voice (maintainers: `pytest -m network`; en-ljspeech is 114 MB)."""
+    monkeypatch.setenv("BYTESTTS_HOME", str(tmp_path))
+    directory = ensure_voice(voice_id)
+    assert verify_package(directory) == load_catalog()[voice_id]
 
 
 def test_list_voices_filters(monkeypatch: pytest.MonkeyPatch) -> None:
