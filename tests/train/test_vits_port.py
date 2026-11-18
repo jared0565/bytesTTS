@@ -113,10 +113,84 @@ def test_multispeaker_has_emb_g_and_needs_sid() -> None:
     assert not torch.equal(a, b)
 
 
-@pytest.mark.parametrize("key", ["use_d_vector_file", "use_language_embedding"])
-def test_unported_conditioning_is_refused(key: str) -> None:
+def test_unported_conditioning_is_refused() -> None:
     with pytest.raises(NotSupported):
-        VitsModelConfig.from_coqui({**TINY_ARGS, key: True}, num_chars=40)
+        VitsModelConfig.from_coqui({**TINY_ARGS, "use_d_vector_file": True}, num_chars=40)
+
+
+# CSS10 voices (es, fr): a one-row language embedding fed to the text encoder and the duration predictor.
+LANG_ARGS = {**TINY_ARGS, "use_language_embedding": True, "num_languages": 1, "embedded_language_dim": 4}
+ONE_SPEAKER = {"use_speaker_embedding": True, "num_speakers": 1, "speaker_embedding_channels": 8}
+H = TINY.hidden_channels
+
+
+def _lang(**extra: object) -> VitsModelConfig:
+    return VitsModelConfig.from_coqui({**LANG_ARGS, **extra}, num_chars=40)
+
+
+def test_language_voice_keys_match_coqui() -> None:  # the CSS10 checkpoints' shapes, at the tiny width H
+    sd = _model(_lang()).state_dict()
+    assert sd["emb_l.weight"].shape == (1, 4)
+    assert sd["text_encoder.emb.weight"].shape == (40, H)  # the token embedding stays H wide
+    assert sd["text_encoder.encoder.attn_layers.0.conv_q.weight"].shape == (H + 4, H + 4, 1)
+    assert sd["text_encoder.proj.weight"].shape == (2 * H, H + 4, 1)
+    assert sd["duration_predictor.pre.weight"].shape == (192, H + 4, 1)
+    assert sd["duration_predictor.cond_lang.weight"].shape == (192, 4, 1)
+
+
+def test_deterministic_dp_takes_the_language_too() -> None:  # glow_tts/duration_predictor.py:25,45
+    sd = _model(_lang(use_sdp=False)).state_dict()
+    assert sd["duration_predictor.conv_1.weight"].shape[1] == H + 4
+    assert sd["duration_predictor.cond_lang.weight"].shape == (H + 4, 4, 1)
+
+
+def test_language_config_roundtrips() -> None:
+    cfg = _lang(**ONE_SPEAKER)
+    assert VitsModelConfig.from_dict(cfg.to_dict()) == cfg and cfg.language_emb_dim == 4
+    assert TINY.language_emb_dim == 0
+
+
+@pytest.mark.parametrize("use_sdp", [True, False])
+def test_language_embedding_is_live(use_sdp: bool) -> None:
+    m, (x, lengths) = _model(_lang(use_sdp=use_sdp)), _tokens()
+    a = m.infer(x, lengths, **ZERO)[0]
+    with torch.no_grad():
+        m.emb_l.weight.add_(1.0)
+    assert not torch.equal(a, m.infer(x, lengths, **ZERO)[0])
+
+
+def test_language_batch_equals_single() -> None:  # the language vector broadcasts over a padded batch
+    m = _model(_lang(**ONE_SPEAKER))
+    g = torch.Generator().manual_seed(2)
+    x = torch.randint(1, 40, (2, 12), generator=g)
+    x[1, 7:] = 0
+    lengths = torch.tensor([12, 7])
+    wav, dur = m.infer(x, lengths, **ZERO, sid=torch.tensor([0, 0]))
+    with torch.no_grad():
+        lang = m.emb_l(torch.zeros(1, dtype=torch.long)).unsqueeze(-1)
+        mean = m.text_encoder(x, lengths, lang_emb=lang)[1]
+        for i, n in enumerate((12, 7)):
+            w1, d1 = m.infer(x[i : i + 1, :n], torch.tensor([n]), **ZERO, sid=torch.tensor([0]))
+            assert torch.equal(dur[i, :n], d1[0]), i
+            mean1 = m.text_encoder(x[i : i + 1, :n], torch.tensor([n]), lang_emb=lang)[1]
+            assert torch.allclose(mean[i, :, :n], mean1[0], atol=1e-5), i
+            if i == 0:  # the longest item has no decoder padding; a padded item's tail sees the decoder's conv
+                assert torch.allclose(wav[0, :, : w1.shape[-1]], w1[0], atol=1e-5)  # biases, in TTS-dev as here
+
+
+@pytest.mark.parametrize("num_languages", [0, 2])
+def test_multi_language_tables_are_refused(num_languages: int) -> None:  # the port fixes the language (id 0)
+    with pytest.raises(NotSupported, match="language"):
+        _lang(num_languages=num_languages)
+
+
+def test_one_row_speaker_table_with_language() -> None:  # the CSS10 layout: emb_g [1, C] and emb_l [1, 4]
+    m, (x, lengths) = _model(_lang(**ONE_SPEAKER)), _tokens()
+    assert m.state_dict()["emb_g.weight"].shape == (1, 8)
+    wav, dur = m.infer(x, lengths, **ZERO, sid=torch.tensor([0]))
+    assert wav.shape[-1] == max(int(dur.sum()), 1) * HOP
+    with pytest.raises(ValueError, match="speaker"):
+        m.infer(x, lengths, **ZERO)
 
 
 def test_defaults_are_vitsargs_defaults() -> None:  # TTS-dev vits.py:366-600

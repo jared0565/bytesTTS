@@ -34,29 +34,35 @@ def _batch(lengths: list[int], seed: int = 5) -> tuple[np.ndarray, np.ndarray]:
     return x.numpy(), np.array(lengths, np.int64)
 
 
-def _pre_ceil_margin(m: VitsGenerator, x: np.ndarray, lengths: np.ndarray, length_scale: float = 1.0) -> float:
+def _pre_ceil_margin(
+    m: VitsGenerator, x: np.ndarray, lengths: np.ndarray, length_scale: float = 1.0, sid: np.ndarray | None = None
+) -> float:
     """Distance of the unrounded durations from the nearest integer: exact duration equality needs a margin."""
     with torch.no_grad():
-        h, _, _, mask = m.text_encoder(torch.from_numpy(x), torch.from_numpy(lengths))
+        g = m.emb_g(torch.from_numpy(sid)).unsqueeze(-1) if sid is not None else None
+        lang = m.emb_l(torch.zeros(1, dtype=torch.long)).unsqueeze(-1) if hasattr(m, "emb_l") else None
+        h, _, _, mask = m.text_encoder(torch.from_numpy(x), torch.from_numpy(lengths), lang_emb=lang)
         if m.cfg.use_sdp:
-            logw = m.duration_predictor(h, mask, reverse=True, noise_scale=0.0)
+            logw = m.duration_predictor(h, mask, g=g, reverse=True, noise_scale=0.0, lang_emb=lang)
         else:
-            logw = m.duration_predictor(h, mask)
+            logw = m.duration_predictor(h, mask, g=g, lang_emb=lang)
         w = (torch.exp(logw) * mask * length_scale)[mask.bool()]
     return float(torch.min(torch.abs(w - torch.round(w))))
 
 
-def _batch_with_margin(m: VitsGenerator, lengths: list[int]) -> tuple[np.ndarray, np.ndarray]:
+def _batch_with_margin(
+    m: VitsGenerator, lengths: list[int], sid: np.ndarray | None = None
+) -> tuple[np.ndarray, np.ndarray]:
     """The first seeded batch whose unrounded durations sit >= 1e-3 from an integer (deterministic search)."""
     for seed in range(5, 105):
         x, lengths_np = _batch(lengths, seed)
-        if _pre_ceil_margin(m, x, lengths_np) >= 1e-3:  # else ORT and torch may round a duration differently
+        if _pre_ceil_margin(m, x, lengths_np, sid=sid) >= 1e-3:  # else ORT and torch may round a duration differently
             return x, lengths_np
     raise AssertionError("no batch with a duration margin in 100 seeds")
 
 
 def _check_matches(m: VitsGenerator, path: Path, lengths: list[int], **feeds: np.ndarray) -> None:
-    x, lengths_np = _batch_with_margin(m, lengths)
+    x, lengths_np = _batch_with_margin(m, lengths, feeds.get("sid"))
     wav, dur = ort_session(path).run(None, {"input": x, "input_lengths": lengths_np, "scales": ZERO, **feeds})
     sid = torch.from_numpy(feeds["sid"]) if "sid" in feeds else None
     tw, td = m.infer(
@@ -111,6 +117,26 @@ def test_multispeaker_export_takes_sid(tmp_path: Path) -> None:
     export_onnx(m, tmp_path / "spk.onnx")
     assert [i.name for i in onnx.load(str(tmp_path / "spk.onnx")).graph.input][-1] == "sid"
     _check_matches(m, tmp_path / "spk.onnx", [14], sid=np.array([2], np.int64))
+
+
+def test_language_voice_exports_without_a_language_input(tmp_path: Path) -> None:  # CSS10: the id is a constant
+    m = _model(
+        use_language_embedding=True,
+        num_languages=1,
+        embedded_language_dim=4,
+        use_speaker_embedding=True,
+        num_speakers=1,
+        speaker_embedding_channels=8,
+    )
+    export_onnx(m, tmp_path / "lang.onnx")
+    assert [i.name for i in onnx.load(str(tmp_path / "lang.onnx")).graph.input] == [
+        "input",
+        "input_lengths",
+        "scales",
+        "sid",
+    ]
+    _check_matches(m, tmp_path / "lang.onnx", [17], sid=np.array([0], np.int64))
+    _check_matches(m, tmp_path / "lang.onnx", [21, 8], sid=np.array([0, 0], np.int64))
 
 
 def test_io_names_and_opset(tmp_path: Path) -> None:

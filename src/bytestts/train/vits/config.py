@@ -14,7 +14,6 @@ from bytestts.errors import NotSupported
 # Conditioning TTS-dev feeds from external managers or files; the port does not carry it.
 _REFUSED = {
     "use_d_vector_file": "d-vector (external speaker embedding) voices",
-    "use_language_embedding": "language-embedding (multilingual) voices",
 }
 
 
@@ -57,6 +56,12 @@ class VitsModelConfig:
     num_speakers: int = 0
     speaker_embedding_channels: int = 256
     condition_dp_on_speaker: bool = True
+    # A language embedding conditions the text encoder and the duration predictor (vits.py:796-803). The port fixes
+    # the language: the table must have one row, and inference always uses id 0, as TTS-dev's Synthesizer does for
+    # a single-language voice (synthesizer.py:342). The CSS10 voices carry one.
+    use_language_embedding: bool = False
+    embedded_language_dim: int = 4
+    num_languages: int = 0
     encoder_sample_rate: int | None = None
     interpolate_z: bool = True
     sample_rate: int | None = None  # the voice's audio sample rate; needed only with encoder_sample_rate
@@ -66,10 +71,18 @@ class VitsModelConfig:
             raise ValueError(f"resblock_type_decoder must be '1' or '2', not {self.resblock_type_decoder!r}")
         if self.encoder_sample_rate and not self.sample_rate:
             raise ValueError("encoder_sample_rate needs the voice's audio sample_rate")
+        if self.use_language_embedding and self.num_languages != 1:
+            raise NotSupported(
+                f"multi-language voices are not supported: the port fixes the language ({self.num_languages} languages)"
+            )
 
     @property
     def embedded_speaker_dim(self) -> int:  # vits.py:774
         return self.speaker_embedding_channels if self.use_speaker_embedding and self.num_speakers > 0 else 0
+
+    @property
+    def language_emb_dim(self) -> int:  # vits.py:799; 0 without a language embedding
+        return self.embedded_language_dim if self.use_language_embedding else 0
 
     @property
     def interpolate_factor(self) -> float | None:  # vits.py:810

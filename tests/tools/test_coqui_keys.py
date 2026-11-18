@@ -86,12 +86,19 @@ def test_model_args_are_what_the_generator_reads() -> None:
     assert cfg.hidden_channels == ljspeech()["model_args"]["hidden_channels"]
 
 
-@pytest.mark.parametrize("key", ["use_d_vector_file", "use_language_embedding"])
-def test_refusals_survive_extraction(key: str) -> None:  # else from_coqui could not refuse them later
+def test_refusals_survive_extraction() -> None:  # else from_coqui could not refuse them later
     cfg = ljspeech()
-    cfg["model_args"][key] = True
+    cfg["model_args"]["use_d_vector_file"] = True
     with pytest.raises(NotSupported):
         VitsModelConfig.from_coqui(ck.extract_voice_config(cfg, "en")["model_args"], num_chars=179)
+
+
+def test_language_keys_survive_extraction() -> None:  # CSS10 voices: the port reads all three
+    cfg = ljspeech()
+    lang = {"use_language_embedding": True, "embedded_language_dim": 4, "num_languages": 1}
+    cfg["model_args"].update(lang)
+    args = ck.extract_voice_config(cfg, "es")["model_args"]
+    assert {k: args[k] for k in lang} == lang
 
 
 def test_top_level_scales_win_over_model_args() -> None:  # the P0.7 rule; v0.6.1 configs have only model_args

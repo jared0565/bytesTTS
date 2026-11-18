@@ -120,8 +120,10 @@ class StochasticDurationPredictor(nn.Module):
         dropout_p: float,
         num_flows: int = 4,
         cond_channels: int = 0,
+        language_emb_dim: int = 0,
     ) -> None:
         super().__init__()
+        in_channels += language_emb_dim  # the text encoder's output carries the language vector
         self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
         self.convs = DilatedDepthSeparableConv(hidden_channels, kernel_size, num_layers=3, dropout_p=dropout_p)
         self.proj = nn.Conv1d(hidden_channels, hidden_channels, 1)
@@ -136,6 +138,8 @@ class StochasticDurationPredictor(nn.Module):
         self.post_flows += [ConvFlow(2, hidden_channels, kernel_size, num_layers=3) for _ in range(num_flows)]
         if cond_channels:
             self.cond = nn.Conv1d(cond_channels, hidden_channels, 1)
+        if language_emb_dim:
+            self.cond_lang = nn.Conv1d(language_emb_dim, hidden_channels, 1)
 
     def forward(
         self,
@@ -145,11 +149,14 @@ class StochasticDurationPredictor(nn.Module):
         g: Tensor | None = None,
         reverse: bool = False,
         noise_scale: float | Tensor = 1.0,
+        lang_emb: Tensor | None = None,
     ) -> Tensor:
         """Training (reverse=False): the duration NLL. Inference (reverse=True): log-durations [B, 1, T]."""
         x = self.pre(x)
         if g is not None:
             x = x + self.cond(g)
+        if lang_emb is not None:  # after the speaker, in TTS-dev's order (stochastic_duration_predictor.py:235)
+            x = x + self.cond_lang(lang_emb)
         x = self.convs(x, x_mask)
         x = self.proj(x) * x_mask
 
@@ -203,8 +210,10 @@ class DurationPredictor(nn.Module):
         kernel_size: int,
         dropout_p: float,
         cond_channels: int | None = None,
+        language_emb_dim: int = 0,
     ) -> None:
         super().__init__()
+        in_channels += language_emb_dim  # glow_tts/duration_predictor.py:25
         self.in_channels = in_channels
         self.filter_channels = hidden_channels
         self.kernel_size = kernel_size
@@ -217,10 +226,14 @@ class DurationPredictor(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, 1, 1)
         if cond_channels:
             self.cond = nn.Conv1d(cond_channels, in_channels, 1)
+        if language_emb_dim:
+            self.cond_lang = nn.Conv1d(language_emb_dim, in_channels, 1)
 
-    def forward(self, x: Tensor, x_mask: Tensor, g: Tensor | None = None) -> Tensor:
+    def forward(self, x: Tensor, x_mask: Tensor, g: Tensor | None = None, lang_emb: Tensor | None = None) -> Tensor:
         if g is not None:
             x = x + self.cond(g)
+        if lang_emb is not None:
+            x = x + self.cond_lang(lang_emb)
         x = self.drop(self.norm_1(torch.relu(self.conv_1(x * x_mask))))
         x = self.drop(self.norm_2(torch.relu(self.conv_2(x * x_mask))))
         x = self.proj(x * x_mask)

@@ -62,6 +62,9 @@ class VitsGenerator(nn.Module):
         spk = cfg.embedded_speaker_dim
         if spk:  # vits.py:774, created first as in TTS-dev
             self.emb_g = nn.Embedding(cfg.num_speakers, spk)
+        lang = cfg.language_emb_dim
+        if lang:  # vits.py:800; one row, since the config fixes the language
+            self.emb_l = nn.Embedding(cfg.num_languages, lang)
         self.text_encoder = TextEncoder(
             cfg.num_chars,
             cfg.hidden_channels,
@@ -71,6 +74,7 @@ class VitsGenerator(nn.Module):
             cfg.num_layers_text_encoder,
             cfg.kernel_size_text_encoder,
             cfg.dropout_p_text_encoder,
+            language_emb_dim=lang,
         )
         self.posterior_encoder = PosteriorEncoder(
             cfg.out_channels,
@@ -98,10 +102,11 @@ class VitsGenerator(nn.Module):
                 cfg.dropout_p_duration_predictor,
                 4,
                 cond_channels=spk if cfg.condition_dp_on_speaker else 0,
+                language_emb_dim=lang,
             )
         else:
             self.duration_predictor = DurationPredictor(
-                cfg.hidden_channels, 256, 3, cfg.dropout_p_duration_predictor, cond_channels=spk
+                cfg.hidden_channels, 256, 3, cfg.dropout_p_duration_predictor, cond_channels=spk, language_emb_dim=lang
             )
         self.waveform_decoder = HifiganGenerator(
             cfg.hidden_channels,
@@ -154,12 +159,18 @@ class VitsGenerator(nn.Module):
                 raise ValueError("this voice has several speakers: pass a speaker id (sid)")
             g = self.emb_g(sid.unsqueeze(0) if sid.ndim == 0 else sid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(tokens, token_lengths)
+        lang_emb = None
+        if hasattr(self, "emb_l"):  # the fixed language: id 0, a constant in an exported graph
+            lang_emb = self.emb_l(torch.zeros(1, dtype=torch.long, device=tokens.device)).unsqueeze(-1)  # [1, L, 1]
+
+        x, m_p, logs_p, x_mask = self.text_encoder(tokens, token_lengths, lang_emb=lang_emb)
         g_dp = g if self.cfg.condition_dp_on_speaker else None
         if isinstance(self.duration_predictor, StochasticDurationPredictor):
-            logw = self.duration_predictor(x, x_mask, g=g_dp, reverse=True, noise_scale=noise_scale_dp)
+            logw = self.duration_predictor(
+                x, x_mask, g=g_dp, reverse=True, noise_scale=noise_scale_dp, lang_emb=lang_emb
+            )
         else:
-            logw = self.duration_predictor(x, x_mask, g=g_dp)
+            logw = self.duration_predictor(x, x_mask, g=g_dp, lang_emb=lang_emb)
         w = torch.exp(logw) * x_mask * length_scale
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
