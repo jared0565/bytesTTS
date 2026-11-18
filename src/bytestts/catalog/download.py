@@ -5,9 +5,10 @@ Every file is pinned by size and sha256 in the catalogue. A download goes to a u
 destination, is verified, then renamed into place; on any failure the `.part` file is deleted. Redirects are
 followed by hand so that every hop is checked before it is requested: https only, with plain http allowed only to
 127.0.0.1 or localhost (local test servers and mirrors). A hop that came from https may never go back to http, nor
-reach localhost or a non-global IP address, so a hostile redirect cannot send a request to a local or private
-service. A redirect to an https *hostname* that resolves to an internal address is not blocked (that would need
-DNS pinning); TLS then requires that host to present a valid certificate for the name. Archives are never extracted.
+reach localhost, a non-global IP address or a non-ASCII hostname (which IDNA could map onto either), so a hostile
+redirect cannot send a request to a local or private service. A redirect to an https *hostname* that resolves to
+an internal address is not blocked (that would need DNS pinning); TLS then requires that host to present a valid
+certificate for the name. Archives are never extracted.
 """
 
 from __future__ import annotations
@@ -47,6 +48,11 @@ def _is_internal(host: str) -> bool:
     # `host` is urlsplit's hostname, already lowercase. A trailing dot (localhost., 127.0.0.1.) is the same host to
     # the resolver, a fully qualified name: drop it before any check, or it slips past every one of them.
     host = host.rstrip(".")
+    if not host.isascii():
+        # IDNA (UTS 46) maps compatibility characters onto ASCII: fullwidth digits and letters, and ideographic or
+        # fullwidth full stops, could spell 127.0.0.1 or localhost past every check below. urllib3 2.8 refuses such
+        # names before connecting, but this guard must not depend on that: a non-ASCII hop is refused outright.
+        return True
     if host == "localhost" or host.endswith(".localhost"):
         return True
     try:

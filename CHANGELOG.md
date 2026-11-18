@@ -11,6 +11,9 @@ All notable changes to BytesTTS are recorded here. The format follows
 - `load_path` reads each voice file once and uses exactly the bytes it verified. Before, a file was hashed and then
   opened again, so a file swapped on disk in between could reach ONNX Runtime unverified.
 - Catalogue URLs with userinfo (`https://a@b/...`) are refused.
+- A download redirect from https to a non-ASCII hostname is refused. Internationalized-name encoding could map
+  fullwidth digits or ideographic full stops onto `127.0.0.1` or `localhost`. The current urllib3 already rejects
+  those names, but the guard no longer depends on it.
 
 ### Fixed
 

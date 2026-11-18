@@ -58,7 +58,9 @@ built from the verified bytes, with ONNX Runtime's external-data directory point
   except plain http to `127.0.0.1` or `localhost` for local mirrors and tests. A hop that came from https may never
   go back to http, nor reach `localhost` (with or without a trailing dot) or a non-global IP address, including
   IPv6 and the short, octal, hexadecimal and single-number IPv4 forms (`127.1`, `0177.0.0.1`, `0x7f000001`,
-  `2130706433`).
+  `2130706433`). Such a hop's hostname must also be plain ASCII: internationalized-name encoding maps fullwidth
+  digits and ideographic full stops onto ASCII, so `１２７。０。０。１` could otherwise spell `127.0.0.1`. The cost is that
+  a redirect to a public internationalized name is refused too.
 - Archives are never extracted.
 
 ## Known limits
