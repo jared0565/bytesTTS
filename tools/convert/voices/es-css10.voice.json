@@ -1,0 +1,29 @@
+{
+  "attribution": "Model: Coqui TTS tts_models/es/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 Spanish, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Tux), public domain.",
+  "data_licence": "CC0-1.0",
+  "engine": "vits-onnx",
+  "featured": [],
+  "files": {
+    "config.json": {
+      "sha256": "76520efb7d924fa3bd521dc45c2ea56e4f2b430e01e7951ec8c7ac67c635244f",
+      "size": 1182
+    },
+    "model.onnx": {
+      "sha256": "d3ab1a54ff5c701b4e61ff57dfe101d027976fca7509ceb0427155b5458086f1",
+      "size": 70926577
+    },
+    "speakers.json": {
+      "sha256": "8ae60787f980e9b4ac31f3d3f3fe15a12df68d533196df48d55621c2c2570283",
+      "size": 15
+    }
+  },
+  "id": "es-css10",
+  "language": "es",
+  "licence": "BSD-3-Clause",
+  "origin": "catalog",
+  "sample_rate": 22050,
+  "speakers": [
+    "tux"
+  ],
+  "version": "1"
+}

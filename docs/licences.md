@@ -8,6 +8,8 @@ you must keep when you use or redistribute it. The same three strings ship in ea
 | Voice | Model licence | Data licence | Attribution |
 |---|---|---|---|
 | `en-ljspeech` | Apache-2.0 | Public domain | Model: Coqui TTS tts_models/en/ljspeech/vits by Eren Gölge (Coqui), Apache-2.0; converted to ONNX by BytesTTS. Training data: The LJ Speech Dataset, Keith Ito and Linda Johnson (2017), https://keithito.com/LJ-Speech-Dataset/, public domain. |
+| `es-css10` | BSD-3-Clause | CC0-1.0 | Model: Coqui TTS tts_models/es/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 Spanish, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Tux), public domain. |
+| `fr-css10` | BSD-3-Clause | CC0-1.0 | Model: Coqui TTS tts_models/fr/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 French, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Gilles G. Le Blanc), public domain. |
 
 ## Sources
 
@@ -19,6 +21,23 @@ you must keep when you use or redistribute it. The same three strings ship in ea
     Domain. The recordings come from LibriVox, the texts from works published between 1884 and 1964.
   - Published files: [fbmacagba/bytestts-en-ljspeech](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) on
     Hugging Face; the catalogue pins commit `8ec2c68f8187a2d68fbf97c657b2ccf4f73fbfb0`.
+
+- `es-css10` and `fr-css10`
+  - Model: Coqui TTS release `v0.8.0_models`, `tts_models--es--css10--vits.zip`
+    (sha256 `3b15b180b52dc0884934e81be2935a23bd7c2be58410c158c4d40e7deba1807f`) and
+    `tts_models--fr--css10--vits.zip` (sha256 `e946732aaef60b3e6462064b5f0e0286bc48ffa324474d0bde578ba60e566219`).
+    Coqui's model list gives the author as `@NeonGeckoCom` and the licence as "bsd-3-clause"; so do Neon's own
+    repositories, [neongeckocom/tts-vits-css10-es](https://huggingface.co/neongeckocom/tts-vits-css10-es) and
+    [neongeckocom/tts-vits-css10-fr](https://huggingface.co/neongeckocom/tts-vits-css10-fr). Neither ships a
+    copyright line; the holder named here, Neongecko.com Inc., is the one in Neon's own BSD-3-Clause licence. The
+    licence's conditions and disclaimer are in `NOTICE` and in each voice's model card. BytesTTS converts the weights
+    to ONNX; it does not retrain them.
+  - Data: CSS10 (Kyubyong Park and Thomas Mulc, "CSS10: A Collection of Single Speaker Speech Datasets for 10
+    Languages", Interspeech 2019). The
+    [Spanish](https://www.kaggle.com/datasets/bryanpark/spanish-single-speaker-speech-dataset) and
+    [French](https://www.kaggle.com/datasets/bryanpark/french-single-speaker-speech-dataset) datasets are published
+    under "CC0: Public Domain". Their recordings are LibriVox audiobooks, in the public domain, read by Tux
+    (Spanish) and Gilles G. Le Blanc (French).
 
 A voice is added here before it is added to the catalogue; `tests/test_licence_register.py` checks that every row
 matches its voice's manifest exactly.
