@@ -43,6 +43,7 @@ def test_members_skip_macos_resource_forks(tmp_path: Path) -> None:  # the css10
             "checkpoint": "v/model_file.pth.tar",
             "config.json": "v/config.json",
             "speaker_ids.json": "v/speaker_ids.json",
+            "language_ids.json": "v/language_ids.json",
         }
 
 
@@ -120,3 +121,10 @@ def test_the_unpickler_itself_refuses_on_windows(
     with pytest.raises(cc.Refused, match="sandbox") as e:
         cc._load(tmp_path / "x.pth", allow_full_load)
     assert e.value.code == 2
+
+
+def test_members_refuse_two_language_tables(tmp_path: Path) -> None:
+    names = ["v/config.json", "v/model_file.pth", "v/language_ids.json", "w/language_ids.json"]
+    with make_zip(tmp_path / "a.zip", names) as z, pytest.raises(cc.Refused) as e:
+        cc._members(z)
+    assert e.value.code == 4

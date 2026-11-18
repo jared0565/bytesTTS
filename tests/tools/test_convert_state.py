@@ -118,9 +118,8 @@ def test_vocabulary_must_fit_the_embedding(tiny: Any, tmp_path: Path) -> None:
     refused(4, "vocabulary", lambda: convert(checkpoint(tiny), tmp_path / "c", config_changes=change))
 
 
-@pytest.mark.parametrize("key", ["use_d_vector_file", "use_language_embedding"])
-def test_unsupported_voice_kinds_are_refused(tiny: Any, tmp_path: Path, key: str) -> None:
-    change = [lambda c: c["model_args"].__setitem__(key, True)]
+def test_unsupported_voice_kinds_are_refused(tiny: Any, tmp_path: Path) -> None:
+    change = [lambda c: c["model_args"].__setitem__("use_d_vector_file", True)]
     refused(5, "not supported", lambda: convert(checkpoint(tiny), tmp_path / "c", config_changes=change))
 
 
@@ -149,3 +148,67 @@ def test_coqui_config_is_independent_of_the_fixture_constants() -> None:  # a sh
     cfg["model_args"]["resblock_kernel_sizes_decoder"].append(99)
     assert json.dumps(fixture_tool.VOICE_CONFIG, sort_keys=True) == before
     assert 99 not in MODEL_ARGS["resblock_kernel_sizes_decoder"]
+
+
+# The CSS10 layout: a one-row speaker table and a one-row language table. The configs say num_speakers 0;
+# TTS-dev takes the count from speaker_ids.json, and the language from language_ids.json.
+CSS10_ARGS = {
+    **MODEL_ARGS,
+    "use_language_embedding": True,
+    "num_languages": 1,
+    "embedded_language_dim": 4,
+    "use_speaker_embedding": True,
+    "num_speakers": 1,
+    "speaker_embedding_channels": 8,
+}
+
+
+@pytest.fixture(scope="module")
+def css10() -> Any:
+    return fixture_tool._tiny_model(CSS10_ARGS)
+
+
+def convert_css10(model: Any, out: Path, **kw: Any) -> Any:
+    cfg = fixture_tool.coqui_config({**CSS10_ARGS, "num_speakers": 0})  # as the CSS10 configs say
+    return cc.convert_state(
+        checkpoint(model),
+        cfg,
+        language="es",
+        speaker_ids=kw.get("speaker_ids", {"tux": 0}),
+        language_ids=kw.get("language_ids", {"es": 0}),
+        out=out,
+    )
+
+
+def test_language_voice_converts(css10: Any, tmp_path: Path) -> None:
+    report = convert_css10(css10, tmp_path / "c")
+    assert report["num_speakers"] == 1 and report["languages"] == ["es"]
+    port = json.loads((tmp_path / "c" / "model_config.json").read_bytes())
+    assert (port["num_speakers"], port["num_languages"], port["use_language_embedding"]) == (1, 1, True)
+    voice = json.loads((tmp_path / "c" / "voice_config.json").read_bytes())
+    assert voice["model_args"]["num_speakers"] == 0  # Coqui's own model_args, unchanged
+    assert json.loads((tmp_path / "c" / "speakers.json").read_bytes()) == {"tux": 0}
+    loaded = load_generator(tmp_path / "c")
+    assert torch.equal(loaded.emb_l.weight, css10.emb_l.weight) and loaded.emb_g.weight.shape == (1, 8)
+
+
+def test_language_voice_needs_language_ids(css10: Any, tmp_path: Path) -> None:
+    refused(4, "language_ids", lambda: convert_css10(css10, tmp_path / "c", language_ids=None))
+    assert not (tmp_path / "c").exists()
+
+
+def test_language_ids_must_name_the_voice_language(css10: Any, tmp_path: Path) -> None:
+    refused(4, "'fr'", lambda: convert_css10(css10, tmp_path / "c", language_ids={"fr": 0}))
+    refused(4, "'es'", lambda: convert_css10(css10, tmp_path / "c", language_ids={"es": 1}))
+
+
+def test_multi_language_tables_are_refused(css10: Any, tmp_path: Path) -> None:
+    refused(5, "language", lambda: convert_css10(css10, tmp_path / "c", language_ids={"es": 0, "fr": 1}))
+
+
+def test_language_ids_without_a_language_embedding_are_ignored(tiny: Any, tmp_path: Path) -> None:
+    cfg = fixture_tool.coqui_config(MODEL_ARGS)
+    report = cc.convert_state(
+        checkpoint(tiny), cfg, language="en", speaker_ids=None, language_ids={"en": 0}, out=tmp_path / "c"
+    )
+    assert report["languages"] == [] and not hasattr(load_generator(tmp_path / "c"), "emb_l")

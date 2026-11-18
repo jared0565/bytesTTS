@@ -162,3 +162,27 @@ def test_cli_runs_torch_single_threaded() -> None:  # intra- AND inter-op: all-c
 
 def test_tools_never_torch_load() -> None:
     assert "torch.load" not in (ROOT / "tools" / "convert" / "package_voice.py").read_text("utf-8")
+
+
+def test_one_speaker_language_voice_packages_and_speaks(tmp_path: Path) -> None:
+    # The CSS10 layout end to end: the real converter, the packager, then synthesis with no speaker named.
+    cc = load_tool("tools/convert/convert_coqui.py")
+    args = {
+        **fixture_tool.TINY_ARGS,
+        "use_language_embedding": True,
+        "num_languages": 1,
+        "embedded_language_dim": 4,
+        "use_speaker_embedding": True,
+        "num_speakers": 1,
+        "speaker_embedding_channels": 8,
+    }
+    model = fixture_tool._tiny_model(args)
+    cfg = fixture_tool.coqui_config({**args, "num_speakers": 0})
+    cc.convert_state(
+        model.state_dict(), cfg, language="es", speaker_ids={"tux": 0}, language_ids={"es": 0}, out=tmp_path / "c"
+    )
+    m = package(tmp_path / "c", tmp_path / "pkg", language="es")
+    assert m.speakers == ["tux"] and "speakers.json" in m.files
+    tts = BytesTTS.load_path(tmp_path / "pkg", device="cpu", threads=TEST_THREADS)
+    assert tts.info.speakers == ["tux"]
+    assert tts.synthesize("Hola.").duration > 0  # no speaker named: the only one

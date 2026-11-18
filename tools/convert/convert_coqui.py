@@ -6,20 +6,23 @@ Run it under SBX (the bubblewrap jail: no network, no Windows files, read-only i
   python -P convert_coqui.py ARCHIVE OUT [--sources sources.json] [--language LANG] [--allow-full-load]
 
 1. ARCHIVE's sha256 and size must match its entry in sources.json (found by file name).
-2. Only the checkpoint (model_file.pth[.tar]), config.json and, for a multi-speaker voice, speaker_ids.json are
-   read from the zip; nothing is extracted to disk except the checkpoint, into a private temporary directory.
+2. Only the checkpoint (model_file.pth[.tar]), config.json and, when present, speaker_ids.json and
+   language_ids.json are read from the zip; nothing is extracted to disk except the checkpoint, into a private
+   temporary directory.
 3. picklescan must report no issue and no global outside EXPECTED_GLOBALS (P0.5 found only these three).
 4. torch.load(weights_only=True). P0.5: every v1 candidate loads this way, so the allow-list is empty. If it
    fails, exit 3, unless --allow-full-load (a full unpickle, inside the jail only), which the report records.
 5. convert_state (no pickle; tested on the host): the state dict is split (generator / disc / dropped), legacy
    weight-norm keys renamed, and loaded STRICTLY into the port; the token vocabulary must equal the embedding's
-   row count.
+   row count. As in TTS-dev, speaker_ids.json and language_ids.json size the speaker and language tables, not
+   model_args (the CSS10 configs say num_speakers 0 for a one-row table). A language embedding must come with a
+   language_ids.json of exactly {LANG: 0}: the port fixes the language.
 
 Writes OUT/generator.safetensors and model_config.json (save_generator), discriminator.safetensors (if the
 checkpoint has one), voice_config.json, speakers.json (multi-speaker) and conversion_report.json.
 Exit codes: 0 converted; 2 refused to run (host, usage, OUT not empty); 3 weights_only load failed;
-4 integrity (hash, size, scan, members, keys, shapes, vocabulary); 5 an unsupported voice kind (d-vector,
-language embedding). Nothing is written to OUT unless the conversion succeeds.
+4 integrity (hash, size, scan, members, keys, shapes, vocabulary, speaker or language tables); 5 an unsupported
+voice kind (d-vector, several languages). Nothing is written to OUT unless the conversion succeeds.
 """
 
 from __future__ import annotations
@@ -80,7 +83,7 @@ def _members(z: zipfile.ZipFile) -> dict[str, str]:
         kind = "checkpoint" if base.endswith((".pth", ".pth.tar")) else base
         found.setdefault(kind, []).append(info.filename)
     out = {}
-    for kind in ("checkpoint", "config.json", "speaker_ids.json"):
+    for kind in ("checkpoint", "config.json", "speaker_ids.json", "language_ids.json"):
         names = found.get(kind, [])
         if len(names) > 1:
             raise Refused(EXIT_INTEGRITY, f"the archive has {len(names)} {kind} members: {names}")
@@ -130,7 +133,13 @@ def _coqui_keys() -> Any:
 
 
 def convert_state(
-    state: Mapping[str, Any], coqui_cfg: Mapping[str, Any], *, language: str, speaker_ids: Any, out: Path
+    state: Mapping[str, Any],
+    coqui_cfg: Mapping[str, Any],
+    *,
+    language: str,
+    speaker_ids: Any,
+    out: Path,
+    language_ids: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Everything after the unpickle: split, rename, check, strict-load into the port, write OUT.
 
@@ -162,8 +171,26 @@ def convert_state(
     vocabulary = len(CharacterSet.from_config(voice_config["characters"]).vocab)
     if vocabulary != num_chars:
         raise Refused(EXIT_INTEGRITY, f"the vocabulary has {vocabulary} symbols but the embedding has {num_chars}")
+    model_args = dict(voice_config["model_args"])  # voice_config.json keeps Coqui's own; the port gets these
+    if model_args.get("use_speaker_embedding") and speaker_ids:  # SpeakerManager sizes emb_g (vits.py:776)
+        model_args["num_speakers"] = len(speaker_ids)
+    languages: list[str] = []
+    if model_args.get("use_language_embedding"):  # LanguageManager sizes emb_l (vits.py:796-803)
+        if not language_ids:
+            raise Refused(EXIT_INTEGRITY, "a language-embedding checkpoint without language_ids.json")
+        if len(language_ids) != 1:
+            raise Refused(
+                EXIT_UNSUPPORTED,
+                f"multi-language voices are not supported: language_ids.json lists {sorted(language_ids)}",
+            )
+        if dict(language_ids) != {language: 0}:
+            raise Refused(
+                EXIT_INTEGRITY, f"language_ids.json is {dict(language_ids)!r}, but this voice is {language!r} (id 0)"
+            )
+        model_args["num_languages"] = 1
+        languages = sorted(language_ids)
     try:
-        cfg = VitsModelConfig.from_coqui(voice_config["model_args"], num_chars, sample_rate=voice_config["sample_rate"])
+        cfg = VitsModelConfig.from_coqui(model_args, num_chars, sample_rate=voice_config["sample_rate"])
     except NotSupported as e:
         raise Refused(EXIT_UNSUPPORTED, str(e)) from None
     if cfg.use_speaker_embedding and not speaker_ids:
@@ -189,6 +216,7 @@ def convert_state(
         "generator_keys": len(generator),
         "discriminator_keys": len(discriminator),
         "num_speakers": len(speaker_ids or {}) if cfg.use_speaker_embedding else 0,
+        "languages": languages,
     }
     (out / "conversion_report.json").write_bytes(_json_bytes(report))
     return report
@@ -210,6 +238,7 @@ def convert(archive: Path, out: Path, *, sources: Path, language: str | None, al
         provenance["members"] = members
         coqui_cfg = json.loads(z.read(members["config.json"]))
         speaker_ids = json.loads(z.read(members["speaker_ids.json"])) if "speaker_ids.json" in members else None
+        language_ids = json.loads(z.read(members["language_ids.json"])) if "language_ids.json" in members else None
         checkpoint = Path(tmp) / "checkpoint.pth"
         checkpoint.write_bytes(z.read(members["checkpoint"]))
         provenance["picklescan"] = _scan(checkpoint)
@@ -218,7 +247,9 @@ def convert(archive: Path, out: Path, *, sources: Path, language: str | None, al
     state = obj["model"] if isinstance(obj, dict) and "model" in obj else obj
     if not isinstance(state, Mapping):
         raise Refused(EXIT_INTEGRITY, f"the checkpoint holds a {type(state).__name__}, not a state dict")
-    report = convert_state(state, coqui_cfg, language=language, speaker_ids=speaker_ids, out=out)
+    report = convert_state(
+        state, coqui_cfg, language=language, speaker_ids=speaker_ids, language_ids=language_ids, out=out
+    )
     report = {**provenance, **report}
     (out / "conversion_report.json").write_bytes(_json_bytes(report))
     return report
