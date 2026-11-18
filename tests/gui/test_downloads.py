@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 """Voice downloads from the panel: progress across files, one at a time, Cancel and Repair (spec §6.5)."""
 
+import threading
 from pathlib import Path
 
 import pytest
@@ -8,12 +9,32 @@ from gui_helpers import TINY_SIZE, FileServer, install, tiny_manifest, use_catal
 
 from bytestts.catalog.cache import voice_dir
 from bytestts.errors import VoiceNotFound
-from bytestts.gui.downloads import Downloads
+from bytestts.gui.downloads import DownloadCancelled, Downloads, _Progress
 from bytestts.gui.session import Busy
 
 
 def finished(downloads: Downloads, voice: str) -> bool:
     return downloads.status(voice).state != "running"
+
+
+def test_progress_sums_the_per_file_reports() -> None:
+    """ensure_voice reports (done, size) for one file at a time; the panel shows the sum across files."""
+    cancel = threading.Event()
+    progress = _Progress(1000, cancel)
+    assert progress.value == 0
+    progress(10, 50)
+    assert progress.value == 10
+    progress(20, 50)  # the same file again: not finished yet, so nothing is added
+    assert progress.value == 20
+    progress(50, 50)
+    assert progress.value == 50
+    progress(5, 900)  # a new file starts after one that finished
+    assert progress.value == 55
+    progress(900, 900)
+    assert progress.value == 950
+    cancel.set()
+    with pytest.raises(DownloadCancelled):
+        progress(0, 10)
 
 
 def test_state_follows_the_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
