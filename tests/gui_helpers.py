@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from helpers import TINY
+from starlette.testclient import TestClient
 
 from bytestts.catalog import catalog
 from bytestts.catalog.cache import voice_dir
@@ -111,3 +112,8 @@ class FileServer:
         self.release.set()
         self.httpd.shutdown()
         self.httpd.server_close()
+
+
+def api_client(app: Any) -> TestClient:
+    """A test client on the panel's own address, holding the secret."""
+    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", headers={"Authorization": f"Bearer {SECRET}"})
