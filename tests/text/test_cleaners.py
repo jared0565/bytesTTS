@@ -19,6 +19,17 @@ def test_phoneme_cleaners_does_not_lowercase() -> None:
     assert get_cleaner("phoneme_cleaners")("Hello (World)") == "Hello World"
 
 
+def test_multilingual_cleaners_matches_tts_dev() -> None:  # TTS-dev cleaners.py:159-165
+    # lowercase; replace_symbols with lang=None (";" and ":" -> ",", "-" -> " ", "&" kept); aux symbols dropped
+    assert (
+        get_cleaner("multilingual_cleaners")('La TOUR; fut-elle: (1889) & "X"  ok') == "la tour, fut elle, 1889 & x ok"
+    )
+
+
+def test_multilingual_cleaners_keeps_accents_and_expands_nothing() -> None:  # no numbers or abbreviations
+    assert get_cleaner("multilingual_cleaners")("ÉLÈVES, Mme Núñez: 3 €") == "élèves, mme núñez, 3 €"
+
+
 def test_unknown_cleaner_raises_keyerror() -> None:
     with pytest.raises(KeyError):
         get_cleaner("no_such_cleaners")

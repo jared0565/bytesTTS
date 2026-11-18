@@ -19,6 +19,13 @@ from bytestts.text.tokenizer import CharacterSet, Tokenizer
 MAX_TOKENS_PER_CHUNK = 500
 
 
+# Typographic apostrophes (U+2019, U+2018), the norm in typeset French and Spanish. A character voice whose vocabulary
+# has the ASCII apostrophe but not these would drop them, merging "l<U+2019>Exposition" into "lexposition" (TTS-dev
+# does exactly that). Operator decision, 2026-11-18: read them as "'".
+_TYPOGRAPHIC_APOSTROPHES = {"\u2019": "'", "\u2018": "'"}
+_APOSTROPHES = str.maketrans(_TYPOGRAPHIC_APOSTROPHES)
+
+
 def _speakable(cleaned: str) -> bool:
     return any(c.isalnum() for c in cleaned)
 
@@ -83,13 +90,19 @@ class TextFrontend:
             self._phonemizer = EspeakPhonemizer(cfg.phoneme_language or cfg.language, install=espeak)
         self._tokenizer = Tokenizer(cfg.characters, add_blank=cfg.add_blank, use_eos_bos=cfg.use_eos_bos)
         self._specials = {cfg.characters.blank_id, cfg.characters.bos_id, cfg.characters.eos_id}
+        vocab = set(cfg.characters.vocab)
+        self._map_apostrophes = cfg.kind == "characters" and "'" in vocab and not vocab & set(_TYPOGRAPHIC_APOSTROPHES)
+
+    def _prepare(self, sentence: str) -> str:
+        """The cleaned sentence; typographic apostrophes first become "'" where the voice needs that."""
+        return self._clean(sentence.translate(_APOSTROPHES) if self._map_apostrophes else sentence)
 
     def _symbols(self, cleaned: str) -> str | None:
         return None if self._phonemizer is None else self._phonemizer.phonemize(cleaned, separator="")
 
     def trace(self, sentence: str) -> FrontendTrace:
         """One sentence, unchunked: what TTS-dev's text_to_ids does, step by step."""
-        cleaned = self._clean(sentence)
+        cleaned = self._prepare(sentence)
         phonemes = self._symbols(cleaned)
         return FrontendTrace(cleaned, phonemes, self._tokenizer.encode(cleaned if phonemes is None else phonemes))
 
@@ -108,7 +121,7 @@ class TextFrontend:
     def encode(self, text: str) -> list[list[int]]:
         """One token list per sentence, or per chunk of a sentence longer than MAX_TOKENS_PER_CHUNK."""
         sentences = split_sentences(text, self.cfg.language)
-        chunks = [c for sentence in sentences for c in self._chunks(self._clean(sentence))]
+        chunks = [c for sentence in sentences for c in self._chunks(self._prepare(sentence))]
         if not chunks:
             raise NoSpeakableText("the text has nothing this voice can speak")
         return chunks

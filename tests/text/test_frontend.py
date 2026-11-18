@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
+import dataclasses
+import logging
 import time
 from pathlib import Path
 
@@ -103,3 +105,47 @@ def test_windowed_split_matches_pysbd_on_real_text() -> None:
     text = " ".join([corpus.replace("\n", " ")] * 8)  # several windows, sentence ends at the cuts
     assert len(text) > 3 * WINDOW_CHARS
     assert split_sentences(text, "en") == pysbd.Segmenter(language="en", clean=True).segment(text)
+
+
+# The CSS10 Spanish and French voices: graphemes, multilingual_cleaners, no digits in the vocabulary.
+CSS10_LIKE = FrontendConfig(
+    kind="characters",
+    language="es",
+    phoneme_language=None,
+    cleaner="multilingual_cleaners",
+    characters=CharacterSet(
+        characters="abcdefghijklmnopqrstuvwxyzáéíñóúü",
+        punctuations="!'(),-.:;? ",
+        pad="<PAD>",
+        eos="<EOS>",
+        bos="<BOS>",
+        blank="<BLNK>",
+        is_unique=True,
+        is_sorted=True,
+    ),
+    add_blank=True,
+    use_eos_bos=False,
+)
+
+
+def test_css10_digits_are_dropped_with_one_warning(caplog: pytest.LogCaptureFixture) -> None:
+    # TTS-dev behaves the same, so parity holds; the docs tell users to write numbers as words
+    fe = TextFrontend(CSS10_LIKE)
+    with caplog.at_level(logging.WARNING, logger="bytestts.text.tokenizer"):
+        assert fe.trace("Pagó 2,22 euros.").token_ids == fe.trace("Pagó , euros.").token_ids
+    assert [r.getMessage() for r in caplog.records].count(
+        "character '2' (U+0032) is not in the voice's vocabulary; dropped"
+    ) == 1
+
+
+@pytest.mark.parametrize("mark", ["\u2019", "\u2018"])
+def test_typographic_apostrophes_read_as_ascii(mark: str) -> None:  # operator, 2026-11-18 (U+2019, U+2018)
+    fe = TextFrontend(CSS10_LIKE)
+    assert fe.trace(f"L{mark}Exposition") == fe.trace("L'Exposition")
+    assert fe.encode(f"Voilà l{mark}Exposition.") == fe.encode("Voilà l'Exposition.")
+
+
+def test_apostrophes_stay_when_the_voice_has_them() -> None:  # a vocabulary with its own U+2019 keeps it
+    own = dataclasses.replace(CSS10_LIKE.characters, characters=CSS10_LIKE.characters.characters + "\u2019")
+    fe = TextFrontend(dataclasses.replace(CSS10_LIKE, characters=own))
+    assert fe.trace("l\u2019a").cleaned == "l\u2019a"

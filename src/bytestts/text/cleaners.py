@@ -86,9 +86,20 @@ def phoneme_cleaners(text: str) -> str:
     return collapse_whitespace(text)
 
 
+def multilingual_cleaners(text: str) -> str:
+    """TTS-dev's multilingual pipeline (the CSS10 voices): no number or abbreviation expansion.
+
+    `replace_symbols` runs with lang=None, as in TTS-dev, never with the voice's language: "&" stays "&"."""
+    text = lowercase(text)
+    text = replace_symbols(text, lang=None)
+    text = remove_aux_symbols(text)
+    return collapse_whitespace(text)
+
+
 _CLEANERS: dict[str, Callable[[str], str]] = {
     "basic_cleaners": basic_cleaners,
     "phoneme_cleaners": phoneme_cleaners,
+    "multilingual_cleaners": multilingual_cleaners,
 }
 
 
