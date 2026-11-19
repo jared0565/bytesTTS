@@ -98,6 +98,7 @@ def test_package_lists_every_speaker_by_id(trace: dict[str, Any]) -> None:
 
     m = verify_package(_dir())
     assert len(m.speakers) == 109 and m.speakers[trace["speaker_id"]] == trace["speaker"]
+    assert m.speakers[0] == "ED"  # the checkpoint's row 0 is "ED\n"; renamed when packaging (operator 2026-11-19)
 
 
 def test_defaults_come_from_the_config() -> None:  # VCTK's scales, not TTS-dev's class defaults
