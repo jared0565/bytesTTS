@@ -2,7 +2,18 @@
   "attribution": "Model: Coqui TTS tts_models/en/vctk/vits by Eren G\u00f6lge (Coqui), Apache-2.0; converted to ONNX by BytesTTS. Training data: CSTR VCTK Corpus (version 0.92), Junichi Yamagishi, Christophe Veaux and Kirsten MacDonald, The Centre for Speech Technology Research, University of Edinburgh (2019), https://doi.org/10.7488/ds/2645, CC BY 4.0.",
   "data_licence": "CC-BY-4.0",
   "engine": "vits-onnx",
-  "featured": [],
+  "featured": [
+    "p228",
+    "p232",
+    "p229",
+    "p243",
+    "p244",
+    "p287",
+    "p262",
+    "p247",
+    "p304",
+    "p253"
+  ],
   "files": {
     "config.json": {
       "sha256": "ab9ba7bee7304f646af0099b33a1dc30a3803a00d7079353ab1ed0a6c73b4564",

@@ -25,6 +25,8 @@ from helpers import TEST_THREADS, ser_db
 pytestmark = pytest.mark.parity
 VOICE = "en-vctk"
 ZERO = {"noise_scale": 0.0, "length_scale": 1.0, "noise_scale_dp": 0.0}
+# The operator's shortlist (2026-11-19, by ear, UK accents): the first is the default speaker.
+FEATURED = ["p228", "p232", "p229", "p243", "p244", "p287", "p262", "p247", "p304", "p253"]
 
 
 def _dir(suffix: str = "") -> Path:
@@ -99,6 +101,12 @@ def test_package_lists_every_speaker_by_id(trace: dict[str, Any]) -> None:
     m = verify_package(_dir())
     assert len(m.speakers) == 109 and m.speakers[trace["speaker_id"]] == trace["speaker"]
     assert m.speakers[0] == "ED"  # the checkpoint's row 0 is "ED\n"; renamed when packaging (operator 2026-11-19)
+
+
+def test_package_features_the_shortlist() -> None:  # a voice loaded by hand from its files defaults to featured[0]
+    from bytestts.catalog.manifest import verify_package
+
+    assert verify_package(_dir()).featured == FEATURED
 
 
 def test_defaults_come_from_the_config() -> None:  # VCTK's scales, not TTS-dev's class defaults
