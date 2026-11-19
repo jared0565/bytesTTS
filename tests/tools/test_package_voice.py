@@ -19,7 +19,7 @@ from onnx import numpy_helper
 
 from bytestts import BytesTTS
 from bytestts.catalog.manifest import VoiceManifest, verify_package
-from bytestts.errors import IntegrityError
+from bytestts.errors import IntegrityError, VoiceNotFound
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -108,6 +108,70 @@ def test_speakers_are_carried(converted_multi: Path, tmp_path: Path) -> None:
     assert m.speakers == ["alice", "carol", "bob"] and "speakers.json" in m.files  # listed in id order
     tts = BytesTTS.load_path(tmp_path / "pkg", device="cpu", threads=TEST_THREADS)
     assert tts.synthesize("Hi.", speaker="bob").duration > 0
+
+
+def _zero_noise_wav(pkg: Path, speaker: str) -> np.ndarray:
+    from bytestts.engines.base import SynthesisOptions, VoiceRef
+    from bytestts.engines.vits_onnx import VitsDefaults, VitsOnnxEngine
+
+    config = json.loads((pkg / "config.json").read_bytes())
+    speakers = json.loads((pkg / "speakers.json").read_bytes())
+    defaults = VitsDefaults.from_config(config)
+    engine = VitsOnnxEngine(pkg / "model.onnx", defaults, device="cpu", threads=TEST_THREADS, speakers=speakers)
+    zero = SynthesisOptions(noise_scale=0.0, noise_scale_dp=0.0)
+    wav, _ = engine.synthesize_with_durations([3, 5, 7, 2, 9], VoiceRef("t", speaker=speaker), zero)
+    return np.asarray(wav)
+
+
+def test_a_renamed_speaker_renders_its_original_row(converted_multi: Path, tmp_path: Path) -> None:
+    package(converted_multi, tmp_path / "a")
+    m = package(converted_multi, tmp_path / "b", rename_speakers={"bob": "robert"})
+    assert m.speakers == ["alice", "carol", "robert"]
+    assert (tmp_path / "b" / "model.onnx").read_bytes() == (tmp_path / "a" / "model.onnx").read_bytes()
+    robert = _zero_noise_wav(tmp_path / "b", "robert")
+    assert np.array_equal(robert, _zero_noise_wav(tmp_path / "a", "bob"))
+    assert not np.array_equal(robert, _zero_noise_wav(tmp_path / "a", "alice"))  # control: the rows do differ
+    with pytest.raises(VoiceNotFound):  # the old name is gone
+        BytesTTS.load_path(tmp_path / "b", device="cpu", threads=TEST_THREADS).synthesize("Hi.", speaker="bob")
+
+
+def _cli_args(converted: Path, out: Path, pairs: list[str]) -> list[str]:
+    args = [str(converted), str(out), "--id", "t", "--version", "1", "--language", "en"]
+    args += ["--licence", "MIT", "--data-licence", "MIT", "--attribution", "x"]
+    for pair in pairs:
+        args += ["--rename-speaker", pair]
+    return args
+
+
+def test_cli_renames_a_speaker(converted_multi: Path, tmp_path: Path) -> None:
+    assert pv.main(_cli_args(converted_multi, tmp_path / "pkg", ["bob=robert"])) == 0
+    assert json.loads((tmp_path / "pkg" / "speakers.json").read_bytes()) == {"alice": 0, "carol": 1, "robert": 2}
+
+
+@pytest.mark.parametrize(
+    ("voice", "pairs", "reason"),
+    [
+        ("converted_multi", ["zed=z"], "no speaker named 'zed'"),
+        ("converted_multi", ["bob=alice"], "already a speaker's name"),
+        ("converted_multi", ["bob"], "not OLD=NEW"),
+        ("converted_multi", ["bob="], "not a usable speaker name"),
+        ("converted_multi", ["bob= robert"], "not a usable speaker name"),
+        ("converted_multi", ["bob=x", "bob=y"], "twice"),
+        ("converted", ["bob=robert"], "single speaker"),
+    ],
+)
+def test_rename_refuses_a_bad_pair(
+    voice: str,
+    pairs: list[str],
+    reason: str,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:  # exit 2 alone would also pass with no such option at all: argparse refuses unknown flags with 2
+    with pytest.raises(SystemExit) as refused:
+        pv.main(_cli_args(request.getfixturevalue(voice), tmp_path / "pkg", pairs))
+    assert refused.value.code == 2 and not (tmp_path / "pkg").exists()
+    assert reason in capsys.readouterr().err
 
 
 def test_a_multi_speaker_model_needs_its_speakers(converted_multi: Path, tmp_path: Path) -> None:
