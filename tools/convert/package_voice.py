@@ -3,7 +3,7 @@
 
   uv run --extra train --extra torch-cpu python -P tools/convert/package_voice.py CONVERTED OUT \\
       --id en-ljspeech --version 1.0.0 --language en --licence ... --data-licence ... --attribution ... \\
-      [--rename-speaker OLD=NEW ...]
+      [--rename-speaker OLD=NEW ...] [--featured NAME ...]
 
 CONVERTED is convert_coqui.py's output (generator.safetensors, model_config.json, voice_config.json and, for a
 multi-speaker voice, speakers.json). OUT, which must be empty or absent, receives model.onnx, config.json,
@@ -51,23 +51,35 @@ def _speaker_ids(converted: Path, num_speakers: int) -> dict[str, int] | None:
     return dict(ids)
 
 
-class RenameError(ValueError):
-    """A --rename-speaker pair that cannot apply; the CLI refuses it with exit 2."""
+class OptionError(ValueError):
+    """A --rename-speaker or --featured value that cannot apply; the CLI refuses it with exit 2."""
 
 
 def _renamed(ids: dict[str, int] | None, rename: dict[str, str]) -> dict[str, int]:
     """The speaker table with each OLD name replaced by NEW. The ids, and so the model rows, stay as they were."""
     if not ids:
-        raise RenameError("the voice has a single speaker and no speaker table")
+        raise OptionError("--rename-speaker: the voice has a single speaker and no speaker table")
     for old, new in rename.items():
         if old not in ids:
-            raise RenameError(f"no speaker named {old!r}")
+            raise OptionError(f"--rename-speaker: no speaker named {old!r}")
         if not new or new != new.strip():
-            raise RenameError(f"{new!r} is not a usable speaker name")
+            raise OptionError(f"--rename-speaker: {new!r} is not a usable speaker name")
     renamed = {rename.get(name, name): i for name, i in ids.items()}
     if len(renamed) != len(ids):
-        raise RenameError("a new name is already a speaker's name")
+        raise OptionError("--rename-speaker: a new name is already a speaker's name")
     return renamed
+
+
+def _featured(ids: dict[str, int] | None, featured: list[str]) -> list[str]:
+    """The featured speakers, in order. A package loaded from disk defaults to the first (api._speaker_ids)."""
+    if featured and not ids:
+        raise OptionError("--featured: the voice has a single speaker and no speaker table")
+    for name in featured:
+        if ids is not None and name not in ids:
+            raise OptionError(f"--featured: no speaker named {name!r}")
+        if featured.count(name) > 1:
+            raise OptionError(f"--featured: {name!r} is listed twice")
+    return list(featured)
 
 
 def package(
@@ -81,6 +93,7 @@ def package(
     data_licence: str,
     attribution: str,
     rename_speakers: dict[str, str] | None = None,
+    featured: list[str] | None = None,
 ) -> VoiceManifest:
     from bytestts.train.vits.export import export_onnx
     from bytestts.train.vits.io import load_generator
@@ -100,6 +113,7 @@ def package(
     ids = _speaker_ids(converted, model.cfg.num_speakers if model.cfg.use_speaker_embedding else 0)
     if rename_speakers:  # names only: speakers.json and the manifest change, the model and CONVERTED never do
         ids = _renamed(ids, rename_speakers)
+    featured = _featured(ids, featured or [])  # checked against the new names, before anything is written
 
     out.mkdir(parents=True, exist_ok=True)
     export_onnx(model, out / "model.onnx")
@@ -120,7 +134,7 @@ def package(
         origin="catalog",
         files={name: FileEntry(sha256_file(out / name), (out / name).stat().st_size) for name in names},
         speakers=sorted(ids, key=ids.__getitem__) if ids else [],
-        featured=[],  # the operator picks featured speakers by ear
+        featured=featured,  # the operator picks them by ear; the catalogue entry carries the same list
     )
     (out / "voice.json").write_bytes(_json_bytes(manifest.to_dict()))
     if verify_package(out) != manifest:
@@ -154,6 +168,13 @@ def main(argv: list[str] | None = None) -> int:
         metavar="OLD=NEW",
         help="rename one speaker (repeatable); its id, and so its row in the model, stays",
     )
+    ap.add_argument(
+        "--featured",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="a featured speaker, by its name after any rename (repeatable, in order); the first is the default",
+    )
     args = ap.parse_args(argv)
     rename = dict(args.rename_speaker)
     if len(rename) != len(args.rename_speaker):
@@ -169,9 +190,10 @@ def main(argv: list[str] | None = None) -> int:
             data_licence=args.data_licence,
             attribution=args.attribution,
             rename_speakers=rename or None,
+            featured=args.featured,
         )
-    except RenameError as e:
-        ap.error(f"--rename-speaker: {e}")
+    except OptionError as e:
+        ap.error(str(e))
     print(f"{args.out}: {m.id} {m.version}, " + ", ".join(f"{n} {e.size:,} B" for n, e in m.files.items()))
     return 0
 

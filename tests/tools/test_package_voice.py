@@ -135,12 +135,46 @@ def test_a_renamed_speaker_renders_its_original_row(converted_multi: Path, tmp_p
         BytesTTS.load_path(tmp_path / "b", device="cpu", threads=TEST_THREADS).synthesize("Hi.", speaker="bob")
 
 
-def _cli_args(converted: Path, out: Path, pairs: list[str]) -> list[str]:
+def _cli_args(converted: Path, out: Path, pairs: list[str], featured: list[str] | None = None) -> list[str]:
     args = [str(converted), str(out), "--id", "t", "--version", "1", "--language", "en"]
     args += ["--licence", "MIT", "--data-licence", "MIT", "--attribution", "x"]
     for pair in pairs:
         args += ["--rename-speaker", pair]
+    for name in featured or []:
+        args += ["--featured", name]
     return args
+
+
+def test_featured_speakers_ship_in_the_manifest(converted_multi: Path, tmp_path: Path) -> None:
+    # a package downloaded by hand defaults to featured[0]; with none it would be the lowest id, whoever that is
+    assert pv.main(_cli_args(converted_multi, tmp_path / "pkg", ["bob=robert"], ["robert", "alice"])) == 0
+    assert verify_package(tmp_path / "pkg").featured == ["robert", "alice"]  # the renamed name, in the given order
+    assert BytesTTS.load_path(tmp_path / "pkg", device="cpu", threads=TEST_THREADS).info.featured == ["robert", "alice"]
+
+
+@pytest.mark.parametrize(
+    ("voice", "pairs", "featured", "reason"),
+    [
+        ("converted_multi", [], ["zed"], "no speaker named 'zed'"),
+        ("converted_multi", ["bob=robert"], ["bob"], "no speaker named 'bob'"),  # featured names are the new ones
+        ("converted_multi", [], ["bob", "bob"], "'bob' is listed twice"),
+        ("converted", [], ["bob"], "single speaker"),
+    ],
+)
+def test_featured_refuses_a_bad_name(
+    voice: str,
+    pairs: list[str],
+    featured: list[str],
+    reason: str,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(SystemExit) as refused:
+        pv.main(_cli_args(request.getfixturevalue(voice), tmp_path / "pkg", pairs, featured))
+    assert refused.value.code == 2 and not (tmp_path / "pkg").exists()
+    err = capsys.readouterr().err
+    assert "--featured" in err and reason in err and "unrecognized" not in err
 
 
 def test_cli_renames_a_speaker(converted_multi: Path, tmp_path: Path) -> None:
