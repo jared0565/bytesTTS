@@ -110,9 +110,10 @@ Available voices:
 
 `en-vctk`'s speakers are those of the CSTR VCTK Corpus. Without a speaker, the first featured one, `p228`, speaks.
 The featured ten have UK accents: English (Southern England, London, Manchester, York), Scottish, Northern Irish
-and Welsh. Any other VCTK speaker id from `p225` to `p376` works with `speaker=` or `--speaker` too; some of those
-have American, Canadian, Irish, Indian, South African, Australian or New Zealand accents. One more speaker, `ED`,
-is a row of the original model that is not a VCTK speaker. `bytestts voices` does not list speaker names;
+and Welsh. The other 98 VCTK speakers work with `speaker=` or `--speaker` too: the voice has 108 of the corpus's
+110 speaker ids, between `p225` and `p376` (`p315` and `s5` are not in it), and some have American, Canadian,
+Irish, Indian, South African, Australian or New Zealand accents. One more speaker, `ED`, is a row of the original
+model that is not a VCTK speaker. `bytestts voices` does not list speaker names;
 `list_voices("en-gb")[0].speakers` does.
 
 Each voice has its own licence and required attribution: see [Voices and licences](knowledge-base/voices-and-licences.md)
