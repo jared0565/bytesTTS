@@ -87,7 +87,7 @@ torch = [
 testpaths = ["tests"]
 pythonpath = ["tests"]
 markers = [
-  "parity: compares against TTS-dev golden data; needs BYTESTTS_PARITY_VOICE_DIR (en) or BYTESTTS_PARITY_ROOT (CSS10)",
+  "parity: compares against TTS-dev golden data; needs BYTESTTS_PARITY_VOICE_DIR (en) or BYTESTTS_PARITY_ROOT (CSS10, VCTK)",
   "quality: RTF and WER measurement",
   "gpu: needs a working CUDA execution provider",
   "network: uses the network",
