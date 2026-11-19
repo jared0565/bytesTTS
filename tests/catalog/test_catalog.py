@@ -66,6 +66,29 @@ def test_css10_voices_ship_in_the_catalogue(voice_id: str, language: str, speake
     assert urls == {name: pinned + name for name in ("model.onnx", "config.json", "speakers.json")}
 
 
+# The operator's shortlist (2026-11-19, by ear, UK accents); the first is the default speaker.
+VCTK_FEATURED = ["p228", "p232", "p229", "p243", "p244", "p287", "p262", "p247", "p304", "p253"]
+
+
+def test_vctk_voice_ships_in_the_catalogue() -> None:
+    m = load_catalog()["en-vctk"]
+    assert (m.language, m.engine, m.origin, m.sample_rate) == ("en-gb", "vits-onnx", "catalog", 22050)
+    assert (m.licence, m.data_licence, len(m.speakers), m.speakers[0]) == ("Apache-2.0", "CC-BY-4.0", 109, "ED")
+    assert m.featured == VCTK_FEATURED and m.featured[0] == "p228"  # the default speaker (Review Focus 2)
+    pinned = "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/f62b990f0bd6992cb860f303e1f607f18d4b0c13/"
+    urls = {name: entry.url for name, entry in m.files.items()}
+    assert urls == {name: pinned + name for name in ("model.onnx", "config.json", "speakers.json")}
+
+
+def test_language_filter_takes_en_gb_under_en() -> None:  # Review Focus 3
+    assert {v.id for v in list_voices("en")} >= {"en-ljspeech", "en-vctk"}
+    assert [v.id for v in list_voices("en-gb")] == ["en-vctk"]
+
+
+def test_the_featured_voice_lists_first() -> None:  # Review Focus 5: the only catalogue voice with featured speakers
+    assert list_voices()[0].id == "en-vctk"
+
+
 @pytest.mark.network
 @pytest.mark.parametrize("voice_id", sorted(load_catalog()))
 def test_shipped_voice_downloads_and_verifies(voice_id: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

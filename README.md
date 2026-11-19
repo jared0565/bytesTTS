@@ -33,8 +33,9 @@ tts.synthesize("BytesTTS is working.").save("hello.wav")
 
 ## Status
 
-**Pre-release (0.1.0, not yet on PyPI).** The catalogue has three voices, converted from Coqui TTS and tested
-against it: `en-ljspeech` (US English), `es-css10` (Spanish) and `fr-css10` (French). Each downloads on first use
+**Pre-release (0.1.0, not yet on PyPI).** The catalogue has four voices, converted from Coqui TTS and tested
+against it: `en-ljspeech` (US English), `en-vctk` (UK English, 109 speakers), `es-css10` (Spanish) and `fr-css10`
+(French). Each downloads on first use
 from its own Hugging Face repository, pinned to a commit and checked by SHA-256. German and Italian voices are
 planned. See the [changelog](CHANGELOG.md).
 
@@ -48,7 +49,7 @@ pip install "bytestts @ git+https://github.com/jared0565/bytesTTS"
 
 or from a clone with `pip install .`. Python 3.11 to 3.14 on Windows or Linux.
 
-**espeak-ng.** Phoneme voices, `en-ljspeech` included, need [espeak-ng](https://github.com/espeak-ng/espeak-ng)
+**espeak-ng.** Phoneme voices, `en-ljspeech` and `en-vctk` included, need [espeak-ng](https://github.com/espeak-ng/espeak-ng)
 **1.52.0**; the Spanish and French voices read characters and do not. On Windows, without administrator rights:
 
 ```
@@ -132,8 +133,12 @@ redistribute a voice. Third-party credits are in [NOTICE](NOTICE).
 | Voice | Language | Model licence | Data licence |
 |---|---|---|---|
 | [`en-ljspeech`](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) | English (US) | Apache-2.0 | Public domain |
+| [`en-vctk`](https://huggingface.co/fbmacagba/bytestts-en-vctk) | English (UK) | Apache-2.0 | CC-BY-4.0 |
 | [`es-css10`](https://huggingface.co/fbmacagba/bytestts-es-css10) | Spanish | BSD-3-Clause | CC0-1.0 |
 | [`fr-css10`](https://huggingface.co/fbmacagba/bytestts-fr-css10) | French | BSD-3-Clause | CC0-1.0 |
+
+`en-vctk` has 109 speakers; without `speaker=` or `--speaker`, `p228` speaks. The
+[user guide](docs/user-guide.md#3-voices) lists the featured ones.
 
 The Spanish and French voices cannot read digits: write numbers as words ("dos euros con cincuenta").
 

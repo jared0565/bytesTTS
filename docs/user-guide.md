@@ -21,7 +21,7 @@ inside, see [Design](design.md).
 - Windows or Linux, 64-bit.
 - Python 3.11, 3.12, 3.13 or 3.14.
 - [espeak-ng](https://github.com/espeak-ng/espeak-ng) 1.52.0 for voices that speak from phonemes (`en-ljspeech`
-  does). Voices that read plain characters, such as `es-css10` and `fr-css10`, do not need it.
+  and `en-vctk` do). Voices that read plain characters, such as `es-css10` and `fr-css10`, do not need it.
 - Optional: an NVIDIA GPU with the CUDA 13 runtime and cuDNN 9.
 
 ## 2. Installation
@@ -104,8 +104,16 @@ Available voices:
 | Voice | Language | Speakers | Size | Model licence | Data licence | Files |
 |---|---|---|---|---|---|---|
 | `en-ljspeech` | English (US) | 1 | 114.3 MB | Apache-2.0 | Public domain | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech) |
+| `en-vctk` | English (UK) | 109 (featured: `p228`, `p232`, `p229`, `p243`, `p244`, `p287`, `p262`, `p247`, `p304`, `p253`) | 121.4 MB | Apache-2.0 | CC-BY-4.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-vctk) |
 | `es-css10` | Spanish | 1 (`tux`) | 70.9 MB | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-es-css10) |
 | `fr-css10` | French | 1 (`gilles`) | 70.9 MB | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-fr-css10) |
+
+`en-vctk`'s speakers are those of the CSTR VCTK Corpus. Without a speaker, the first featured one, `p228`, speaks.
+The featured ten have UK accents: English (Southern England, London, Manchester, York), Scottish, Northern Irish
+and Welsh. Any other VCTK speaker id from `p225` to `p376` works with `speaker=` or `--speaker` too; some of those
+have American, Canadian, Irish, Indian, South African, Australian or New Zealand accents. One more speaker, `ED`,
+is a row of the original model that is not a VCTK speaker. `bytestts voices` does not list speaker names;
+`list_voices("en-gb")[0].speakers` does.
 
 Each voice has its own licence and required attribution: see [Voices and licences](knowledge-base/voices-and-licences.md)
 and [docs/licences.md](licences.md).

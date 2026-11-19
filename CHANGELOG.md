@@ -59,6 +59,14 @@ All notable changes to BytesTTS are recorded here. The format follows
   [fbmacagba/bytestts-fr-css10](https://huggingface.co/fbmacagba/bytestts-fr-css10), pinned to commits `797e2a7`
   and `0e41251`. They read characters, so they need no espeak-ng. They cannot read digits: write numbers
   as words.
+- **`en-vctk`:** a UK English voice with 109 speakers, converted from Coqui TTS (trained on the CSTR VCTK Corpus,
+  CC BY 4.0), checked against Coqui's own output by parity tests, and published in the catalogue from
+  [fbmacagba/bytestts-en-vctk](https://huggingface.co/fbmacagba/bytestts-en-vctk), pinned to commit `f62b990`.
+  Ten speakers with UK accents are featured; the first, `p228`, is the default. It is the only catalogue voice
+  with featured speakers, so it now lists first in `bytestts voices` and in the control panel.
+- **Voice packaging:** `--rename-speaker OLD=NEW` renames a speaker without touching the model (`en-vctk`'s row 0,
+  `"ED\n"` in the checkpoint, ships as `ED`), and `--featured NAME` writes the featured speakers into the
+  package's `voice.json`, so a package loaded from disk defaults to the same speaker as a catalogue install.
 - **Voice conversion:** Coqui voices with a language embedding and one language convert and export, with the
   language fixed inside the model; voices with several languages are refused. A speaker table is sized from the
   archive's `speaker_ids.json`.

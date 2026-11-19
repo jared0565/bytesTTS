@@ -44,6 +44,7 @@ See [Design](../design.md#converting-voices-maintainers) for the details.
 | Voice | Language | Speakers | Model licence | Data licence | Files |
 |---|---|---|---|---|---|
 | `en-ljspeech` | English (US) | 1 | Apache-2.0 | Public domain | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-ljspeech), 114.3 MB |
+| `en-vctk` | English (UK) | 109 (featured: `p228`, `p232`, `p229`, `p243`, `p244`, `p287`, `p262`, `p247`, `p304`, `p253`) | Apache-2.0 | CC-BY-4.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-en-vctk), 121.4 MB |
 | `es-css10` | Spanish | 1 | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-es-css10), 70.9 MB |
 | `fr-css10` | French | 1 | BSD-3-Clause | CC0-1.0 | [Hugging Face](https://huggingface.co/fbmacagba/bytestts-fr-css10), 70.9 MB |
 
@@ -59,10 +60,11 @@ There are three separate licences to keep apart:
 
 1. **The BytesTTS code** is licensed under the [Mozilla Public License 2.0](../../LICENSE). You can use it in open
    or closed software. If you change BytesTTS's own files and distribute them, those files stay under MPL-2.0.
-2. **Each voice's model** has its own licence: Apache-2.0 for `en-ljspeech`, BSD-3-Clause for `es-css10` and
-   `fr-css10`.
+2. **Each voice's model** has its own licence: Apache-2.0 for `en-ljspeech` and `en-vctk`, BSD-3-Clause for
+   `es-css10` and `fr-css10`.
 3. **Each voice's training data** has its own licence: public domain for `en-ljspeech` (The LJ Speech Dataset),
-   CC0-1.0 for `es-css10` and `fr-css10` (CSS10, whose recordings are public-domain LibriVox audiobooks).
+   CC BY 4.0 for `en-vctk` (the CSTR VCTK Corpus), and CC0-1.0 for `es-css10` and `fr-css10` (CSS10, whose
+   recordings are public-domain LibriVox audiobooks).
 
 BSD-3-Clause asks that a redistribution in binary form reproduce its copyright notice, conditions and disclaimer.
 For the Spanish and French models these are in [NOTICE](../../NOTICE) and on each voice's model card.

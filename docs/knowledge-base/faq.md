@@ -10,8 +10,8 @@ the conversion tools described in [Design](../design.md#converting-voices-mainta
 
 ### Which languages are supported?
 
-English (`en-ljspeech`, US English), Spanish (`es-css10`) and French (`fr-css10`). German and Italian voices are
-planned.
+English (`en-ljspeech`, US English, and `en-vctk`, UK English with 109 speakers), Spanish (`es-css10`) and French
+(`fr-css10`). German and Italian voices are planned.
 
 ### Why are numbers skipped in Spanish or French?
 
@@ -26,7 +26,7 @@ used to convert and export voices.
 
 ### Do I need espeak-ng?
 
-Only for voices that speak from phonemes, which includes `en-ljspeech`. The Spanish and French voices read
+Only for voices that speak from phonemes, which includes `en-ljspeech` and `en-vctk`. The Spanish and French voices read
 characters and do not need it. See [Installing espeak-ng](espeak-ng.md).
 BytesTTS is tested with espeak-ng 1.52.0.
 
@@ -73,7 +73,8 @@ No. VITS voices speak only as the speakers they were trained on.
 The BytesTTS code is MPL-2.0, which allows use in commercial and closed-source software, provided BytesTTS's own
 files that you change stay under MPL-2.0. Each voice has its own model and data licence and an attribution to
 keep: see [Voices and licences](voices-and-licences.md). `en-ljspeech` is Apache-2.0 (model) and public domain
-(data); `es-css10` and `fr-css10` are BSD-3-Clause (model) and CC0-1.0 (data). This is not legal advice.
+(data); `en-vctk` is Apache-2.0 (model) and CC BY 4.0 (data); `es-css10` and `fr-css10` are BSD-3-Clause (model)
+and CC0-1.0 (data). This is not legal advice.
 
 ### Is it thread-safe?
 

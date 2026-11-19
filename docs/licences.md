@@ -52,6 +52,8 @@ you must keep when you use or redistribute it. The same three strings ship in ea
   - Speakers: the model has 109 speaker rows. 108 are VCTK speakers, named by their VCTK ids (`p225` to `p376`).
     Row 0 is named `"ED\n"` in the checkpoint and is not a VCTK speaker id; the package names it `ED`. The accents
     shown for the featured speakers come from the corpus's own `speaker-info.txt`.
+  - Published files: [fbmacagba/bytestts-en-vctk](https://huggingface.co/fbmacagba/bytestts-en-vctk) on Hugging
+    Face; the catalogue pins commit `f62b990f0bd6992cb860f303e1f607f18d4b0c13`.
 
 A voice is added here before it is added to the catalogue; `tests/test_licence_register.py` checks that every row
 matches its voice's manifest exactly.
