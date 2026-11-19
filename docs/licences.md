@@ -10,6 +10,7 @@ you must keep when you use or redistribute it. The same three strings ship in ea
 | `en-ljspeech` | Apache-2.0 | Public domain | Model: Coqui TTS tts_models/en/ljspeech/vits by Eren Gölge (Coqui), Apache-2.0; converted to ONNX by BytesTTS. Training data: The LJ Speech Dataset, Keith Ito and Linda Johnson (2017), https://keithito.com/LJ-Speech-Dataset/, public domain. |
 | `es-css10` | BSD-3-Clause | CC0-1.0 | Model: Coqui TTS tts_models/es/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 Spanish, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Tux), public domain. |
 | `fr-css10` | BSD-3-Clause | CC0-1.0 | Model: Coqui TTS tts_models/fr/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 French, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Gilles G. Le Blanc), public domain. |
+| `en-vctk` | Apache-2.0 | CC-BY-4.0 | Model: Coqui TTS tts_models/en/vctk/vits by Eren Gölge (Coqui), Apache-2.0; converted to ONNX by BytesTTS. Training data: CSTR VCTK Corpus (version 0.92), Junichi Yamagishi, Christophe Veaux and Kirsten MacDonald, The Centre for Speech Technology Research, University of Edinburgh (2019), https://doi.org/10.7488/ds/2645, CC BY 4.0. |
 
 ## Sources
 
@@ -38,6 +39,19 @@ you must keep when you use or redistribute it. The same three strings ship in ea
     [French](https://www.kaggle.com/datasets/bryanpark/french-single-speaker-speech-dataset) datasets are published
     under "CC0: Public Domain". Their recordings are LibriVox audiobooks, in the public domain, read by Tux
     (Spanish) and Gilles G. Le Blanc (French).
+
+- `en-vctk`
+  - Model: Coqui TTS release `v0.6.1_models`, `tts_models--en--vctk--vits.zip`
+    (sha256 `ad753e5200614907627495b6177a08d755df1dbbde30eb6e31264caa2a3f3eaa`). Coqui's model list gives the
+    author as "Eren @erogol" and the licence as "apache 2.0". BytesTTS converts the weights to ONNX; it does not
+    retrain them.
+  - Data: [CSTR VCTK Corpus, version 0.92](https://doi.org/10.7488/ds/2645) (Junichi Yamagishi, Christophe Veaux and
+    Kirsten MacDonald, The Centre for Speech Technology Research, University of Edinburgh, 2019), on Edinburgh
+    DataShare. The record's `license_text.txt` is the legal code of
+    [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). BytesTTS does not redistribute the recordings.
+  - Speakers: the model has 109 speaker rows. 108 are VCTK speakers, named by their VCTK ids (`p225` to `p376`).
+    Row 0 is named `"ED\n"` in the checkpoint and is not a VCTK speaker id; the package names it `ED`. The accents
+    shown for the featured speakers come from the corpus's own `speaker-info.txt`.
 
 A voice is added here before it is added to the catalogue; `tests/test_licence_register.py` checks that every row
 matches its voice's manifest exactly.

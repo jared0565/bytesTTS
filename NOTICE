@@ -25,6 +25,9 @@ es-css10 (model licence BSD-3-Clause, data licence CC0-1.0):
 fr-css10 (model licence BSD-3-Clause, data licence CC0-1.0):
   Model: Coqui TTS tts_models/fr/css10/vits, Copyright Neongecko.com Inc. (@NeonGeckoCom), BSD-3-Clause; converted to ONNX by BytesTTS. Training data: CSS10 French, Kyubyong Park and Thomas Mulc (2019), CC0-1.0; audio from LibriVox (reader: Gilles G. Le Blanc), public domain.
 
+en-vctk (model licence Apache-2.0, data licence CC-BY-4.0):
+  Model: Coqui TTS tts_models/en/vctk/vits by Eren Gölge (Coqui), Apache-2.0; converted to ONNX by BytesTTS. Training data: CSTR VCTK Corpus (version 0.92), Junichi Yamagishi, Christophe Veaux and Kirsten MacDonald, The Centre for Speech Technology Research, University of Edinburgh (2019), https://doi.org/10.7488/ds/2645, CC BY 4.0.
+
 The es-css10 and fr-css10 models are distributed under these terms:
 
   Copyright Neongecko.com Inc.
@@ -58,6 +61,17 @@ The es-css10 and fr-css10 models are distributed under these terms:
 CSS10 (the es-css10 and fr-css10 training data):
   Kyubyong Park and Thomas Mulc. "CSS10: A Collection of Single Speaker
   Speech Datasets for 10 Languages." Interspeech 2019.
+
+CSTR VCTK Corpus (the en-vctk training data), licensed under Creative
+Commons Attribution 4.0 International
+(https://creativecommons.org/licenses/by/4.0/):
+  Junichi Yamagishi, Christophe Veaux and Kirsten MacDonald. "CSTR VCTK
+  Corpus: English Multi-speaker Corpus for CSTR Voice Cloning Toolkit
+  (version 0.92)." University of Edinburgh, The Centre for Speech
+  Technology Research (CSTR), 2019. https://doi.org/10.7488/ds/2645
+
+  BytesTTS does not redistribute the recordings, and is not affiliated
+  with or endorsed by the University of Edinburgh or its authors.
 
 Software used by the control panel ([gui] extra, Windows only):
   These packages are installed from PyPI when you install bytestts[gui] on
