@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
+import dataclasses
+import hashlib
 import json
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -75,6 +78,34 @@ def test_vctk_voice_ships_in_the_catalogue() -> None:
     pinned = "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/f62b990f0bd6992cb860f303e1f607f18d4b0c13/"
     urls = {name: entry.url for name, entry in m.files.items()}
     assert urls == {name: pinned + name for name in ("model.onnx", "config.json", "speakers.json")}
+
+
+# An installed voice's cache directory is named after its manifest digest (catalog/cache.py, voice_dir), a hash of the
+# whole catalogue entry, every file URL included. Any change to an entry makes every installed copy look missing.
+PINNED_DIGESTS = {
+    "en-ljspeech": "63b0caa7b294c0f105fc826b4f40f748632af55a8496c6f7c90026ad93bfef26",
+    "en-vctk": "0e59a23537f17f127eb1a12a9416b80cde361601fcdcdff21cd48711f9d4be28",
+    "es-css10": "560d5407ddbfaf58e3551580718f412ba2cfc6f48f18d56f99fa1fa53a3e3f3c",
+    "fr-css10": "e09b034d691097852956e64e971baa0493238be5c48718467587f789346cffa8",
+}
+VOICES_JSON_SHA256 = "9fe571381bc332f8fe5b3c3e4571762187d4a6f3c123a18b9b1d838773a7a523"
+REDOWNLOAD = "an installed copy of this voice would download again"
+
+
+def test_catalogue_entries_are_unchanged() -> None:
+    assert {voice_id: m.manifest_digest() for voice_id, m in load_catalog().items()} == PINNED_DIGESTS, REDOWNLOAD
+    data = resources.files("bytestts.catalog").joinpath("voices.json").read_bytes()
+    assert hashlib.sha256(data).hexdigest() == VOICES_JSON_SHA256, REDOWNLOAD
+
+
+def test_a_url_change_changes_the_digest() -> None:  # the control: the guard above can fail on a moved URL
+    m = load_catalog()["en-vctk"]
+    entry = m.files["model.onnx"]
+    assert entry.url is not None
+    moved = entry.url.replace("/resolve/f62b990f0bd6992cb860f303e1f607f18d4b0c13/", "/resolve/" + "1" * 40 + "/")
+    assert moved != entry.url
+    changed = dataclasses.replace(m, files={**m.files, "model.onnx": dataclasses.replace(entry, url=moved)})
+    assert changed.manifest_digest() != PINNED_DIGESTS["en-vctk"]
 
 
 def test_language_filter_takes_en_gb_under_en() -> None:  # Review Focus 3
