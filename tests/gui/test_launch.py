@@ -8,6 +8,7 @@ import re
 import socket
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 import webbrowser
@@ -290,6 +291,16 @@ def test_port_in_use_is_exit_1(capsys: pytest.CaptureFixture[str]) -> None:
         assert main(["gui", "--no-window", "--port", str(port)]) == 1
     lines = capsys.readouterr().err.strip().splitlines()
     assert len(lines) == 1 and f"127.0.0.1:{port}" in lines[0]
+
+
+def test_server_that_dies_at_start_is_reported_at_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A server thread that ends without starting is reported on the next check, not after the 10 s start timeout
+    (aramid mutation 735e8230: `or` -> `and` in the start wait survived)."""
+    monkeypatch.setattr(launch.uvicorn.Server, "run", lambda self, sockets=None: None)  # returns, never started
+    began = time.monotonic()
+    with pytest.raises(OSError, match="did not start"):
+        run_panel(LaunchOptions(0, "none", 1), on_ready=lambda url, mode: None)
+    assert time.monotonic() - began < 5
 
 
 def test_missing_fastapi_is_exit_4(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
