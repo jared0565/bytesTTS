@@ -83,8 +83,11 @@ server on your own computer, so the panel checks each request before acting on i
   so an address copied from browser history or another tab gives nothing but a stop. No cookie is set or read: a
   cookie would also be sent with requests from pages on other `127.0.0.1` ports. Recordings reach the player
   through `fetch` with the header, as blob URLs, never as a link an `<audio>` element could load without it.
-- **Strict input.** Request bodies are JSON with a size cap, and unknown fields are refused. The text, speed, voice,
-  speaker, device and threads are each checked. No field takes a file path.
+- **Strict input.** JSON request bodies are capped at 65,536 bytes and strict: a value of the wrong type or an
+  unknown field is refused. The text, speed, voice, speaker, device and threads are each checked. The one other
+  body is the recording sent to `/api/export`: raw bytes under their own byte cap, accepted only as a 16-bit PCM WAV
+  (mono or stereo, 8 to 48 kHz, at most 60 minutes of mono or 30 of stereo at 48 kHz), and read with Python's
+  standard `wave` module, never a decoder library. No field takes a file path.
 - **Saving without paths in the page.** In the window, the Save dialog is opened by Python, not by the page. The page
   gets back a random ticket that can be used once and expires after 10 minutes, and sends the recording with it. The
   server checks that the recording is a valid 16-bit PCM WAV, writes it to a temporary file beside the target, and
