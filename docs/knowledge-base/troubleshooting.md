@@ -127,6 +127,12 @@ the WebView2 Runtime from Microsoft (Windows 11 includes it). The panel works th
 **`the control panel needs fastapi and uvicorn: …`** (`NotSupported`, exit 4)
 The `gui` extra is not installed. Install it as above.
 
+**No browser opens** (on Linux or WSL with no default browser; the terminal may show
+`gio: http://127.0.0.1:…: Operation not supported`)
+The panel is running, and its printed address has not been used: open it yourself in a browser, once. To have
+`bytestts gui` open a browser itself, set the `BROWSER` environment variable to the browser's command first, for
+example `BROWSER=firefox bytestts gui`.
+
 **`cannot listen on 127.0.0.1:N: …`** (exit 1)
 Another program, or another copy of the panel, is using that port. Leave out `--port` to let the system pick a free
 one, or choose another number.
