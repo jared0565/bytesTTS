@@ -247,12 +247,13 @@ pip install "bytestts[gui] @ git+https://github.com/jared0565/bytesTTS"
 bytestts gui
 ```
 
-The `gui` extra adds FastAPI and uvicorn, plus pywebview on Windows. `bytestts gui` prints the panel's address and
-opens it:
+The `gui` extra adds FastAPI and uvicorn, plus pywebview on Windows. `bytestts gui` opens the panel:
 
 - **On Windows**, in its own window titled BytesTTS. The window uses the Microsoft Edge WebView2 Runtime, which
-  Windows 11 includes; on Windows 10, install it from Microsoft if it is missing.
-- **On Linux**, or when the window cannot start, in your web browser. The terminal says why it fell back.
+  Windows 11 includes; on Windows 10, install it from Microsoft if it is missing. The terminal says
+  `BytesTTS control panel: opening the app window` and prints no address, because the window needs none.
+- **On Linux**, or when the window cannot start, in your web browser. The terminal prints the panel's address, and
+  says why it fell back.
 
 ```
 bytestts gui [--port N] [--browser | --no-window] [--max-threads N]
@@ -265,9 +266,9 @@ bytestts gui [--port N] [--browser | --no-window] [--max-threads N]
 | `--no-window` | Only print the address; open it yourself in a browser. |
 | `--max-threads N` | The most CPU threads the panel may use (see [Threads](#threads)). |
 
-The address looks like `http://127.0.0.1:PORT/?code=...`. The part after `?code=` is a one-time launch code, not
-the panel's secret: as soon as the page loads, it swaps the code for this launch's secret and removes the code from
-the address bar. The terminal never shows the secret. Reloading the page keeps working.
+The printed address looks like `http://127.0.0.1:PORT/?code=...`. The part after `?code=` is a one-time launch
+code, not the panel's secret: as soon as the page loads, it swaps the code for this launch's secret and removes the
+code from the address bar. The terminal never shows the secret. Reloading the page keeps working.
 
 The printed address works once. Opening it a second time, for example after closing the browser tab, stops the
 panel: the page shows `this launch address was already used, so the panel has stopped: start it again with bytestts

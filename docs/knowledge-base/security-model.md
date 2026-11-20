@@ -100,9 +100,9 @@ server on your own computer, so the panel checks each request before acting on i
   `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. The page has no inline script or style and
   loads nothing from the internet. File names, error messages and voice attributions are inserted as text, never as
   HTML, and links in attributions are shown as text with a Copy button, never opened.
-- **Nothing private in the terminal.** The terminal shows the one-time launch address, never the secret. Requests
-  are not logged, so neither the secret nor your text appears in the terminal. Error replies are one line, never a
-  traceback.
+- **Nothing private in the terminal.** The terminal shows the one-time launch address, never the secret, and for
+  the app window not even the address, which the window does not need. Requests are not logged, so neither the
+  secret nor your text appears in the terminal. Error replies are one line, never a traceback.
 - **One CPU task at a time.** A second task is refused (the page waits for the first instead), so the panel keeps at
   most the Threads setting busy, plus one download.
 
@@ -119,8 +119,8 @@ server on your own computer, so the panel checks each request before acting on i
   internally consistent, not endorsed. Catalogue voices are checked against the pins shipped inside BytesTTS.
 - **espeak-ng itself** processes your text. Keep it up to date from its official releases.
 - **The control panel guards against web pages, not against programs on your computer.** A program running under
-  your account can read the address the terminal printed, just as it can read your files. If it uses the address
-  before the page does, it gets the secret, but the page then finds the address already used and the panel stops,
-  so the theft is not silent. In the browser, an extension allowed to read all sites can read the panel's page too.
+  your account can read the launch address, just as it can read your files. If it uses the address before the
+  page does, it gets the secret, but the page then finds the address already used and the panel stops, so the theft
+  is not silent. In the browser, an extension allowed to read all sites can read the panel's page too.
 - **Generated speech** can imitate the voice it was trained on. Fine-tuned voices therefore require a consent
   statement. Do not use voices to deceive people.

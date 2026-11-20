@@ -62,8 +62,13 @@ def resolve_mode(mode: Mode, platform: str) -> Literal["window", "browser", "non
     return mode
 
 
-def announce(url: str) -> None:
-    print(f"BytesTTS control panel: {url}", flush=True)
+def announce(url: str, mode: str) -> None:
+    """Say where the panel opens. The app window needs no address, so none is printed for it: a second use of the
+    address would stop the panel, and the window's unsaved recording with it."""
+    if mode == "window":
+        print("BytesTTS control panel: opening the app window", flush=True)
+    else:
+        print(f"BytesTTS control panel: {url}", flush=True)
 
 
 def _listen(port: int) -> socket.socket:
@@ -80,11 +85,12 @@ def _listen(port: int) -> socket.socket:
     return sock
 
 
-def run_panel(options: LaunchOptions, *, on_ready: Callable[[str], None] = announce) -> int:
+def run_panel(options: LaunchOptions, *, on_ready: Callable[[str, str], None] = announce) -> int:
     """Serve the panel until the session quits; returns the exit code: 0, or 1 after a stop with a reason.
 
-    The printed address carries a one-time launch code, never the secret: the page swaps the code for the secret
-    once (POST /api/session), and a second use of the same address stops the panel."""
+    The address carries a one-time launch code, never the secret: the page swaps the code for the secret once
+    (POST /api/session), and a second use of the same address stops the panel. `on_ready` gets the address and where
+    it opens ("window", "browser" or "none"), and again with "browser" when the window falls back to the browser."""
     sock = _listen(options.port)
     port = sock.getsockname()[1]
     secret = secrets.token_urlsafe(32)
@@ -103,8 +109,8 @@ def run_panel(options: LaunchOptions, *, on_ready: Callable[[str], None] = annou
                 raise OSError(f"the panel's server did not start on 127.0.0.1:{port}")
             time.sleep(0.02)
         url = f"http://127.0.0.1:{port}/?code={code}"
-        on_ready(url)
         mode = resolve_mode(options.mode, sys.platform)
+        on_ready(url, mode)
         if mode == "window":
             reason = window.open_window(url, session)
             if reason is None:
@@ -112,6 +118,7 @@ def run_panel(options: LaunchOptions, *, on_ready: Callable[[str], None] = annou
             else:
                 print(f"bytestts gui: {reason}; opening the browser instead", file=sys.stderr)
                 mode = "browser"
+                on_ready(url, mode)
         if mode == "browser":
             webbrowser.open(url)
         while not session.quit.wait(0.5):

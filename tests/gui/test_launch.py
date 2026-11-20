@@ -26,6 +26,7 @@ from bytestts.gui.launch import LaunchOptions, resolve_mode, run_panel, thread_c
 from bytestts.gui.session import Session
 
 URL_RE = re.compile(r"^http://127\.0\.0\.1:(\d+)/\?code=([\w-]{43})$")
+WINDOW_LINE = "BytesTTS control panel: opening the app window"
 REUSED_LINE = (
     "bytestts gui: the launch address was used a second time, so the panel stopped; start it again with bytestts gui"
 )
@@ -70,9 +71,9 @@ def start_panel(options: LaunchOptions, *, announce: bool = False) -> tuple[thre
     ready: queue.Queue[str] = queue.Queue()
     result: list[int] = []
 
-    def on_ready(url: str) -> None:
+    def on_ready(url: str, mode: str) -> None:
         if announce:
-            launch.announce(url)
+            launch.announce(url, mode)
         ready.put(url)
 
     thread = threading.Thread(target=lambda: result.append(run_panel(options, on_ready=on_ready)), daemon=True)
@@ -160,11 +161,26 @@ def test_window_failure_falls_back_to_browser(
 
     monkeypatch.setattr(window, "open_window", no_window)
     monkeypatch.setattr(webbrowser, "open", browser)
-    assert run_panel(LaunchOptions(0, "window", 1), on_ready=lambda url: None) == 0
+    assert run_panel(LaunchOptions(0, "window", 1)) == 0
     assert len(opened) == 1 and URL_RE.match(opened[0])
     assert exchanged == [200]
-    lines = capsys.readouterr().err.strip().splitlines()
+    out, err = capsys.readouterr()
+    lines = err.strip().splitlines()
     assert len(lines) == 1 and "no WebView2" in lines[0] and "browser" in lines[0]
+    # the address is printed only once the browser needs it
+    assert out.splitlines() == [WINDOW_LINE, f"BytesTTS control panel: {opened[0]}"]
+
+
+def test_window_mode_prints_no_address(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """The app window needs no address, so the terminal shows none that could be opened a second time by mistake
+    (which would stop the panel and lose an unsaved recording)."""
+    opened: list[str] = []
+    monkeypatch.setattr(window, "open_window", lambda url, session: opened.append(url))  # opens, then closes at once
+    assert run_panel(LaunchOptions(0, "window", 1)) == 0
+    assert len(opened) == 1 and URL_RE.match(opened[0])
+    out, err = capsys.readouterr()
+    assert out.splitlines() == [WINDOW_LINE]
+    assert "http" not in out + err and "code=" not in out + err
 
 
 def test_window_close_stops_the_server(monkeypatch: pytest.MonkeyPatch) -> None:
