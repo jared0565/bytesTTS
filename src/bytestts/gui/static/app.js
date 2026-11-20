@@ -28,6 +28,7 @@ const state = {
 // reload still works), and removes the code from view. Using the same address a second time stops the panel.
 
 const ADDRESS_CHANGED = "This panel's address has changed: open the address printed in the terminal.";
+const SERVER_GONE = "The panel has stopped: start it again with bytestts gui.";
 let heldSecret = "";
 
 async function takeSecret() {
@@ -51,7 +52,7 @@ async function takeSecret() {
       cache: "no-store",
     });
   } catch (e) {
-    lockOut();
+    lockOut(SERVER_GONE);
     return;
   }
   let data = null;
@@ -97,7 +98,12 @@ async function api(path, options = {}) {
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(options.json);
   }
-  const response = await fetch("/api" + path, { method: options.method || "GET", headers, body, cache: "no-store" });
+  let response;
+  try {
+    response = await fetch("/api" + path, { method: options.method || "GET", headers, body, cache: "no-store" });
+  } catch (e) {
+    throw new ApiError(0, SERVER_GONE); // no answer at all: Quit, Ctrl+C or a reused address stopped the server
+  }
   if (response.status === 401) {
     lockOut();
     throw new ApiError(401, ADDRESS_CHANGED);

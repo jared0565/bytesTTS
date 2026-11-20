@@ -97,3 +97,8 @@ def test_page_gets_the_secret_only_from_the_exchange() -> None:
     script = read("app.js")
     assert '"/api/session"' in script and 'get("code")' in script
     assert 'get("s")' not in script
+
+
+def test_page_explains_a_stopped_panel() -> None:
+    """A fetch that cannot reach the server says so in the panel's words, not the browser's "Failed to fetch"."""
+    assert '"The panel has stopped: start it again with bytestts gui."' in read("app.js")

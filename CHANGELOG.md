@@ -28,6 +28,8 @@ All notable changes to BytesTTS are recorded here. The format follows
 - When the control panel's window cannot start because WebView2 is missing, the terminal shows only the panel's
   one-line reason, without pywebview's copy of the .NET error and stack trace. Other pywebview errors still print.
 - The control panel has its own icon, so the browser no longer reports a missing `favicon.ico`.
+- When the control panel's server has stopped, the page says `The panel has stopped: start it again with bytestts
+  gui.` instead of the browser's `Failed to fetch`.
 - A voice card that is not a JSON object is refused (`IntegrityError`) for every voice, not only fine-tuned ones.
 - The CUDA advice no longer quotes an internal plan reference.
 - The voice packager pins PyTorch's inter-op threads as well as its intra-op threads.
