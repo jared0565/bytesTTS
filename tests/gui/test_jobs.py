@@ -2,6 +2,7 @@
 """Speech jobs (spec §6.4): one at a time, Stop between sentences, warnings, and the Repair hand-off."""
 
 import io
+import logging
 import threading
 import wave
 from collections.abc import Iterator
@@ -137,6 +138,30 @@ def test_warnings_reach_the_status() -> None:
     assert status.state == "done"
     assert any("U+00BD" in w for w in status.warnings)
     assert not any("hi" in w for w in status.warnings)  # the text itself is never logged
+
+
+class WarningTTS(FakeTTS):
+    """FakeTTS that logs a library warning from the job's own thread first."""
+
+    def stream(self, text: str, *, speaker: str | None = None, speed: float = 1.0) -> Iterator[Audio]:
+        logging.getLogger("bytestts.text").warning("own warning")
+        yield from super().stream(text, speaker=speaker, speed=speed)
+
+
+def test_warnings_from_other_threads_stay_out() -> None:
+    """A download or a second panel thread logging meanwhile must not reach this Speak's status line."""
+    gate = threading.Event()
+    jobs, _ = jobs_with(lambda v, d, t: WarningTTS(3, gate))
+    job = jobs.start(request())
+    wait_until(lambda: jobs.status(job).sentences_done >= 1)
+    other = threading.Thread(target=lambda: logging.getLogger("bytestts.x").warning("elsewhere"))
+    other.start()
+    other.join(10)
+    gate.set()
+    status = finish(jobs, job)
+    assert status.state == "done"
+    assert "own warning" in status.warnings
+    assert not any("elsewhere" in w for w in status.warnings)
 
 
 def test_loaded_voice_is_reused_until_settings_change() -> None:

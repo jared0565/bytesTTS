@@ -58,14 +58,17 @@ class _Job:
 
 class _Collect(logging.Handler):
     """The library's warnings during a job (such as a character a voice can't say), for the status line. The
-    library never logs the text itself."""
+    library never logs the text itself. Only the job's own thread counts: the library logger is shared, so a
+    download or another request logging meanwhile stays out of this Speak's status."""
 
     def __init__(self, into: list[str]) -> None:
         super().__init__(logging.WARNING)
         self._into = into
+        self._thread = threading.get_ident()  # made on the job's thread, in _run
 
     def emit(self, record: logging.LogRecord) -> None:
-        self._into.append(" ".join(record.getMessage().split()))
+        if record.thread == self._thread:
+            self._into.append(" ".join(record.getMessage().split()))
 
 
 class SpeechJobs:
