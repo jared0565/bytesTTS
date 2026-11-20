@@ -27,7 +27,7 @@ const state = {
 // The page swaps the code once at POST /api/session for the secret, keeps it here and in sessionStorage (so a
 // reload still works), and removes the code from view. Using the same address a second time stops the panel.
 
-const ADDRESS_CHANGED = "This panel's address has changed: open the address printed in the terminal.";
+const NOT_CONNECTED = "This page is not connected to the running panel: switch to the panel's own tab or window, or start it again with bytestts gui.";
 const SERVER_GONE = "The panel has stopped: start it again with bytestts gui.";
 let heldSecret = "";
 
@@ -70,7 +70,7 @@ async function takeSecret() {
     }
     return;
   }
-  lockOut(data && typeof data.error === "string" ? data.error : ADDRESS_CHANGED);
+  lockOut(data && typeof data.error === "string" ? data.error : NOT_CONNECTED);
 }
 
 function secret() {
@@ -106,7 +106,7 @@ async function api(path, options = {}) {
   }
   if (response.status === 401) {
     lockOut();
-    throw new ApiError(401, ADDRESS_CHANGED);
+    throw new ApiError(401, NOT_CONNECTED);
   }
   if (!response.ok) {
     let message = "The panel answered " + response.status;
@@ -123,7 +123,7 @@ async function api(path, options = {}) {
   return options.raw ? response : response.json();
 }
 
-function lockOut(message = ADDRESS_CHANGED) {
+function lockOut(message = NOT_CONNECTED) {
   state.locked = true;
   setStatus(message, "error");
   for (const control of document.querySelectorAll("button, input, select, textarea")) {

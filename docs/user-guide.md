@@ -273,7 +273,12 @@ code from the address bar. The terminal never shows the secret. Reloading the pa
 The printed address works once. Opening it a second time, for example after closing the browser tab, stops the
 panel: the page shows `this launch address was already used, so the panel has stopped: start it again with bytestts
 gui`, and the terminal prints `bytestts gui: the launch address was used a second time, so the panel stopped; start
-it again with bytestts gui`. Start it again with `bytestts gui` and use the new address.
+it again with bytestts gui`. Start it again with `bytestts gui`, which opens the panel again (with `--no-window`,
+open the new address it prints, once).
+
+A tab that is not connected to the running panel, for example one opened from the browser's history, says `This
+page is not connected to the running panel: switch to the panel's own tab or window, or start it again with bytestts
+gui.` Switch to the tab the panel is open in; opening the printed address again would stop the panel.
 
 The panel keeps running until you close the window, press **Quit**, or press Ctrl+C in the terminal. In the browser,
 closing the tab does not stop it, and its address cannot be opened again: press **Quit** when you are done.

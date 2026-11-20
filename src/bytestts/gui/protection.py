@@ -93,7 +93,11 @@ def refusal(
         return Refusal(403, "requests from other sites are refused")
     exchange = method == "POST" and path == EXCHANGE_PATH
     if not exchange and not _secret_matches(headers.get("authorization", ""), secret):
-        return Refusal(401, "missing or wrong panel secret: open the address printed in the terminal")
+        return Refusal(
+            401,
+            "missing or wrong panel secret: switch to the panel's own tab or window, or start it again with "
+            "bytestts gui",
+        )
     if method == "POST" and path not in raw_body_paths:
         if "transfer-encoding" in headers:
             return Refusal(411, "a request body needs a Content-Length")

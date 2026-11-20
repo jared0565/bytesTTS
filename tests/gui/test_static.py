@@ -104,6 +104,17 @@ def test_page_explains_a_stopped_panel() -> None:
     assert '"The panel has stopped: start it again with bytestts gui."' in read("app.js")
 
 
+def test_page_never_sends_the_user_back_to_the_printed_address() -> None:
+    """The printed address works once, and in the browser the launcher has used it already: opening it again would
+    stop the panel. A page that lost its secret points to the panel's own tab or window instead."""
+    script = read("app.js")
+    assert "printed in the terminal" not in script
+    assert (
+        "\"This page is not connected to the running panel: switch to the panel's own tab or window, or start it"
+        ' again with bytestts gui."' in script
+    )
+
+
 def test_replace_question_exists() -> None:
     """A new Speak over an unsaved recording asks first; the question lives in the Speak button's handler."""
     html = read("index.html")

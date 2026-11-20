@@ -40,7 +40,7 @@ def exchanging_panel() -> tuple[TestClient, Session]:
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}"), session
 
 
-WRONG_CODE = "wrong launch code: open the address printed in the terminal"
+WRONG_CODE = "wrong launch code: switch to the panel's own tab or window, or start it again with bytestts gui"
 REUSED_CODE = "this launch address was already used, so the panel has stopped: start it again with bytestts gui"
 STOP_REASON = "the launch address was used a second time, so the panel stopped; start it again with bytestts gui"
 

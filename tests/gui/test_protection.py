@@ -68,6 +68,11 @@ def test_api_needs_the_bearer_secret() -> None:
     ):
         r = check("GET", "/api/status", headers)
         assert r is not None and r.status == 401, dict(headers)
+        # the printed address works once and is usually used already, so the advice never sends anyone back to it
+        assert r.error == (
+            "missing or wrong panel secret: switch to the panel's own tab or window, or start it again with "
+            "bytestts gui"
+        )
     r = check("GET", f"/api/status?s={SECRET}", H())  # a secret in the query never opens the API
     assert r is not None and r.status == 401
     assert check("GET", "/api/status", H(Authorization=f"Bearer {SECRET}")) is None

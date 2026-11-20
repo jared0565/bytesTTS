@@ -142,19 +142,24 @@ the `gpu` extra with the CUDA 13 runtime and cuDNN 9, as in [GPU and performance
 comes from `--max-threads` or `BYTESTTS_GUI_MAX_THREADS`; without either it is the number of CPU cores. See the
 [User Guide](../user-guide.md#threads).
 
-**`This panel's address has changed: open the address printed in the terminal.`**
-The page no longer holds the panel's current secret, usually because the panel was restarted (each launch makes a
-new one) or the page was opened without its `?code=...` part. Open the address the terminal printed last.
+**`This page is not connected to the running panel: switch to the panel's own tab or window, or start it again with bytestts gui.`**
+The page does not hold the running panel's secret: it was opened without the launch address (typed, or picked from
+the browser's history), or the panel was restarted since (each launch makes a new secret). Switch to the tab or
+window the panel is already open in. Do not open the printed address again: in the browser, the panel has already
+used it, and a second use stops the panel. With `--no-window`, if you have not opened the printed address yet, open
+it now. Otherwise start the panel again with `bytestts gui`.
 
-**`wrong launch code: open the address printed in the terminal`**
-The address is from an earlier launch, usually one that used the same `--port`. Open the address the terminal
-printed last.
+**`wrong launch code: switch to the panel's own tab or window, or start it again with bytestts gui`**
+The address is from an earlier launch, usually one that used the same `--port`, or it was changed. Switch to the tab
+or window the panel is already open in, or start it again with `bytestts gui`. With `--no-window`, open the address
+it printed, if you have not opened it yet.
 
 **`this launch address was already used, so the panel has stopped: start it again with bytestts gui`**
 The printed address works once, and it was opened a second time: in a second tab, or after the first tab was closed.
 The panel stopped, the terminal printed `bytestts gui: the launch address was used a second time, so the panel
-stopped; start it again with bytestts gui`, and `bytestts gui` exited with code 1. Run `bytestts gui` again and open
-its new address once. A reload of the first tab does not count as a second use.
+stopped; start it again with bytestts gui`, and `bytestts gui` exited with code 1. Run `bytestts gui` again: it
+opens the panel itself (with `--no-window`, open its new address once). A reload of the first tab does not count as
+a second use.
 
 **`That file is not UTF-8 text`**, **`… is larger than 1 MB`**
 Open text file reads UTF-8 text files of up to 1 MB. Save the file as UTF-8 in your editor, or split a longer text.
