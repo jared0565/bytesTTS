@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 """Saving: one-use tickets for paths the user chose in the Save dialog, file names, and the WAV checks.
 
-The page never sends a path. In the app window it asks the bridge for a ticket; the path the user picked stays
-here, under the ticket, and the export call names only the ticket (spec §6.7, §6.10). Audio that reaches the
+The page never sends a path. In the app window it asks `POST /api/save-dialog` for a ticket: the server opens the
+Save dialog itself, and the path the user picked stays here, under the ticket (design B, spec §6.7 as revised; the
+window has no bridge into Python). The export call names only the ticket (spec §6.10). Audio that reaches the
 server is read with the standard library's `wave` only, never with a decoder library.
 """
 
