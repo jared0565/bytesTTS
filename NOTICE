@@ -71,7 +71,7 @@ Commons Attribution 4.0 International
   Technology Research (CSTR), 2019. https://doi.org/10.7488/ds/2645
 
   BytesTTS does not redistribute the recordings, and is not affiliated
-  with or endorsed by the University of Edinburgh or its authors.
+  with or endorsed by the University of Edinburgh or the corpus's authors.
 
 Software used by the control panel ([gui] extra, Windows only):
   These packages are installed from PyPI when you install bytestts[gui] on
