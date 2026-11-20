@@ -8,7 +8,12 @@ bake_started = "2026-11-16"
 # CI's environment (ci.yml "Sync"), so a fresh checkout such as the mutation checker's has every test dependency.
 # The main .venv already matches it; a fresh one installs from uv's cache, or the network the first time.
 command = ["uv", "run", "--extra", "train", "--extra", "server", "--extra", "torch-cpu", "--extra", "gui", "pytest", "-q"]
-timeout_s = 300
+# The suite pinned to one core took 309.8 s on its own (2026-11-20) and shares that core with the other gate tools,
+# so both budgets are raised; every test still runs (ARAMID.md "Slow test suite?").
+timeout_s = 900
+
+[timeouts]
+pre_push = 900
 
 [fuzz]   # REPLACES aramid's defaults (ARAMID.md:165-168), so the twelve defaults are kept
 skip_name_patterns = [
