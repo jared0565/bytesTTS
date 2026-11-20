@@ -113,8 +113,8 @@ The featured ten have UK accents: English (Southern England, London, Manchester,
 and Welsh. The other 98 VCTK speakers work with `speaker=` or `--speaker` too: the voice has 108 of the corpus's
 110 speaker ids, between `p225` and `p376` (`p315` and `s5` are not in it), and some have American, Canadian,
 Irish, Indian, South African, Australian or New Zealand accents. One more speaker, `ED`, is a row of the original
-model that is not a VCTK speaker. `bytestts voices` does not list speaker names;
-`list_voices("en-gb")[0].speakers` does.
+model that is not a VCTK speaker. `bytestts speakers en-vctk` lists every speaker name, the featured ten first
+(see [`bytestts speakers`](#bytestts-speakers)); in Python, `list_voices("en-gb")[0].speakers` does.
 
 Each voice has its own licence and required attribution: see [Voices and licences](knowledge-base/voices-and-licences.md)
 and [docs/licences.md](licences.md).
@@ -349,6 +349,7 @@ bytestts --version
 bytestts say [TEXT | -] [--file PATH] (--voice ID | --voice-path DIR) -o PATH|-
              [--speaker NAME] [--speed X] [--device auto|cpu|cuda] [--threads N]
 bytestts voices [--language LANG]
+bytestts speakers (VOICE | --voice-path DIR)
 bytestts download (ID | --all)
 ```
 
@@ -383,6 +384,30 @@ Text is read as bytes and decoded as UTF-8, so non-ASCII text works whatever the
 
 Lists the catalogue voices, one per line, tab-separated: id, language, number of speakers, licence, download size.
 `--language en` keeps English voices only.
+
+### `bytestts speakers`
+
+Lists a voice's speakers, one per line, tab-separated: the name, then `featured` for a speaker on the voice's
+shortlist (empty otherwise). The featured speakers come first, in the shortlist's order, then the others in the
+voice's own order. This is the order of the control panel's Speaker list, so the first line is the speaker used
+when none is given.
+
+| Option | Meaning |
+|---|---|
+| `VOICE` | A catalogue voice. Its speakers come from the catalogue shipped with BytesTTS: nothing is downloaded. |
+| `--voice-path DIR` | A voice package directory, read after the usual integrity check. Give exactly one of the two. |
+
+A voice with a single speaker prints nothing. An unknown voice, or a package that fails its check, is exit 3.
+
+```
+bytestts speakers en-vctk
+p228	featured
+p232	featured
+...
+ED
+p225
+...
+```
 
 ### `bytestts download`
 

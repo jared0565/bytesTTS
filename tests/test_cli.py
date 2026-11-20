@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 import pytest
-from helpers import TEST_THREADS, TINY
+from helpers import TEST_THREADS, TINY, edit_json, repin
 
 import bytestts
 from bytestts import Audio, BytesTTS
@@ -232,6 +232,63 @@ def test_voices_counts_speakers(
     monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": _tiny(speakers=speakers)})
     assert main(["voices"]) == 0
     assert capsys.readouterr().out.split("\t")[2] == shown
+
+
+def test_speakers_lists_the_shortlist_first(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:  # the panel's order (server.py _voice_json), so line 1 is the default speaker
+    voice = _tiny(speakers=["a", "b", "c"], featured=["c", "a"])
+    monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": voice})
+    assert main(["speakers", "tiny"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["c\tfeatured", "a\tfeatured", "b\t"]
+
+
+def test_speakers_of_a_single_speaker_voice_prints_nothing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": _tiny(speakers=[])})
+    assert main(["speakers", "tiny"]) == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_speakers_unknown_voice_is_exit_3(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": _tiny()})
+    assert main(["speakers", "nope"]) == 3
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err.strip().splitlines() == ["bytestts: error: unknown voice nope"]
+
+
+def test_speakers_takes_one_voice(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": _tiny()})
+    assert main(["speakers"]) == 2
+    assert main(["speakers", "tiny", "--voice-path", str(tmp_path)]) == 2
+
+
+def test_speakers_reads_a_package(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    package = tmp_path / "pkg"
+    shutil.copytree(TINY, package)
+    (package / "speakers.json").write_bytes(b'{"a": 0, "b": 1}')
+    repin(package, "speakers.json")
+    edit_json(package / "voice.json", lambda m: m.update(speakers=["a", "b"], featured=["b"]))
+    assert main(["speakers", "--voice-path", str(package)]) == 0
+    assert capsys.readouterr().out.splitlines() == ["b\tfeatured", "a\t"]
+    (package / "speakers.json").write_bytes(b'{"a": 1, "b": 0}')  # edited after it was pinned
+    assert main(["speakers", "--voice-path", str(package)]) == 3
+    captured = capsys.readouterr()
+    assert captured.out == "" and len(captured.err.strip().splitlines()) == 1
+
+
+def test_speakers_needs_no_download(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def no(*args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("bytestts speakers must not download or load a voice")
+
+    monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": _tiny(speakers=["a"])})
+    monkeypatch.setattr("bytestts.cli.ensure_voice", no)
+    monkeypatch.setattr("bytestts.catalog.download.ensure_voice", no)
+    monkeypatch.setattr(BytesTTS, "load", no)
+    monkeypatch.setattr(BytesTTS, "load_path", no)
+    assert main(["speakers", "tiny"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["a\t"]
 
 
 def test_download_one_and_all(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

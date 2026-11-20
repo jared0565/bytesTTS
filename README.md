@@ -137,8 +137,8 @@ redistribute a voice. Third-party credits are in [NOTICE](NOTICE).
 | [`es-css10`](https://huggingface.co/fbmacagba/bytestts-es-css10) | Spanish | BSD-3-Clause | CC0-1.0 |
 | [`fr-css10`](https://huggingface.co/fbmacagba/bytestts-fr-css10) | French | BSD-3-Clause | CC0-1.0 |
 
-`en-vctk` has 109 speakers; without `speaker=` or `--speaker`, `p228` speaks. The
-[user guide](docs/user-guide.md#3-voices) lists the featured ones.
+`en-vctk` has 109 speakers; without `speaker=` or `--speaker`, `p228` speaks. `bytestts speakers en-vctk` lists
+them, the featured ones first, and the [user guide](docs/user-guide.md#3-voices) describes the featured ones.
 
 The Spanish and French voices cannot read digits: write numbers as words ("dos euros con cincuenta").
 

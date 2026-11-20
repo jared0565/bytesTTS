@@ -19,6 +19,7 @@ from bytestts import __version__
 from bytestts.api import BytesTTS
 from bytestts.catalog.catalog import list_voices
 from bytestts.catalog.download import ensure_voice
+from bytestts.catalog.manifest import verify_package
 from bytestts.engines.base import MAX_SPEED, MIN_SPEED
 from bytestts.errors import (
     ConsentMissing,
@@ -88,6 +89,12 @@ def _parser() -> argparse.ArgumentParser:
     voices.add_argument("--language", help="only voices for this language, such as en or de")
     voices.set_defaults(run=_voices)
 
+    speakers = commands.add_parser("speakers", help="list a voice's speakers, the featured ones first")
+    which = speakers.add_mutually_exclusive_group(required=True)
+    which.add_argument("voice", nargs="?", metavar="VOICE", help="a catalogue voice (nothing is downloaded)")
+    which.add_argument("--voice-path", type=Path, metavar="DIR", help="a voice package directory")
+    speakers.set_defaults(run=_speakers)
+
     download = commands.add_parser("download", help="download catalogue voices ahead of use")
     target = download.add_mutually_exclusive_group(required=True)
     target.add_argument("id", nargs="?", help="the voice to download")
@@ -144,6 +151,24 @@ def _voices(args: argparse.Namespace) -> int:
         count = max(1, len(v.speakers))  # an empty speaker table is one speaker
         speakers = f"{count} speaker" if count == 1 else f"{count} speakers"
         print(f"{v.id}\t{v.language}\t{speakers}\t{v.licence}\t{v.size_bytes / 1e6:.1f} MB")
+    return EXIT_OK
+
+
+def _speakers(args: argparse.Namespace) -> int:
+    """One speaker per line: the name, a tab, then "featured" for the shortlist. The shortlist comes first, in its
+    order, then the rest in the voice's order: the panel's order, so line 1 is the default speaker. A catalogue
+    voice is read from the shipped catalogue only, and a package from its verified voice.json: nothing is
+    downloaded and no model is loaded."""
+    if args.voice_path is not None:
+        manifest = verify_package(args.voice_path)
+        names, featured = manifest.speakers, manifest.featured
+    else:
+        info = next((v for v in list_voices() if v.id == args.voice), None)
+        if info is None:
+            raise VoiceNotFound(f"unknown voice {args.voice}")
+        names, featured = info.speakers, info.featured
+    for name in [*featured, *(s for s in names if s not in featured)]:
+        print(f"{name}\t{'featured' if name in featured else ''}")
     return EXIT_OK
 
 

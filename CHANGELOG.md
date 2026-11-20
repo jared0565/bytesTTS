@@ -49,6 +49,8 @@ All notable changes to BytesTTS are recorded here. The format follows
 - **Library:** `BytesTTS.load_path` and `BytesTTS.load`, `synthesize` and `stream` with `speed` and `speaker`,
   `Audio` with WAV output, `VoiceInfo` and `list_voices`, and an error hierarchy under `BytesTTSError`.
 - **Command line:** `bytestts say`, `bytestts voices` and `bytestts download`, with stable exit codes.
+  `bytestts speakers VOICE` (or `--voice-path DIR`) lists a voice's speakers, the featured ones first, without
+  downloading anything.
 - **Control panel:** `bytestts gui` opens a local panel to choose, download, repair and inspect voices, speak a
   text with speed, speaker, GPU and thread settings, play the result and save it as WAV. It opens its own window on
   Windows (WebView2, through pywebview) and the browser elsewhere, or with `--browser`; `--no-window`, `--port`
