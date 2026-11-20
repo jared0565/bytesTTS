@@ -11,7 +11,8 @@ All notable changes to BytesTTS are recorded here. The format follows
 - The control panel's server listens on `127.0.0.1` only and answers only its own page: it checks `Host`, `Origin`
   and `Sec-Fetch-Site`, requires a per-launch secret in the `Authorization` header (never a cookie), serves its
   page under a strict Content-Security-Policy, and saves through one-use tickets, so no file path passes through
-  the page. Requests are not logged. See [Security model](docs/knowledge-base/security-model.md#the-control-panel).
+  the page. The secret is never in an address: the printed address carries a one-time launch code that the page
+  swaps for the secret, and a second use of that address stops the panel. Requests are not logged. See [Security model](docs/knowledge-base/security-model.md#the-control-panel).
 - `load_path` reads each voice file once and uses exactly the bytes it verified. Before, a file was hashed and then
   opened again, so a file swapped on disk in between could reach ONNX Runtime unverified.
 - Catalogue URLs with userinfo (`https://a@b/...`) are refused.

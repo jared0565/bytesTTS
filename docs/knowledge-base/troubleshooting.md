@@ -144,7 +144,17 @@ comes from `--max-threads` or `BYTESTTS_GUI_MAX_THREADS`; without either it is t
 
 **`This panel's address has changed: open the address printed in the terminal.`**
 The page no longer holds the panel's current secret, usually because the panel was restarted (each launch makes a
-new one) or the address was opened without its `?s=...` part. Open the address the terminal printed last.
+new one) or the page was opened without its `?code=...` part. Open the address the terminal printed last.
+
+**`wrong launch code: open the address printed in the terminal`**
+The address is from an earlier launch, usually one that used the same `--port`. Open the address the terminal
+printed last.
+
+**`this launch address was already used, so the panel has stopped: start it again with bytestts gui`**
+The printed address works once, and it was opened a second time: in a second tab, or after the first tab was closed.
+The panel stopped, the terminal printed `bytestts gui: the launch address was used a second time, so the panel
+stopped; start it again with bytestts gui`, and `bytestts gui` exited with code 1. Run `bytestts gui` again and open
+its new address once. A reload of the first tab does not count as a second use.
 
 **`That file is not UTF-8 text`**, **`… is larger than 1 MB`**
 Open text file reads UTF-8 text files of up to 1 MB. Save the file as UTF-8 in your editor, or split a longer text.

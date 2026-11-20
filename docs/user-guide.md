@@ -265,11 +265,17 @@ bytestts gui [--port N] [--browser | --no-window] [--max-threads N]
 | `--no-window` | Only print the address; open it yourself in a browser. |
 | `--max-threads N` | The most CPU threads the panel may use (see [Threads](#threads)). |
 
-The address looks like `http://127.0.0.1:PORT/?s=...`. The part after `?s=` is a secret made for this launch only:
-the panel answers only requests that carry it. The page removes it from the address bar as soon as it loads.
+The address looks like `http://127.0.0.1:PORT/?code=...`. The part after `?code=` is a one-time launch code, not
+the panel's secret: as soon as the page loads, it swaps the code for this launch's secret and removes the code from
+the address bar. The terminal never shows the secret. Reloading the page keeps working.
+
+The printed address works once. Opening it a second time, for example after closing the browser tab, stops the
+panel: the page shows `this launch address was already used, so the panel has stopped: start it again with bytestts
+gui`, and the terminal prints `bytestts gui: the launch address was used a second time, so the panel stopped; start
+it again with bytestts gui`. Start it again with `bytestts gui` and use the new address.
 
 The panel keeps running until you close the window, press **Quit**, or press Ctrl+C in the terminal. In the browser,
-closing the tab does not stop it: use **Quit**.
+closing the tab does not stop it, and its address cannot be opened again: press **Quit** when you are done.
 
 ### The controls
 

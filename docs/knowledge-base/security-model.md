@@ -74,9 +74,13 @@ server on your own computer, so the panel checks each request before acting on i
   rebinding, where a web page's own hostname is made to point at `127.0.0.1`.
 - **Its own page only.** A request that carries an `Origin` header must carry the panel's own origin, and an API
   request whose `Sec-Fetch-Site` header is present must say `same-origin`. No CORS headers are sent.
-- **A secret on every API call, in a header only.** Each launch makes a new random secret and puts it in the address
-  it prints. The page reads it once, keeps it in `sessionStorage`, removes it from the address bar, and sends it on
-  every API request as `Authorization: Bearer`; the server compares it in constant time. No cookie is set or read: a
+- **A secret on every API call, in a header only.** Each launch makes a new random secret, and a separate one-time
+  launch code that goes in the address it prints; the secret is never in an address. The page sends the code once to
+  `POST /api/session`, the one API request that needs no secret (every other check here still applies to it), and
+  gets the secret back in the JSON reply. It keeps the secret in `sessionStorage`, so a reload works, removes the
+  code from the address bar, and sends the secret on every API request as `Authorization: Bearer`; the server
+  compares the code and the secret in constant time. A second use of the same code is refused and stops the panel,
+  so an address copied from browser history or another tab gives nothing but a stop. No cookie is set or read: a
   cookie would also be sent with requests from pages on other `127.0.0.1` ports. Recordings reach the player
   through `fetch` with the header, as blob URLs, never as a link an `<audio>` element could load without it.
 - **Strict input.** Request bodies are JSON with a size cap, and unknown fields are refused. The text, speed, voice,
@@ -93,8 +97,9 @@ server on your own computer, so the panel checks each request before acting on i
   `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. The page has no inline script or style and
   loads nothing from the internet. File names, error messages and voice attributions are inserted as text, never as
   HTML, and links in attributions are shown as text with a Copy button, never opened.
-- **Nothing private in the terminal.** Requests are not logged, so neither the secret nor your text appears in the
-  terminal. Error replies are one line, never a traceback.
+- **Nothing private in the terminal.** The terminal shows the one-time launch address, never the secret. Requests
+  are not logged, so neither the secret nor your text appears in the terminal. Error replies are one line, never a
+  traceback.
 - **One CPU task at a time.** A second task is refused (the page waits for the first instead), so the panel keeps at
   most the Threads setting busy, plus one download.
 
@@ -111,7 +116,8 @@ server on your own computer, so the panel checks each request before acting on i
   internally consistent, not endorsed. Catalogue voices are checked against the pins shipped inside BytesTTS.
 - **espeak-ng itself** processes your text. Keep it up to date from its official releases.
 - **The control panel guards against web pages, not against programs on your computer.** A program running under
-  your account can read the address the terminal printed, just as it can read your files. In the browser, an
-  extension allowed to read all sites can read the panel's page too.
+  your account can read the address the terminal printed, just as it can read your files. If it uses the address
+  before the page does, it gets the secret, but the page then finds the address already used and the panel stops,
+  so the theft is not silent. In the browser, an extension allowed to read all sites can read the panel's page too.
 - **Generated speech** can imitate the voice it was trained on. Fine-tuned voices therefore require a consent
   statement. Do not use voices to deceive people.
