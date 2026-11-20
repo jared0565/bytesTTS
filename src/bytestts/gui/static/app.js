@@ -368,6 +368,17 @@ function recordingName(voiceId) {
   return voiceId + " " + two(now.getHours()) + "-" + two(now.getMinutes()) + "-" + two(now.getSeconds());
 }
 
+// The Speak button. It asks first when the last recording is unsaved; speak() itself never asks, because
+// waitThenSpeak() calls it again after a busy wait, and a question there would come twice or after the choice.
+function onSpeakClick() {
+  if (state.unsaved) {
+    $("replace-dialog").returnValue = ""; // Esc closes without a choice and would otherwise keep the last one
+    $("replace-dialog").showModal();
+  } else {
+    speak();
+  }
+}
+
 async function speak() {
   const voice = currentVoice();
   if (!voice) {
@@ -577,7 +588,12 @@ function wire() {
     updateCounter();
     $("text").focus();
   });
-  $("speak").addEventListener("click", speak);
+  $("speak").addEventListener("click", onSpeakClick);
+  $("replace-dialog").addEventListener("close", () => {
+    if ($("replace-dialog").returnValue === "replace") {
+      speak();
+    }
+  });
   $("stop").addEventListener("click", stop);
   $("save").addEventListener("click", save);
   $("quit").addEventListener("click", quit);

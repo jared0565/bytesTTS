@@ -35,6 +35,11 @@ All notable changes to BytesTTS are recorded here. The format follows
 - The voice packager pins PyTorch's inter-op threads as well as its intra-op threads.
 - The package ships `py.typed`, so type checkers use its annotations.
 
+### Changed
+
+- In the control panel, pressing **Speak** while the last recording is unsaved asks `Replace the unsaved
+  recording?` first, with **Replace** and **Keep it**.
+
 ### Added
 
 - First public version of the code, 0.1.0 (pre-release, not yet on PyPI).

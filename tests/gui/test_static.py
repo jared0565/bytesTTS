@@ -102,3 +102,18 @@ def test_page_gets_the_secret_only_from_the_exchange() -> None:
 def test_page_explains_a_stopped_panel() -> None:
     """A fetch that cannot reach the server says so in the panel's words, not the browser's "Failed to fetch"."""
     assert '"The panel has stopped: start it again with bytestts gui."' in read("app.js")
+
+
+def test_replace_question_exists() -> None:
+    """A new Speak over an unsaved recording asks first; the question lives in the Speak button's handler."""
+    html = read("index.html")
+    start = html.index('<dialog id="replace-dialog"')
+    dialog = html[start : html.index("</dialog>", start)]
+    assert "Replace the unsaved recording?" in dialog
+    page = Page()
+    page.feed(dialog + "</dialog>")
+    assert sorted(c["text"].strip() for c in page.controls if c["tag"] == "button") == ["Keep it", "Replace"]
+    script = read("app.js")
+    assert '$("speak").addEventListener("click", onSpeakClick)' in script
+    assert '$("speak").addEventListener("click", speak)' not in script
+    assert '$("replace-dialog").returnValue = ""' in script  # Esc keeps the last choice: clear it before asking
