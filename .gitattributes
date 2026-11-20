@@ -2,3 +2,5 @@
 tests/fixtures/** -text
 # A pending catalogue entry is a real package's voice.json, byte for byte (its sha256 is the package's record).
 tools/convert/voices/** -text
+# Source data is pinned by sha256 (tools/convert/voice_details.py): no end-of-line conversion anywhere.
+tools/convert/data/** -text

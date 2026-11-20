@@ -1,0 +1,680 @@
+{
+  "sentences": {
+    "en": "Hello. This is how I sound reading your text aloud.",
+    "es": "Hola. Así sueno al leer tu texto en voz alta.",
+    "fr": "Bonjour. Voici ma voix quand je lis votre texte à haute voix."
+  },
+  "voices": {
+    "en-ljspeech": {
+      "language_name": "English",
+      "dataset": "LJSpeech",
+      "reader": {
+        "gender": "Female"
+      }
+    },
+    "es-css10": {
+      "language_name": "Spanish",
+      "dataset": "CSS10",
+      "speakers": {
+        "tux": {}
+      }
+    },
+    "fr-css10": {
+      "language_name": "French",
+      "dataset": "CSS10",
+      "speakers": {
+        "gilles": {}
+      }
+    },
+    "en-vctk": {
+      "language_name": "English",
+      "dataset": "VCTK",
+      "speakers": {
+        "ED": {
+          "note": "not in the VCTK speaker table"
+        },
+        "p225": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p226": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Surrey"
+        },
+        "p227": {
+          "gender": "Male",
+          "age": 38,
+          "accent": "English (England)",
+          "region": "Cumbria"
+        },
+        "p228": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p229": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p230": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Stockton-on-tees"
+        },
+        "p231": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p232": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p233": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Staffordshire"
+        },
+        "p234": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "West Dumfries"
+        },
+        "p236": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Manchester"
+        },
+        "p237": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "Fife"
+        },
+        "p238": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Northern Irish",
+          "region": "Belfast"
+        },
+        "p239": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "SW England"
+        },
+        "p240": {
+          "gender": "Female",
+          "age": 21,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p241": {
+          "gender": "Male",
+          "age": 21,
+          "accent": "Scottish",
+          "region": "Perth"
+        },
+        "p243": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "London"
+        },
+        "p244": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Manchester"
+        },
+        "p245": {
+          "gender": "Male",
+          "age": 25,
+          "accent": "Irish",
+          "region": "Dublin"
+        },
+        "p246": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "Selkirk"
+        },
+        "p247": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "Argyll"
+        },
+        "p248": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Indian"
+        },
+        "p249": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "Aberdeen"
+        },
+        "p250": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "SE England"
+        },
+        "p251": {
+          "gender": "Male",
+          "age": 26,
+          "accent": "Indian"
+        },
+        "p252": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "Edinburgh"
+        },
+        "p253": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Welsh",
+          "region": "Cardiff"
+        },
+        "p254": {
+          "gender": "Male",
+          "age": 21,
+          "accent": "English (England)",
+          "region": "Surrey"
+        },
+        "p255": {
+          "gender": "Male",
+          "age": 19,
+          "accent": "Scottish",
+          "region": "Galloway"
+        },
+        "p256": {
+          "gender": "Male",
+          "age": 24,
+          "accent": "English (England)",
+          "region": "Birmingham"
+        },
+        "p257": {
+          "gender": "Female",
+          "age": 24,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p258": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p259": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Nottingham"
+        },
+        "p260": {
+          "gender": "Male",
+          "age": 21,
+          "accent": "Scottish",
+          "region": "Orkney"
+        },
+        "p261": {
+          "gender": "Female",
+          "age": 26,
+          "accent": "Northern Irish",
+          "region": "Belfast"
+        },
+        "p262": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Scottish",
+          "region": "Edinburgh"
+        },
+        "p263": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Scottish",
+          "region": "Aberdeen"
+        },
+        "p264": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Scottish",
+          "region": "West Lothian"
+        },
+        "p265": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Scottish",
+          "region": "Ross"
+        },
+        "p266": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Irish",
+          "region": "Athlone"
+        },
+        "p267": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Yorkshire"
+        },
+        "p268": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Southern England"
+        },
+        "p269": {
+          "gender": "Female",
+          "age": 20,
+          "accent": "English (England)",
+          "region": "Newcastle"
+        },
+        "p270": {
+          "gender": "Male",
+          "age": 21,
+          "accent": "English (England)",
+          "region": "Yorkshire"
+        },
+        "p271": {
+          "gender": "Male",
+          "age": 19,
+          "accent": "Scottish",
+          "region": "Fife"
+        },
+        "p272": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "Scottish",
+          "region": "Edinburgh"
+        },
+        "p273": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Suffolk"
+        },
+        "p274": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Essex"
+        },
+        "p275": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "Scottish",
+          "region": "Midlothian"
+        },
+        "p276": {
+          "gender": "Female",
+          "age": 24,
+          "accent": "English (England)",
+          "region": "Oxford"
+        },
+        "p277": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "NE England"
+        },
+        "p278": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "English (England)",
+          "region": "Cheshire"
+        },
+        "p279": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Leicester"
+        },
+        "p280": {
+          "gender": "Female",
+          "age": 25,
+          "region": "France"
+        },
+        "p281": {
+          "gender": "Male",
+          "age": 29,
+          "accent": "Scottish",
+          "region": "Edinburgh"
+        },
+        "p282": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Newcastle"
+        },
+        "p283": {
+          "gender": "Female",
+          "age": 24,
+          "accent": "Irish",
+          "region": "Cork"
+        },
+        "p284": {
+          "gender": "Male",
+          "age": 20,
+          "accent": "Scottish",
+          "region": "Fife"
+        },
+        "p285": {
+          "gender": "Male",
+          "age": 21,
+          "accent": "Scottish",
+          "region": "Edinburgh"
+        },
+        "p286": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "Newcastle"
+        },
+        "p287": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "English (England)",
+          "region": "York"
+        },
+        "p288": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Irish",
+          "region": "Dublin"
+        },
+        "p292": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "Northern Irish",
+          "region": "Belfast"
+        },
+        "p293": {
+          "gender": "Female",
+          "age": 22,
+          "accent": "Northern Irish",
+          "region": "Belfast"
+        },
+        "p294": {
+          "gender": "Female",
+          "age": 33,
+          "accent": "American",
+          "region": "San Francisco"
+        },
+        "p295": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Irish",
+          "region": "Dublin"
+        },
+        "p297": {
+          "gender": "Female",
+          "age": 20,
+          "accent": "American",
+          "region": "New York"
+        },
+        "p298": {
+          "gender": "Male",
+          "age": 19,
+          "accent": "Irish",
+          "region": "Tipperary"
+        },
+        "p299": {
+          "gender": "Female",
+          "age": 25,
+          "accent": "American",
+          "region": "California"
+        },
+        "p300": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "American",
+          "region": "California"
+        },
+        "p301": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "American",
+          "region": "North Carolina"
+        },
+        "p302": {
+          "gender": "Male",
+          "age": 20,
+          "accent": "Canadian",
+          "region": "Montreal"
+        },
+        "p303": {
+          "gender": "Female",
+          "age": 24,
+          "accent": "Canadian",
+          "region": "Toronto"
+        },
+        "p304": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Northern Irish",
+          "region": "Belfast"
+        },
+        "p305": {
+          "gender": "Female",
+          "age": 19,
+          "accent": "American",
+          "region": "Philadelphia"
+        },
+        "p306": {
+          "gender": "Female",
+          "age": 21,
+          "accent": "American",
+          "region": "New York"
+        },
+        "p307": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Canadian",
+          "region": "Ontario"
+        },
+        "p308": {
+          "gender": "Female",
+          "age": 18,
+          "accent": "American",
+          "region": "Alabama"
+        },
+        "p310": {
+          "gender": "Female",
+          "age": 21,
+          "accent": "American",
+          "region": "Tennessee"
+        },
+        "p311": {
+          "gender": "Male",
+          "age": 21,
+          "accent": "American",
+          "region": "Iowa"
+        },
+        "p312": {
+          "gender": "Female",
+          "age": 19,
+          "accent": "Canadian",
+          "region": "Hamilton"
+        },
+        "p313": {
+          "gender": "Female",
+          "age": 24,
+          "accent": "Irish",
+          "region": "County Down"
+        },
+        "p314": {
+          "gender": "Female",
+          "age": 26,
+          "accent": "South African",
+          "region": "Cape Town"
+        },
+        "p316": {
+          "gender": "Male",
+          "age": 20,
+          "accent": "Canadian",
+          "region": "Alberta"
+        },
+        "p317": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "Canadian",
+          "region": "Hamilton"
+        },
+        "p318": {
+          "gender": "Female",
+          "age": 32,
+          "accent": "American",
+          "region": "Napa"
+        },
+        "p323": {
+          "gender": "Female",
+          "age": 19,
+          "accent": "South African",
+          "region": "Pretoria"
+        },
+        "p326": {
+          "gender": "Male",
+          "age": 26,
+          "accent": "Australian",
+          "region": "English Sydney"
+        },
+        "p329": {
+          "gender": "Female",
+          "age": 23,
+          "accent": "American"
+        },
+        "p330": {
+          "gender": "Female",
+          "age": 26,
+          "accent": "American"
+        },
+        "p333": {
+          "gender": "Female",
+          "age": 19,
+          "accent": "American",
+          "region": "Indiana"
+        },
+        "p334": {
+          "gender": "Male",
+          "age": 18,
+          "accent": "American",
+          "region": "Chicago"
+        },
+        "p335": {
+          "gender": "Female",
+          "age": 25,
+          "accent": "New Zealand",
+          "region": "English"
+        },
+        "p336": {
+          "gender": "Female",
+          "age": 18,
+          "accent": "South African",
+          "region": "Johannesburg"
+        },
+        "p339": {
+          "gender": "Female",
+          "age": 21,
+          "accent": "American",
+          "region": "Pennsylvania"
+        },
+        "p340": {
+          "gender": "Female",
+          "age": 18,
+          "accent": "Irish",
+          "region": "Dublin"
+        },
+        "p341": {
+          "gender": "Female",
+          "age": 26,
+          "accent": "American",
+          "region": "Ohio"
+        },
+        "p343": {
+          "gender": "Female",
+          "age": 27,
+          "accent": "Canadian",
+          "region": "Alberta"
+        },
+        "p345": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "American",
+          "region": "Florida"
+        },
+        "p347": {
+          "gender": "Male",
+          "age": 26,
+          "accent": "South African",
+          "region": "Johannesburg"
+        },
+        "p351": {
+          "gender": "Female",
+          "age": 21,
+          "accent": "Northern Irish",
+          "region": "Derry"
+        },
+        "p360": {
+          "gender": "Male",
+          "age": 19,
+          "accent": "American",
+          "region": "New Jersey"
+        },
+        "p361": {
+          "gender": "Female",
+          "age": 19,
+          "accent": "American",
+          "region": "New Jersey"
+        },
+        "p362": {
+          "gender": "Female",
+          "age": 29,
+          "accent": "American"
+        },
+        "p363": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Canadian",
+          "region": "Toronto"
+        },
+        "p364": {
+          "gender": "Male",
+          "age": 23,
+          "accent": "Irish",
+          "region": "Donegal"
+        },
+        "p374": {
+          "gender": "Male",
+          "age": 28,
+          "accent": "Australian",
+          "region": "English"
+        },
+        "p376": {
+          "gender": "Male",
+          "age": 22,
+          "accent": "Indian"
+        }
+      }
+    }
+  }
+}

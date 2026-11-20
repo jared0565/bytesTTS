@@ -26,6 +26,13 @@ def test_package_ships_its_type_information() -> None:  # PEP 561: without py.ty
     assert resources.files("bytestts").joinpath("py.typed").is_file()
 
 
+def test_package_ships_voice_details() -> None:  # the panel's labels and samples come from it
+    from bytestts.catalog.details import load_details
+
+    assert resources.files("bytestts.catalog").joinpath("details.json").is_file()
+    assert load_details().voice("en-vctk") is not None
+
+
 def test_errors_hierarchy() -> None:
     for e in (VoiceNotFound, IntegrityError, FrontendUnavailable, ConsentMissing, NotSupported, NoSpeakableText):
         assert issubclass(e, BytesTTSError)

@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: MPL-2.0
 import copy
 import json
+from collections import Counter
 from collections.abc import Callable
 from typing import Any
 
 import pytest
 
-from bytestts.catalog.details import Details, Person, VoiceDetails, parse_details, voice_label
+from bytestts.catalog.catalog import load_catalog
+from bytestts.catalog.details import Details, Person, VoiceDetails, load_details, parse_details, voice_label
 from bytestts.catalog.manifest import FileEntry
 from bytestts.errors import IntegrityError
 
@@ -264,3 +266,54 @@ def test_sentences_and_reader_label() -> None:
     assert lj.reader_label() == "LJSpeech"
     assert VoiceDetails("English", "LJSpeech", None, Person("Female")).reader_label() == "LJSpeech · Female"
     assert VoiceDetails("Spanish", "CSS10", {"tux": Person()}, None).reader_label() is None
+
+
+# --- the shipped details.json (§7.1: things that must never break) ---------------------------------------------
+
+
+def test_details_cover_every_catalogue_voice() -> None:
+    assert set(load_details().voices) == set(load_catalog())
+
+
+def test_speaker_tables_are_described_exactly() -> None:  # es-css10's and fr-css10's one-speaker tables included
+    details = load_details()
+    for voice_id, m in load_catalog().items():
+        v = details.voice(voice_id)
+        assert v is not None
+        if m.speakers:
+            assert v.speakers is not None and list(v.speakers) == m.speakers, voice_id
+
+
+def test_reader_only_for_empty_tables() -> None:  # today only en-ljspeech
+    details = load_details()
+    readers = {voice_id for voice_id, v in details.voices.items() if v.reader is not None}
+    assert readers == {voice_id for voice_id, m in load_catalog().items() if not m.speakers} == {"en-ljspeech"}
+
+
+def test_every_language_has_a_sentence() -> None:
+    details = load_details()
+    assert all(details.sentence(m.language) for m in load_catalog().values())
+
+
+def test_samples_live_in_their_own_voice_repo() -> None:  # vacuous until the clips are pinned; it guards the pins
+    for voice_id, v in load_details().voices.items():
+        people = [*(v.speakers or {}).values(), *([v.reader] if v.reader else [])]
+        for p in people:
+            if p.sample is not None:
+                assert p.sample.url is not None
+                assert p.sample.url.startswith(f"https://huggingface.co/fbmacagba/bytestts-{voice_id}/"), voice_id
+
+
+def test_vctk_counts() -> None:  # the design's §6.2 table, counted from the shipped file
+    v = load_details().voice("en-vctk")
+    assert v is not None and v.speakers is not None
+    people = list(v.speakers.values())
+    assert Counter(p.gender for p in people) == {"Female": 62, "Male": 46, None: 1}
+    assert Counter(p.accent for p in people) == {
+        "English (England)": 33, "American": 21, "Scottish": 19, "Irish": 9, "Canadian": 8, "Northern Irish": 6,
+        "South African": 4, "Indian": 3, "Australian": 2, "New Zealand": 1, "Welsh": 1, None: 2,
+    }  # fmt: skip
+    assert sorted(name for name, p in v.speakers.items() if p.accent is None) == ["ED", "p280"]
+    assert voice_label("en-vctk", load_catalog()["en-vctk"].speakers, v) == "English · VCTK · 109 speakers, 11 accents"
+    assert v.speakers["ED"] == Person(note="not in the VCTK speaker table")
+    assert v.speakers["p228"].label("p228") == "p228 · Female, 22 · English (England), Southern England"
