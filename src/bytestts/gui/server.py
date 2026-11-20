@@ -91,7 +91,8 @@ class UnsavedBody(BaseModel):
 
 
 def _error(status: int, message: str) -> JSONResponse:
-    return JSONResponse({"error": message}, status_code=status)
+    """Every error body is one line, also when the message quotes the request (a voice id, an extension)."""
+    return JSONResponse({"error": one_line(Exception(message))}, status_code=status)
 
 
 def _voice_json(v: VoiceInfo, state: str) -> dict[str, Any]:

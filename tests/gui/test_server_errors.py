@@ -10,7 +10,7 @@ import wave
 from pathlib import Path
 
 import pytest
-from gui_helpers import CODE, PORT, SECRET
+from gui_helpers import CODE, PORT, SECRET, install, tiny_manifest, use_catalogue
 from starlette.testclient import TestClient
 
 from bytestts.catalog import catalog
@@ -78,3 +78,21 @@ def test_unexpected_errors_stay_on_the_terminal(
     assert "private" not in r.text
     err = capsys.readouterr().err.strip().splitlines()
     assert len(err) == 1 and "GET /api/voices" in err[0] and "private/catalog.json" in err[0]
+
+
+def test_errors_built_from_input_are_one_line(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    multi = tiny_manifest(id="multi", speakers=["p1"])
+    use_catalogue(monkeypatch, tmp_path, {"multi": multi})
+    install(multi)
+    client = client_for(Session(SaveTickets()))
+    job = {"text": "One.", "voice": "multi", "speaker": None, "speed": 1.0, "device": "cpu", "threads": 1}
+    replies = [
+        client.post("/api/jobs", json={**job, "voice": "a\nb"}),
+        client.post("/api/jobs", json={**job, "speaker": "a\nb"}),
+        client.post("/api/save-dialog", json={"name": "n", "extension": "x\ny"}),
+        client.post("/api/export?format=a%0Ab", content=wav_bytes()),
+    ]
+    for r in replies:
+        assert r.status_code == 400, r.text
+        error = r.json()["error"]
+        assert "\n" not in error and ("a b" in error or "x y" in error), error
