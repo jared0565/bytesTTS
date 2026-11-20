@@ -23,23 +23,59 @@ const state = {
   closed: false,
 };
 
-// ---- The secret (spec §6.2 rule 3): read once from the address, kept in sessionStorage, removed from view.
+// ---- The secret (spec §6.2 rule 3, open item 1): the address carries a one-time launch code, never the secret.
+// The page swaps the code once at POST /api/session for the secret, keeps it here and in sessionStorage (so a
+// reload still works), and removes the code from view. Using the same address a second time stops the panel.
 
-function takeSecret() {
-  const s = new URLSearchParams(location.search).get("s");
-  if (s) {
-    try {
-      sessionStorage.setItem(SECRET_KEY, s);
-    } catch (e) {
-      // no sessionStorage: every call will be refused with the address message
-    }
-  }
+const ADDRESS_CHANGED = "This panel's address has changed: open the address printed in the terminal.";
+let heldSecret = "";
+
+async function takeSecret() {
+  const code = new URLSearchParams(location.search).get("code");
   if (location.search) {
     history.replaceState(null, "", "/");
   }
+  if (!code) {
+    return; // a reload, or Back and Forward: the secret is already in sessionStorage
+  }
+  if (document.prerendering) {
+    // a browser preparing the page ahead of a visit must not use up the code
+    await new Promise((resolve) => document.addEventListener("prerenderingchange", resolve, { once: true }));
+  }
+  let response;
+  try {
+    response = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+      cache: "no-store",
+    });
+  } catch (e) {
+    lockOut();
+    return;
+  }
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (e) {
+    // not JSON: the default message
+  }
+  if (response.ok && data && typeof data.secret === "string") {
+    heldSecret = data.secret;
+    try {
+      sessionStorage.setItem(SECRET_KEY, data.secret);
+    } catch (e) {
+      // no sessionStorage: this page works, a reload will show the address message
+    }
+    return;
+  }
+  lockOut(data && typeof data.error === "string" ? data.error : ADDRESS_CHANGED);
 }
 
 function secret() {
+  if (heldSecret) {
+    return heldSecret;
+  }
   try {
     return sessionStorage.getItem(SECRET_KEY) || "";
   } catch (e) {
@@ -64,7 +100,7 @@ async function api(path, options = {}) {
   const response = await fetch("/api" + path, { method: options.method || "GET", headers, body, cache: "no-store" });
   if (response.status === 401) {
     lockOut();
-    throw new ApiError(401, "This panel's address has changed: open the address printed in the terminal.");
+    throw new ApiError(401, ADDRESS_CHANGED);
   }
   if (!response.ok) {
     let message = "The panel answered " + response.status;
@@ -81,9 +117,9 @@ async function api(path, options = {}) {
   return options.raw ? response : response.json();
 }
 
-function lockOut() {
+function lockOut(message = ADDRESS_CHANGED) {
   state.locked = true;
-  setStatus("This panel's address has changed: open the address printed in the terminal.", "error");
+  setStatus(message, "error");
   for (const control of document.querySelectorAll("button, input, select, textarea")) {
     control.disabled = true;
   }
@@ -565,7 +601,10 @@ function wire() {
 }
 
 async function start() {
-  takeSecret();
+  await takeSecret();
+  if (state.locked) {
+    return; // the exchange was refused: its message is showing and every control is disabled
+  }
   wire();
   try {
     state.status = await api("/status");

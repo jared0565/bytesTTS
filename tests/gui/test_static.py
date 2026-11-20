@@ -91,3 +91,9 @@ def test_page_uses_no_window_bridge() -> None:
     script = read("app.js")
     assert "pywebview" not in script
     assert "/save-dialog" in script and "/unsaved" in script
+
+
+def test_page_gets_the_secret_only_from_the_exchange() -> None:
+    script = read("app.js")
+    assert '"/api/session"' in script and 'get("code")' in script
+    assert 'get("s")' not in script

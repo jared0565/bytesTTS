@@ -21,6 +21,7 @@ from bytestts.catalog.manifest import FileEntry, VoiceManifest, safe_name
 
 PORT = 8765
 SECRET = "s" * 43  # the length of secrets.token_urlsafe(32)
+CODE = "c" * 43  # the launch code: the same length, never the secret
 TINY_FILES = ("config.json", "model.onnx")
 TINY_SIZE = 599 + 1_112_670  # config.json + model.onnx, from the fixture's voice.json
 

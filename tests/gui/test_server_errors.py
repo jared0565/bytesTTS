@@ -10,11 +10,12 @@ import wave
 from pathlib import Path
 
 import pytest
-from gui_helpers import PORT, SECRET
+from gui_helpers import CODE, PORT, SECRET
 from starlette.testclient import TestClient
 
 from bytestts.catalog import catalog
 from bytestts.gui import saving
+from bytestts.gui.protection import LaunchCode
 from bytestts.gui.saving import SaveTickets
 from bytestts.gui.server import create_app
 from bytestts.gui.session import Session
@@ -33,7 +34,7 @@ def wav_bytes() -> bytes:
 
 
 def client_for(session: Session) -> TestClient:
-    app = create_app(port=PORT, secret=SECRET, max_threads=2, session=session)
+    app = create_app(port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=session)
     return TestClient(
         app,
         base_url=f"http://127.0.0.1:{PORT}",

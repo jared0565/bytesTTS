@@ -6,6 +6,7 @@ from pathlib import Path
 import onnxruntime
 import pytest
 from gui_helpers import (
+    CODE,
     PORT,
     SECRET,
     TINY_SIZE,
@@ -19,7 +20,7 @@ from gui_helpers import (
 from starlette.testclient import TestClient
 
 from bytestts.errors import FrontendUnavailable
-from bytestts.gui.protection import CSP
+from bytestts.gui.protection import CSP, JSON_BODY_CAP, LaunchCode
 from bytestts.gui.saving import SaveTickets
 from bytestts.gui.server import create_app
 from bytestts.gui.session import Session
@@ -27,7 +28,52 @@ from bytestts.text.phonemizers import espeak
 
 
 def panel(max_threads: int = 2) -> TestClient:
-    return api_client(create_app(port=PORT, secret=SECRET, max_threads=max_threads, session=Session(SaveTickets())))
+    session = Session(SaveTickets())
+    app = create_app(port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=max_threads, session=session)
+    return api_client(app)
+
+
+def exchanging_panel() -> tuple[TestClient, Session]:
+    """A client with no secret, as the page is before the exchange."""
+    session = Session(SaveTickets())
+    app = create_app(port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=session)
+    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}"), session
+
+
+WRONG_CODE = "wrong launch code: open the address printed in the terminal"
+REUSED_CODE = "this launch address was already used, so the panel has stopped: start it again with bytestts gui"
+STOP_REASON = "the launch address was used a second time, so the panel stopped; start it again with bytestts gui"
+
+
+def test_exchange_gives_the_secret_once() -> None:
+    client, session = exchanging_panel()
+    first = client.post("/api/session", json={"code": CODE})
+    assert first.status_code == 200 and first.json() == {"secret": SECRET}
+    assert first.headers["cache-control"] == "no-store"
+    assert not session.quit.is_set() and session.stop_reason is None
+    again = client.post("/api/session", json={"code": CODE})
+    assert again.status_code == 403 and again.json() == {"error": REUSED_CODE}
+    assert session.stop_reason == STOP_REASON
+    assert session.quit.is_set()  # the stop runs after the reply is sent
+
+
+def test_wrong_or_malformed_code_never_stops_the_panel() -> None:
+    client, session = exchanging_panel()
+    wrong = client.post("/api/session", json={"code": "x"})
+    assert wrong.status_code == 401 and wrong.json() == {"error": WRONG_CODE}
+    for body in ({"code": 1}, {}, {"code": ""}, {"code": "c" * 44}, {"code": CODE, "x": 1}, [CODE], "x"):
+        r = client.post("/api/session", json=body)
+        assert r.status_code == 400, body
+        assert "\n" not in r.json()["error"]
+    r = client.post("/api/session", content=b"not json", headers={"Content-Type": "application/json"})
+    assert r.status_code == 400
+    big = b'{"code": "' + b"c" * JSON_BODY_CAP + b'"}'
+    r = client.post("/api/session", content=big, headers={"Content-Type": "application/json"})
+    assert r.status_code == 413
+    assert client.get("/api/session").status_code == 401  # only the POST is let through without the secret
+    assert not session.quit.is_set() and session.stop_reason is None
+    ok = client.post("/api/session", json={"code": CODE})
+    assert ok.status_code == 200 and ok.json() == {"secret": SECRET}
 
 
 def test_static_files_and_headers() -> None:

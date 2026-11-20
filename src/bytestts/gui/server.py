@@ -18,7 +18,7 @@ import onnxruntime as ort
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -31,7 +31,7 @@ from bytestts.gui import jobs as jobs_module
 from bytestts.gui import saving
 from bytestts.gui.downloads import Downloads, DownloadStatus
 from bytestts.gui.jobs import Loader, SpeakRequest, SpeechJobs
-from bytestts.gui.protection import Guard
+from bytestts.gui.protection import EXCHANGE_PATH, Guard, LaunchCode
 from bytestts.gui.saving import TicketError
 from bytestts.gui.session import Busy, CpuSlot, Session, one_line
 from bytestts.text.phonemizers import espeak
@@ -40,6 +40,10 @@ TEXT_LIMIT = 5000  # code points
 MIN_SPEED, MAX_SPEED = 0.5, 2.0
 FORMATS = ("wav",)  # stage 1; stage 2 adds what soundfile can write
 QUALITIES = ("standard", "high")
+LAUNCH_CODE_LENGTH = 43  # secrets.token_urlsafe(32), as launch.py makes it
+WRONG_CODE = "wrong launch code: open the address printed in the terminal"
+REUSED_CODE = "this launch address was already used, so the panel has stopped: start it again with bytestts gui"
+REUSE_STOP_REASON = "the launch address was used a second time, so the panel stopped; start it again with bytestts gui"
 _STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -72,6 +76,14 @@ class SaveDialogBody(BaseModel):
     extension: str
 
 
+class SessionBody(BaseModel):
+    """The page's first request: the launch code from its address, swapped once for the secret."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    code: str = Field(min_length=1, max_length=LAUNCH_CODE_LENGTH)
+
+
 class UnsavedBody(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -100,7 +112,15 @@ def _download_json(s: DownloadStatus) -> dict[str, Any]:
     return {"voice": s.voice, "state": s.state, "done": s.done, "total": s.total, "error": s.error}
 
 
-def create_app(*, port: int, secret: str, max_threads: int, session: Session, loader: Loader | None = None) -> FastAPI:
+def create_app(
+    *,
+    port: int,
+    secret: str,
+    launch_code: LaunchCode,
+    max_threads: int,
+    session: Session,
+    loader: Loader | None = None,
+) -> FastAPI:
     """The panel's app. `loader=None` means jobs.load_voice, looked up at call time (tests patch it)."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(Guard, port=port, secret=secret, raw_body_paths=frozenset({"/api/export"}))
@@ -141,6 +161,19 @@ def create_app(*, port: int, secret: str, max_threads: int, session: Session, lo
             return Response(body, media_type=media_type)
 
         app.add_api_route(path, page, methods=["GET"], include_in_schema=False)
+
+    @app.post(EXCHANGE_PATH)
+    def exchange(body: SessionBody) -> Response:
+        """The one request without the secret (spec §6.2 rule 3 as revised, open item 1): the first right code gets
+        the secret; the same code again means the address was reused, so the panel stops once this reply is sent."""
+        outcome = launch_code.redeem(body.code)
+        if outcome == "ok":
+            return JSONResponse({"secret": secret})
+        if outcome == "wrong":
+            return _error(401, WRONG_CODE)
+        return JSONResponse(
+            {"error": REUSED_CODE}, status_code=403, background=BackgroundTask(session.stop, REUSE_STOP_REASON)
+        )
 
     @app.get("/api/status")
     def status() -> dict[str, Any]:

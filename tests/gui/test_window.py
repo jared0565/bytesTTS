@@ -31,7 +31,7 @@ from bytestts.gui.window import (
 )
 from bytestts.gui.window import open_window as real_open_window  # bound before conftest's guard replaces it
 
-URL = "http://127.0.0.1:8765/?s=" + "s" * 43
+URL = "http://127.0.0.1:8765/?code=" + "c" * 43
 
 
 class FakeEvent:

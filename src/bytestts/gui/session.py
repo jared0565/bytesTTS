@@ -57,6 +57,12 @@ class Session:
     quit: threading.Event = field(default_factory=threading.Event)
     close_window: Callable[[], None] | None = None
     ask_save_path: AskSavePath | None = None
+    stop_reason: str | None = None  # set by stop(): the launcher prints it and exits 1
+
+    def stop(self, reason: str) -> None:
+        """Quit because something is wrong (the launch address was used twice): the launcher says why."""
+        self.stop_reason = reason
+        self.request_quit()
 
     def request_quit(self) -> None:
         """Quit: the launcher stops the server when `quit` is set; an open window closes without asking."""

@@ -20,6 +20,7 @@ from typing import Literal
 import uvicorn
 
 from bytestts.gui import window
+from bytestts.gui.protection import LaunchCode
 from bytestts.gui.saving import SaveTickets
 from bytestts.gui.server import create_app
 from bytestts.gui.session import Session
@@ -80,12 +81,18 @@ def _listen(port: int) -> socket.socket:
 
 
 def run_panel(options: LaunchOptions, *, on_ready: Callable[[str], None] = announce) -> int:
-    """Serve the panel until the session quits; returns the exit code (0)."""
+    """Serve the panel until the session quits; returns the exit code: 0, or 1 after a stop with a reason.
+
+    The printed address carries a one-time launch code, never the secret: the page swaps the code for the secret
+    once (POST /api/session), and a second use of the same address stops the panel."""
     sock = _listen(options.port)
     port = sock.getsockname()[1]
     secret = secrets.token_urlsafe(32)
+    code = secrets.token_urlsafe(32)
     session = Session(SaveTickets())
-    app = create_app(port=port, secret=secret, max_threads=options.max_threads, session=session)
+    app = create_app(
+        port=port, secret=secret, launch_code=LaunchCode(code), max_threads=options.max_threads, session=session
+    )
     server = uvicorn.Server(uvicorn.Config(app, access_log=False, log_level="warning", lifespan="off"))
     thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True, name="bytestts-panel")
     thread.start()
@@ -95,7 +102,7 @@ def run_panel(options: LaunchOptions, *, on_ready: Callable[[str], None] = annou
             if not thread.is_alive() or time.monotonic() >= deadline:
                 raise OSError(f"the panel's server did not start on 127.0.0.1:{port}")
             time.sleep(0.02)
-        url = f"http://127.0.0.1:{port}/?s={secret}"
+        url = f"http://127.0.0.1:{port}/?code={code}"
         on_ready(url)
         mode = resolve_mode(options.mode, sys.platform)
         if mode == "window":
@@ -113,4 +120,7 @@ def run_panel(options: LaunchOptions, *, on_ready: Callable[[str], None] = annou
         server.should_exit = True
         thread.join(_STOP_TIMEOUT_S)
         sock.close()
+    if session.stop_reason is not None:
+        print(f"bytestts gui: {session.stop_reason}", file=sys.stderr)
+        return 1
     return 0

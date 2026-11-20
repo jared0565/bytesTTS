@@ -8,16 +8,19 @@ ticket and the chosen file's name.
 import threading
 from pathlib import Path
 
-from gui_helpers import PORT, SECRET, api_client, wait_until
+from gui_helpers import CODE, PORT, SECRET, api_client, wait_until
 from starlette.testclient import TestClient
 
+from bytestts.gui.protection import LaunchCode
 from bytestts.gui.saving import SaveTickets
 from bytestts.gui.server import create_app
 from bytestts.gui.session import Session
 
 
 def panel(session: Session) -> TestClient:
-    return api_client(create_app(port=PORT, secret=SECRET, max_threads=2, session=session))
+    return api_client(
+        create_app(port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=session)
+    )
 
 
 def test_save_dialog_returns_a_ticket_not_a_path(tmp_path: Path) -> None:
@@ -111,7 +114,7 @@ def test_status_reports_whether_the_save_dialog_exists() -> None:
 
 def test_dialog_routes_need_the_secret() -> None:
     session = Session(SaveTickets(), ask_save_path=lambda name, file_type: None)
-    app = create_app(port=PORT, secret=SECRET, max_threads=2, session=session)
+    app = create_app(port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=session)
     bare = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
     assert bare.post("/api/save-dialog", json={"name": "a", "extension": "wav"}).status_code == 401
     assert bare.post("/api/unsaved", json={"unsaved": True}).status_code == 401

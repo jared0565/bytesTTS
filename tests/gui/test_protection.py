@@ -68,7 +68,7 @@ def test_api_needs_the_bearer_secret() -> None:
     ):
         r = check("GET", "/api/status", headers)
         assert r is not None and r.status == 401, dict(headers)
-    r = check("GET", f"/api/status?s={SECRET}", H())  # the query secret opens the page, never the API
+    r = check("GET", f"/api/status?s={SECRET}", H())  # a secret in the query never opens the API
     assert r is not None and r.status == 401
     assert check("GET", "/api/status", H(Authorization=f"Bearer {SECRET}")) is None
 

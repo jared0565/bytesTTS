@@ -13,13 +13,14 @@ from typing import Any
 import numpy as np
 import onnxruntime
 import pytest
-from gui_helpers import PORT, SECRET, api_client, install, tiny_manifest, use_catalogue, wait_until
+from gui_helpers import CODE, PORT, SECRET, api_client, install, tiny_manifest, use_catalogue, wait_until
 from helpers import TEST_THREADS, TINY
 from starlette.testclient import TestClient
 
 from bytestts import Audio, BytesTTS
 from bytestts.errors import VoiceNotFound
 from bytestts.gui import saving
+from bytestts.gui.protection import LaunchCode
 from bytestts.gui.saving import SaveTickets
 from bytestts.gui.server import create_app
 from bytestts.gui.session import Session
@@ -53,7 +54,9 @@ def panel(
     for m in catalogue.values():
         install(m)
     session = Session(SaveTickets())
-    app = create_app(port=PORT, secret=SECRET, max_threads=2, session=session, loader=loader)
+    app = create_app(
+        port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=session, loader=loader
+    )
     return api_client(app), session
 
 
@@ -122,7 +125,10 @@ def test_job_validation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, changes
 
 def test_voice_must_be_downloaded(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     use_catalogue(monkeypatch, tmp_path, {"tiny": tiny_manifest()})  # nothing installed
-    client = api_client(create_app(port=PORT, secret=SECRET, max_threads=2, session=Session(SaveTickets())))
+    session = Session(SaveTickets())
+    client = api_client(
+        create_app(port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=session)
+    )
     refused = client.post("/api/jobs", json=body())
     assert refused.status_code == 400 and refused.json()["error"] == "voice tiny is not downloaded"
 
