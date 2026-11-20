@@ -73,10 +73,12 @@ def _renamed(ids: dict[str, int] | None, rename: dict[str, str]) -> dict[str, in
 
 def _featured(ids: dict[str, int] | None, featured: list[str]) -> list[str]:
     """The featured speakers, in order. A package loaded from disk defaults to the first (api._speaker_ids)."""
-    if featured and not ids:
+    if not featured:
+        return []
+    if not ids:
         raise OptionError("--featured: the voice has a single speaker and no speaker table")
     for name in featured:
-        if ids is not None and name not in ids:
+        if name not in ids:
             raise OptionError(f"--featured: no speaker named {name!r}")
         if featured.count(name) > 1:
             raise OptionError(f"--featured: {name!r} is listed twice")
