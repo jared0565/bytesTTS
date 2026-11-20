@@ -62,7 +62,8 @@ def _renamed(ids: dict[str, int] | None, rename: dict[str, str]) -> dict[str, in
     for old, new in rename.items():
         if old not in ids:
             raise OptionError(f"--rename-speaker: no speaker named {old!r}")
-        if not new or new != new.strip():
+        # isprintable() refuses control characters, invisible ones (U+200B) and every space but the ASCII one
+        if not new or new != new.strip() or not new.isprintable():
             raise OptionError(f"--rename-speaker: {new!r} is not a usable speaker name")
     renamed = {rename.get(name, name): i for name, i in ids.items()}
     if len(renamed) != len(ids):

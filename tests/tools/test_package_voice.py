@@ -182,6 +182,13 @@ def test_cli_renames_a_speaker(converted_multi: Path, tmp_path: Path) -> None:
     assert json.loads((tmp_path / "pkg" / "speakers.json").read_bytes()) == {"alice": 0, "carol": 1, "robert": 2}
 
 
+@pytest.mark.parametrize("new", ["Claribel Dervla", "Zoë"])
+def test_rename_keeps_printable_names(new: str, converted_multi: Path, tmp_path: Path) -> None:
+    """Inner spaces and accented letters are ordinary names; only unprintable ones are refused."""
+    assert pv.main(_cli_args(converted_multi, tmp_path / "pkg", [f"bob={new}"])) == 0
+    assert new in VoiceManifest.from_json(tmp_path / "pkg" / "voice.json").speakers
+
+
 @pytest.mark.parametrize(
     ("voice", "pairs", "reason"),
     [
@@ -190,6 +197,10 @@ def test_cli_renames_a_speaker(converted_multi: Path, tmp_path: Path) -> None:
         ("converted_multi", ["bob"], "not OLD=NEW"),
         ("converted_multi", ["bob="], "not a usable speaker name"),
         ("converted_multi", ["bob= robert"], "not a usable speaker name"),
+        ("converted_multi", ["bob=a\nb"], "not a usable speaker name"),  # control characters
+        ("converted_multi", ["bob=a\tb"], "not a usable speaker name"),
+        ("converted_multi", ["bob=a b"], "not a usable speaker name"),  # a no-break space looks like a space
+        ("converted_multi", ["bob=a​b"], "not a usable speaker name"),  # zero-width space: invisible
         ("converted_multi", ["bob=x", "bob=y"], "twice"),
         ("converted", ["bob=robert"], "single speaker"),
     ],

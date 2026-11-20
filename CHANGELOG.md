@@ -33,6 +33,9 @@ All notable changes to BytesTTS are recorded here. The format follows
 - A voice card that is not a JSON object is refused (`IntegrityError`) for every voice, not only fine-tuned ones.
 - The CUDA advice no longer quotes an internal plan reference.
 - The voice packager pins PyTorch's inter-op threads as well as its intra-op threads.
+- The voice packager's `--rename-speaker` also refuses a new name that holds a control character (a newline, a
+  tab), an invisible character such as a zero-width space, or a space other than the ordinary one, such as a
+  no-break space. Inner ordinary spaces and accented letters are still fine.
 - The package ships `py.typed`, so type checkers use its annotations.
 
 ### Changed
