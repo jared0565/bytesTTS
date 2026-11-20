@@ -27,6 +27,13 @@ class VoiceInfo:
     sample_rate: int
     size_bytes: int
 
+    @property
+    def default_speaker(self) -> str | None:
+        """The speaker used when none is named: the first featured one, else the first in the table."""
+        if self.featured:
+            return self.featured[0]
+        return self.speakers[0] if self.speakers else None
+
     @classmethod
     def from_manifest(cls, m: VoiceManifest) -> VoiceInfo:
         return cls(

@@ -165,6 +165,14 @@ def test_voice_info_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("speakers", "featured", "default"),
+    [(["p1", "p228"], ["p228"], "p228"), (["tux"], [], "tux"), ([], [], None)],
+)
+def test_default_speaker(speakers: list[str], featured: list[str], default: str | None) -> None:
+    assert VoiceInfo.from_manifest(M(speakers=speakers, featured=featured)).default_speaker == default
+
+
 def _catalog(*entries: dict[str, Any]) -> str:
     return json.dumps({"voices": list(entries)})
 
