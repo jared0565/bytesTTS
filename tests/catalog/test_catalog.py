@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from helpers import VCTK_FEATURED
 
 from bytestts.catalog import catalog
 from bytestts.catalog.catalog import VoiceInfo, list_voices, load_catalog, parse_catalog
@@ -64,10 +65,6 @@ def test_css10_voices_ship_in_the_catalogue(voice_id: str, language: str, speake
     pinned = f"https://huggingface.co/fbmacagba/bytestts-{voice_id}/resolve/{commit}/"
     urls = {name: entry.url for name, entry in m.files.items()}
     assert urls == {name: pinned + name for name in ("model.onnx", "config.json", "speakers.json")}
-
-
-# The operator's shortlist (2026-11-19, by ear, UK accents); the first is the default speaker.
-VCTK_FEATURED = ["p228", "p232", "p229", "p243", "p244", "p287", "p262", "p247", "p304", "p253"]
 
 
 def test_vctk_voice_ships_in_the_catalogue() -> None:

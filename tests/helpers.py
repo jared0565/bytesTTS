@@ -21,6 +21,8 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 TINY = FIXTURES / "tiny_vits"
 HOSTILE = FIXTURES / "hostile"
 TEST_THREADS = 1  # every ONNX Runtime session in tests: tests/conftest.py fails any other (PC hard-reset hazard)
+# en-vctk's featured speakers, the operator's shortlist (2026-11-19, by ear, UK accents); the first is the default.
+VCTK_FEATURED = ["p228", "p232", "p229", "p243", "p244", "p287", "p262", "p247", "p304", "p253"]
 
 
 def pin_torch_threads() -> None:
