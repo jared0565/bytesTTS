@@ -78,7 +78,10 @@ def _listen(port: int) -> socket.socket:
     try:
         if sys.platform == "win32":  # no other process may bind this port too, even with SO_REUSEADDR
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        else:  # take the port again over the last run's TIME-WAIT connections, as uvicorn's own sockets do
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", port))
+        sock.listen()  # at once: SO_REUSEADDR refuses a second socket on the port only while this one listens
     except OSError as e:
         sock.close()
         raise OSError(f"cannot listen on 127.0.0.1:{port}: {e.strerror or e}") from None

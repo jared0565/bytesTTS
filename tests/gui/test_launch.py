@@ -111,6 +111,31 @@ def test_listen_refuses_ports_outside_0_to_65535() -> None:
         sock.close()
 
 
+def test_listen_takes_its_port_again_right_after_a_quit() -> None:
+    """Quit leaves the panel's own connections in TIME-WAIT on its port, so `bytestts gui --port N` started again at
+    once must still get N (seen on Linux: "Address already in use" for about a minute)."""
+    first = launch._listen(0)
+    port = first.getsockname()[1]
+    client = socket.create_connection(("127.0.0.1", port), timeout=5)
+    accepted, _ = first.accept()
+    accepted.close()  # the server side closes first, as the panel does: TIME-WAIT stays on 127.0.0.1:port
+    client.close()
+    first.close()
+    launch._listen(port).close()
+
+
+def test_listen_never_shares_its_port() -> None:
+    """While one panel holds a port, a second `_listen` on it is refused on every platform: taking a port again after
+    a quit must not let two sockets hold it at once."""
+    first = launch._listen(0)
+    port = first.getsockname()[1]
+    try:
+        with pytest.raises(OSError, match=f"cannot listen on 127.0.0.1:{port}"):
+            launch._listen(port).close()
+    finally:
+        first.close()
+
+
 def test_serves_on_loopback_until_quit() -> None:
     thread, result, url = start_panel(LaunchOptions(0, "none", 1))
     assert URL_RE.match(url)

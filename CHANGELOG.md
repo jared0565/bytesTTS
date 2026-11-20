@@ -31,6 +31,9 @@ All notable changes to BytesTTS are recorded here. The format follows
 - The control panel has its own icon, so the browser no longer reports a missing `favicon.ico`.
 - When the control panel's server has stopped, the page says `The panel has stopped: start it again with bytestts
   gui.` instead of the browser's `Failed to fetch`.
+- On Linux, `bytestts gui --port N` started again right after **Quit** no longer fails with `Address already in use`
+  for about a minute. The panel's listening socket now sets `SO_REUSEADDR`, as uvicorn's own sockets do, and starts
+  listening at once, so a second socket still cannot share the port.
 - A voice card that is not a JSON object is refused (`IntegrityError`) for every voice, not only fine-tuned ones.
 - The CUDA advice no longer quotes an internal plan reference.
 - The voice packager pins PyTorch's inter-op threads as well as its intra-op threads.
