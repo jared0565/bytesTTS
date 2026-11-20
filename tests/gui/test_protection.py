@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 """The control panel's protection layer (spec §6.2): refusal() rules, then the Guard middleware itself."""
 
+import threading
+
 import pytest
 from gui_helpers import PORT, SECRET
 from starlette.applications import Starlette
@@ -10,7 +12,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from bytestts.gui.protection import CSP, Guard, Refusal, refusal
+from bytestts.gui.protection import CSP, EXCHANGE_PATH, JSON_BODY_CAP, Guard, LaunchCode, Refusal, refusal
 
 RAW = frozenset({"/api/export"})
 AUTH = f"Bearer {SECRET}"
@@ -91,6 +93,56 @@ def test_json_body_caps() -> None:
 def test_refusals_are_one_line() -> None:
     r = check("GET", "/api/status", H(host="evil.example"))
     assert r is not None and r.error and "\n" not in r.error
+
+
+def test_launch_code_redeems_once() -> None:
+    code = LaunchCode("c" * 43)
+    assert code.redeem("x") == "wrong"
+    assert code.redeem("c" * 43) == "ok"
+    assert code.redeem("c" * 43) == "used"
+    assert code.redeem("x") == "wrong"
+    assert code.redeem("") == "wrong"
+    with pytest.raises(ValueError):
+        LaunchCode("")
+
+
+def test_launch_code_has_one_winner() -> None:
+    code = LaunchCode("c" * 43)
+    barrier = threading.Barrier(16)
+    results: list[str] = []
+    lock = threading.Lock()
+
+    def redeem() -> None:
+        barrier.wait(10)
+        outcome = code.redeem("c" * 43)
+        with lock:
+            results.append(outcome)
+
+    threads = [threading.Thread(target=redeem) for _ in range(16)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(10)
+    assert sorted(results) == ["ok"] + ["used"] * 15
+
+
+def test_exchange_needs_no_secret_but_every_other_check() -> None:
+    assert EXCHANGE_PATH == "/api/session"
+    assert check("POST", EXCHANGE_PATH, H(content_length="20")) is None
+    for headers in (
+        H(host="evil.example:8765"),
+        H(origin="http://evil.example"),
+        H(sec_fetch_site="cross-site"),
+    ):
+        r = check("POST", EXCHANGE_PATH, headers)
+        assert r is not None and r.status == 403, dict(headers)
+    r = check("POST", EXCHANGE_PATH, H(content_length=str(JSON_BODY_CAP + 1)))
+    assert r is not None and r.status == 413
+    r = check("POST", EXCHANGE_PATH, H(transfer_encoding="chunked"))
+    assert r is not None and r.status == 411
+    for method, path in (("GET", EXCHANGE_PATH), ("GET", "/api/status"), ("POST", EXCHANGE_PATH + "/")):
+        r = check(method, path, H())
+        assert r is not None and r.status == 401, (method, path)
 
 
 @pytest.fixture

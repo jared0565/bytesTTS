@@ -6,19 +6,26 @@ there. So each request must name the panel's own Host (no DNS rebinding), carry 
 API, come from the panel's own origin and hold the per-launch secret in its Authorization header. The secret is
 never read from a cookie or the query: a cookie would be sent by pages on other 127.0.0.1 ports, and a media
 GET carries no Origin header.
+
+The secret is never in an address either. The printed launch address carries a one-time launch code instead,
+which the page swaps once, at POST /api/session (EXCHANGE_PATH), for the secret in a JSON reply. That one
+request is let through without the secret; every other check still applies to it.
 """
 
 from __future__ import annotations
 
 import hmac
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 API_PREFIX = "/api/"
+EXCHANGE_PATH = "/api/session"  # the one API request that needs no secret: it hands the secret out
 JSON_BODY_CAP = 65_536  # the job body: 5,000 characters even as \uXXXX escapes fit with room to spare
 CSP = "default-src 'self'; media-src 'self' blob:; frame-ancestors 'none'"
 STATIC_HEADERS: Mapping[str, str] = {
@@ -46,6 +53,26 @@ def _secret_matches(authorization: str, secret: str) -> bool:
     return hmac.compare_digest(token.encode("utf-8"), secret.encode("utf-8"))
 
 
+class LaunchCode:
+    """The one-time code in the launch address: the first right offer wins, every later one is "used"."""
+
+    def __init__(self, code: str) -> None:
+        if not code:
+            raise ValueError("a launch code cannot be empty")
+        self._code = code.encode("utf-8")
+        self._used = False
+        self._lock = threading.Lock()
+
+    def redeem(self, offered: str) -> Literal["ok", "used", "wrong"]:
+        if not hmac.compare_digest(offered.encode("utf-8"), self._code):
+            return "wrong"
+        with self._lock:
+            if self._used:
+                return "used"
+            self._used = True
+            return "ok"
+
+
 def refusal(
     method: str, path: str, headers: Mapping[str, str], *, port: int, secret: str, raw_body_paths: frozenset[str]
 ) -> Refusal | None:
@@ -61,7 +88,8 @@ def refusal(
     site = headers.get("sec-fetch-site")
     if site is not None and site != "same-origin":
         return Refusal(403, "requests from other sites are refused")
-    if not _secret_matches(headers.get("authorization", ""), secret):
+    exchange = method == "POST" and path == EXCHANGE_PATH
+    if not exchange and not _secret_matches(headers.get("authorization", ""), secret):
         return Refusal(401, "missing or wrong panel secret: open the address printed in the terminal")
     if method == "POST" and path not in raw_body_paths:
         if "transfer-encoding" in headers:
