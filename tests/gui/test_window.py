@@ -222,29 +222,41 @@ def test_first_path_normalises_dialog_results() -> None:
     assert _first_path("d.wav") == "d.wav"
 
 
-def test_webview2_failure_gives_a_reason(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_webview2_failure_gives_a_reason(monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str]) -> None:
     pywebview_logger = logging.getLogger("pywebview")
-    handlers_before = list(pywebview_logger.handlers)
-    seen: dict[str, bool] = {}
+    printing = logging.StreamHandler(sys.stderr)  # what pywebview's import puts on its logger
+    pywebview_logger.addHandler(printing)
+    try:
+        handlers_before = list(pywebview_logger.handlers)
+        filters_before = [list(h.filters) for h in handlers_before]
+        seen: dict[str, bool] = {}
 
-    def run(fake: FakeWebview, func: Callable[[], None] | None) -> None:
-        pywebview_logger.error(
-            "WebView2 initialization failed with exception:\n Couldn't find a compatible Webview2 Runtime (no runtime)."
-            " ---> System.IO.FileNotFoundException: The system cannot find the file specified.\n   at Microsoft.Web"
-        )
-        assert func is not None
-        func()  # the watchdog sees the logged error and closes the blank window
-        seen["destroyed"] = fake.windows[0].destroyed.is_set()
+        def run(fake: FakeWebview, func: Callable[[], None] | None) -> None:
+            pywebview_logger.error(
+                "WebView2 initialization failed with exception:\n Couldn't find a compatible Webview2 Runtime (no"
+                " runtime). ---> System.IO.FileNotFoundException: The system cannot find the file specified.\n"
+                "   at Microsoft.Web"
+            )
+            pywebview_logger.error("something else broke")  # pywebview's other errors still reach the terminal
+            assert func is not None
+            func()  # the watchdog sees the logged error and closes the blank window
+            seen["destroyed"] = fake.windows[0].destroyed.is_set()
 
-    install_fake(monkeypatch, run)
-    session = Session(SaveTickets())
-    reason = real_open_window(URL, session)
-    assert seen == {"destroyed": True}
-    assert reason is not None and "WebView2" in reason and "no runtime" in reason and "\n" not in reason
-    assert "FileNotFoundException" not in reason and "Microsoft.Web" not in reason  # .NET's inner detail stays out
-    assert not session.quit.is_set() and not session.quitting  # the launcher falls back to the browser
-    assert session.ask_save_path is None and session.close_window is None
-    assert pywebview_logger.handlers == handlers_before
+        install_fake(monkeypatch, run)
+        session = Session(SaveTickets())
+        reason = real_open_window(URL, session)
+        assert seen == {"destroyed": True}
+        assert reason is not None and "WebView2" in reason and "no runtime" in reason and "\n" not in reason
+        assert "FileNotFoundException" not in reason and "Microsoft.Web" not in reason  # .NET's detail stays out
+        assert not session.quit.is_set() and not session.quitting  # the launcher falls back to the browser
+        assert session.ask_save_path is None and session.close_window is None
+        assert pywebview_logger.handlers == handlers_before
+        assert [list(h.filters) for h in pywebview_logger.handlers] == filters_before
+        err = capfd.readouterr().err
+        assert "FileNotFoundException" not in err and "Couldn't find" not in err  # the launcher prints one line
+        assert "something else broke" in err
+    finally:
+        pywebview_logger.removeHandler(printing)
 
 
 def test_window_that_never_loads_gives_a_reason(monkeypatch: pytest.MonkeyPatch) -> None:

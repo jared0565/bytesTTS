@@ -145,6 +145,14 @@ class _StartWatch(logging.Handler):
             self.failure = " ".join(first.split())[:300]
 
 
+class _QuietWebView2Failure(logging.Filter):
+    """Keeps pywebview's own stderr handler from printing the WebView2 failure with .NET's stack: the launcher
+    prints it as one line. Every other pywebview record still prints."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not record.getMessage().startswith(_WEBVIEW2_FAILED)
+
+
 def open_window(url: str, session: Session) -> str | None:
     """Show the panel in the app window and block until it closes.
 
@@ -185,6 +193,12 @@ def open_window(url: str, session: Session) -> str | None:
         window.destroy()
 
     pywebview_log = logging.getLogger("pywebview")
+    # A filter on its printing handlers, not detaching them: webview.start blocks until the window closes, so a
+    # detached handler would hide every pywebview error for the whole session.
+    quiet = _QuietWebView2Failure()
+    printing = [h for h in pywebview_log.handlers if isinstance(h, logging.StreamHandler)]
+    for handler in printing:
+        handler.addFilter(quiet)
     pywebview_log.addHandler(watch)
     unwatch = _watch_console(lambda kind: _on_console_ctrl(kind, lambda: _close_like_x(window, session)))
     try:
@@ -194,6 +208,8 @@ def open_window(url: str, session: Session) -> str | None:
     finally:
         unwatch()
         pywebview_log.removeHandler(watch)
+        for handler in printing:
+            handler.removeFilter(quiet)
         session.ask_save_path = None
         session.close_window = None
     if failure:
