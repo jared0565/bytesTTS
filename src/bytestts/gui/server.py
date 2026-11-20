@@ -7,7 +7,6 @@ Every request passes the Guard (protection.py) first. Every error body is {"erro
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 import threading
 from importlib import resources
@@ -145,15 +144,7 @@ def create_app(
         where = ".".join(str(p) for p in first.get("loc", ())[1:])  # drop "body", "query" or "path"
         return _error(400, one_line(Exception(f"{where}: {first.get('msg')}" if where else first.get("msg"))))
 
-    @app.exception_handler(Exception)
-    async def failure(request: Request, exc: Exception) -> JSONResponse:
-        # the detail goes to the terminal only: an OS error's text can hold a path (aramid llm/a05)
-        if sys.stderr is not None:
-            print(
-                f"bytestts gui: unexpected error in {request.method} {request.url.path}: {one_line(exc)}",
-                file=sys.stderr,
-            )
-        return _error(500, f"the panel's server hit an unexpected error ({type(exc).__name__})")
+    # An unexpected error is answered by the Guard (protection.py), so its reply carries the Guard's headers.
 
     for path, (name, media_type) in _STATIC.items():
 

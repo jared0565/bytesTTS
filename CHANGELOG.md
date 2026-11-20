@@ -22,6 +22,9 @@ All notable changes to BytesTTS are recorded here. The format follows
 
 ### Fixed
 
+- The control panel's reply to an unexpected server error carries the same `Cache-Control: no-store` and
+  `X-Content-Type-Options: nosniff` headers as every other reply, and the terminal shows one line for it instead of
+  a traceback.
 - A voice card that is not a JSON object is refused (`IntegrityError`) for every voice, not only fine-tuned ones.
 - The CUDA advice no longer quotes an internal plan reference.
 - The voice packager pins PyTorch's inter-op threads as well as its intra-op threads.

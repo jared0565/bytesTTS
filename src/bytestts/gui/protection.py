@@ -15,6 +15,7 @@ request is let through without the secret; every other check still applies to it
 from __future__ import annotations
 
 import hmac
+import sys
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -23,6 +24,8 @@ from typing import Literal
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from bytestts.gui.session import one_line
 
 API_PREFIX = "/api/"
 EXCHANGE_PATH = "/api/session"  # the one API request that needs no secret: it hands the secret out
@@ -134,11 +137,26 @@ class Guard:
             await response(scope, receive, send)
             return
 
+        started = False
+
         async def send_with_headers(message: Message) -> None:
+            nonlocal started
             if message["type"] == "http.response.start":
+                started = True
                 headers = MutableHeaders(scope=message)
                 for name, value in extra.items():
                     headers[name] = value
             await send(message)
 
-        await self._app(scope, receive, send_with_headers)
+        try:
+            await self._app(scope, receive, send_with_headers)
+        except Exception as exc:
+            if started:  # part of a reply has gone: nothing better can be sent, so the server ends the connection
+                raise
+            # Answered here, not by Starlette's outer error handler, so the reply carries these headers and the
+            # error stops here: the detail goes to the terminal as one line (an OS error's text can hold a path,
+            # aramid llm/a05), never to the page and never as uvicorn's traceback.
+            if sys.stderr is not None:
+                print(f"bytestts gui: unexpected error in {scope['method']} {path}: {one_line(exc)}", file=sys.stderr)
+            error = f"the panel's server hit an unexpected error ({type(exc).__name__})"
+            await JSONResponse({"error": error}, status_code=500, headers=dict(extra))(scope, receive, send)

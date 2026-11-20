@@ -76,8 +76,15 @@ def test_unexpected_errors_stay_on_the_terminal(
     # OSError(2, ...) is built as FileNotFoundError
     assert r.json() == {"error": "the panel's server hit an unexpected error (FileNotFoundError)"}
     assert "private" not in r.text
+    assert r.headers["cache-control"] == "no-store" and r.headers["x-content-type-options"] == "nosniff"
     err = capsys.readouterr().err.strip().splitlines()
     assert len(err) == 1 and "GET /api/voices" in err[0] and "private/catalog.json" in err[0]
+    # nothing escapes to the server either: uvicorn would print the traceback
+    app = create_app(
+        port=PORT, secret=SECRET, launch_code=LaunchCode(CODE), max_threads=2, session=Session(SaveTickets())
+    )
+    strict = TestClient(app, base_url=f"http://127.0.0.1:{PORT}", headers={"Authorization": f"Bearer {SECRET}"})
+    assert strict.get("/api/voices").status_code == 500  # raise_server_exceptions is on: an escape would raise here
 
 
 def test_errors_built_from_input_are_one_line(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
