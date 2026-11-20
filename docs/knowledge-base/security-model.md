@@ -119,8 +119,13 @@ server on your own computer, so the panel checks each request before acting on i
   internally consistent, not endorsed. Catalogue voices are checked against the pins shipped inside BytesTTS.
 - **espeak-ng itself** processes your text. Keep it up to date from its official releases.
 - **The control panel guards against web pages, not against programs on your computer.** A program running under
-  your account can read the launch address, just as it can read your files. If it uses the address before the
-  page does, it gets the secret, but the page then finds the address already used and the panel stops, so the theft
-  is not silent. In the browser, an extension allowed to read all sites can read the panel's page too.
+  your account can read the launch address, just as it can read your files. On Linux, other accounts on the same
+  computer can usually read it too: the browser is started with the address on its command line, and Linux lets
+  every account read other processes' command lines unless `/proc` is mounted with `hidepid`. (On Windows, only
+  administrators can read another account's command lines.) Whoever uses the address before the page does gets the
+  secret, but the page then finds the address already used and the panel stops, so the theft is not silent; anyone
+  who can read the address can also stop the panel by using it. On a shared Linux computer, start the panel with
+  `--no-window` and paste the address into a browser that is already open: it then never appears on a command line.
+  In the browser, an extension allowed to read all sites can read the panel's page too.
 - **Generated speech** can imitate the voice it was trained on. Fine-tuned voices therefore require a consent
   statement. Do not use voices to deceive people.
