@@ -11,7 +11,9 @@ helpers live inside `parse_details`, and every parse failure is `IntegrityError`
 
 from __future__ import annotations
 
+import hashlib
 import re
+import threading
 import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -19,7 +21,9 @@ from importlib import resources
 from types import MappingProxyType
 from typing import Any, NoReturn
 
+from bytestts.catalog.cache import cache_root
 from bytestts.catalog.catalog import _PINNED_URL
+from bytestts.catalog.download import download_file
 from bytestts.catalog.manifest import FileEntry, parse_json, safe_name
 from bytestts.errors import IntegrityError
 
@@ -37,6 +41,12 @@ _PERSON_KEYS = frozenset(("gender", "age", "accent", "region", "note", "sample")
 _SAMPLE_KEYS = frozenset(("sha256", "size", "url"))
 _VOICE_KEYS = frozenset(("language_name", "dataset", "speakers", "reader"))
 _TOP_KEYS = frozenset(("sentences", "voices"))
+
+# Read when sample_bytes runs, not bound as defaults, so tests can shorten them.
+SAMPLE_TIMEOUT: tuple[float, float] = (10.0, 30.0)  # connect, read
+LOCK_WAIT_S: float = 30.0  # how long a second request for the same clip waits for the first
+_clip_locks: dict[str, threading.Lock] = {}  # one per clip (by sha256), so a stalled clip holds up only itself
+_clip_locks_guard = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -197,6 +207,33 @@ def parse_details(data: bytes) -> Details:
 def load_details() -> Details:
     """The packaged `details.json`, read and checked on every call, as `catalog.load_catalog` does."""
     return parse_details(resources.files("bytestts.catalog").joinpath("details.json").read_bytes())
+
+
+def sample_bytes(entry: FileEntry) -> bytes:
+    """A sample clip's pinned bytes, from the cache under `samples/` when it holds them, else fetched first.
+
+    One fetch per clip at a time: a second request for the same clip waits up to LOCK_WAIT_S for the first, then
+    raises TimeoutError("timed out"). The bytes returned are read once and checked against the pin, so a cached file
+    changed after the check is fetched again rather than sent.
+    """
+    if entry.url is None or not _SHA256.fullmatch(entry.sha256):  # the sha256 names the cached file
+        raise IntegrityError("a sample needs a url and a sha256 of 64 lowercase hex digits")
+    with _clip_locks_guard:
+        lock = _clip_locks.setdefault(entry.sha256, threading.Lock())
+    if not lock.acquire(timeout=LOCK_WAIT_S):
+        raise TimeoutError("timed out")
+    try:
+        path = cache_root() / "samples" / f"{entry.sha256}.wav"
+        for _ in range(2):
+            download_file(entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT)
+            with path.open("rb") as f:
+                data = f.read(entry.size + 1)
+            if len(data) == entry.size and hashlib.sha256(data).hexdigest() == entry.sha256:
+                return data
+            path.unlink(missing_ok=True)  # changed after download_file checked it: fetch it once more
+        raise IntegrityError(f"{path.name}: the cached sample keeps changing after it is checked")
+    finally:
+        lock.release()
 
 
 def voice_label(voice_id: str, speakers: Sequence[str], d: VoiceDetails | None) -> str:

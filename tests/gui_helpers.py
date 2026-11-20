@@ -115,6 +115,55 @@ class FileServer:
         self.httpd.server_close()
 
 
+class BytesServer:
+    """Serves `files` (path -> bytes) on 127.0.0.1 at `/<path>`. `/stall/<path>` sends the headers, then no body
+    until `release` is set. Anything else is 404. `hits` counts requests per path, as the client asked for it."""
+
+    def __init__(self, files: dict[str, bytes]) -> None:
+        self.files = files
+        self.hits: Counter[str] = Counter()
+        self.release = threading.Event()
+        server = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args: Any) -> None:
+                pass
+
+            def do_GET(self) -> None:
+                server.hits[self.path] += 1
+                stall = self.path.startswith("/stall/")
+                body = server.files.get(self.path.removeprefix("/stall/").lstrip("/"))
+                if body is None:
+                    self.send_error(404)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "audio/wav")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                try:
+                    self.wfile.flush()
+                    if stall:
+                        server.release.wait(30)
+                    self.wfile.write(body)
+                except OSError:
+                    pass  # the client gave up first
+
+        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.httpd.daemon_threads = True
+        self.httpd.handle_error = lambda *a: None  # type: ignore[method-assign]  # aborted bodies are expected
+        self.thread = threading.Thread(target=self.httpd.serve_forever, args=(0.05,), daemon=True)
+        self.thread.start()
+        self.url_base = f"http://127.0.0.1:{self.httpd.server_address[1]}"
+
+    def __enter__(self) -> "BytesServer":
+        return self
+
+    def __exit__(self, kind: type[BaseException] | None, value: BaseException | None, tb: TracebackType | None) -> None:
+        self.release.set()
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
 def api_client(app: Any) -> TestClient:
     """A test client on the panel's own address, holding the secret."""
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", headers={"Authorization": f"Bearer {SECRET}"})

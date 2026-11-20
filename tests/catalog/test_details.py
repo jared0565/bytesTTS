@@ -1,12 +1,19 @@
 # SPDX-License-Identifier: MPL-2.0
 import copy
+import hashlib
 import json
+import threading
+import time
 from collections import Counter
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
+from gui_helpers import BytesServer, wait_until
 
+from bytestts.catalog import details
+from bytestts.catalog.cache import cache_root
 from bytestts.catalog.catalog import load_catalog
 from bytestts.catalog.details import Details, Person, VoiceDetails, load_details, parse_details, voice_label
 from bytestts.catalog.manifest import FileEntry
@@ -317,3 +324,111 @@ def test_vctk_counts() -> None:  # the design's §6.2 table, counted from the sh
     assert voice_label("en-vctk", load_catalog()["en-vctk"].speakers, v) == "English · VCTK · 109 speakers, 11 accents"
     assert v.speakers["ED"] == Person(note="not in the VCTK speaker table")
     assert v.speakers["p228"].label("p228") == "p228 · Female, 22 · English (England), Southern England"
+
+
+# --- sample_bytes: fetch, cache and check a clip ----------------------------------------------------------------
+
+CLIP_BYTES = b"RIFF" + bytes(range(256)) * 20
+OTHER_BYTES = b"RIFF" + bytes(reversed(range(256))) * 20  # the same length
+
+
+@pytest.fixture
+def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("BYTESTTS_HOME", str(tmp_path))
+    return tmp_path
+
+
+def _entry(server: BytesServer, path: str, data: bytes = CLIP_BYTES) -> FileEntry:
+    """An http entry on the local server, built directly: the parser's https rule doesn't apply here."""
+    return FileEntry(hashlib.sha256(data).hexdigest(), len(data), f"{server.url_base}/{path}")
+
+
+def _cached(entry: FileEntry) -> Path:
+    return cache_root() / "samples" / f"{entry.sha256}.wav"
+
+
+def test_first_call_fetches_and_caches(home: Path) -> None:
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        entry = _entry(server, "a.wav")
+        assert details.sample_bytes(entry) == CLIP_BYTES
+    assert _cached(entry).read_bytes() == CLIP_BYTES
+
+
+def test_second_call_makes_no_request(home: Path) -> None:
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        entry = _entry(server, "a.wav")
+        details.sample_bytes(entry)
+        assert details.sample_bytes(entry) == CLIP_BYTES
+        assert server.hits["/a.wav"] == 1
+
+
+def test_same_clip_at_once_is_fetched_once(home: Path) -> None:
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        entry = _entry(server, "stall/a.wav")
+        results: list[bytes] = []
+        threads = [threading.Thread(target=lambda: results.append(details.sample_bytes(entry))) for _ in range(2)]
+        for t in threads:
+            t.start()
+        wait_until(lambda: server.hits["/stall/a.wav"] == 1)
+        time.sleep(0.2)  # the second call is waiting for the first by now
+        server.release.set()
+        for t in threads:
+            t.join(10)
+        assert results == [CLIP_BYTES, CLIP_BYTES]
+        assert server.hits["/stall/a.wav"] == 1
+
+
+def test_a_stalled_clip_does_not_hold_up_another(home: Path) -> None:
+    with BytesServer({"a.wav": CLIP_BYTES, "b.wav": OTHER_BYTES}) as server:
+        stalled = threading.Thread(target=details.sample_bytes, args=(_entry(server, "stall/a.wav"),), daemon=True)
+        stalled.start()
+        wait_until(lambda: server.hits["/stall/a.wav"] == 1)
+        start = time.monotonic()
+        assert details.sample_bytes(_entry(server, "b.wav", OTHER_BYTES)) == OTHER_BYTES
+        assert time.monotonic() - start < 2
+        server.release.set()
+        stalled.join(10)
+
+
+def test_waiting_for_a_stalled_clip_gives_up(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(details, "LOCK_WAIT_S", 0.2)  # 30 s in use
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        entry = _entry(server, "stall/a.wav")
+        first = threading.Thread(target=details.sample_bytes, args=(entry,), daemon=True)
+        first.start()
+        wait_until(lambda: server.hits["/stall/a.wav"] == 1)
+        start = time.monotonic()
+        with pytest.raises(TimeoutError, match="timed out"):
+            details.sample_bytes(entry)
+        assert time.monotonic() - start < 1
+        server.release.set()
+        first.join(10)
+
+
+def test_wrong_bytes_are_refused(home: Path) -> None:
+    with BytesServer({"a.wav": OTHER_BYTES}) as server, pytest.raises(IntegrityError):
+        details.sample_bytes(_entry(server, "a.wav"))  # pinned to CLIP_BYTES
+    assert not (home / "samples").exists() or not any((home / "samples").iterdir())
+
+
+def test_oversize_announcement_is_cut_off(home: Path) -> None:
+    with BytesServer({"a.wav": CLIP_BYTES + b"x" * 100}) as server, pytest.raises(IntegrityError, match="announces"):
+        details.sample_bytes(_entry(server, "a.wav"))
+    assert not (home / "samples").exists() or not any((home / "samples").iterdir())
+
+
+def test_tampered_cache_is_fetched_again(home: Path) -> None:
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        entry = _entry(server, "a.wav")
+        details.sample_bytes(entry)
+        _cached(entry).write_bytes(OTHER_BYTES)
+        assert details.sample_bytes(entry) == CLIP_BYTES
+        assert server.hits["/a.wav"] == 2
+
+
+def test_a_clip_with_a_bad_hash_is_refused(home: Path) -> None:  # the hash names the cache file
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        for sha256 in ("../" + "a" * 61, "A" * 64, ""):
+            with pytest.raises(IntegrityError):
+                details.sample_bytes(FileEntry(sha256, len(CLIP_BYTES), f"{server.url_base}/a.wav"))
+        assert server.hits["/a.wav"] == 0
