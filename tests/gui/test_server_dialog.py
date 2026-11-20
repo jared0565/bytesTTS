@@ -119,3 +119,15 @@ def test_dialog_routes_need_the_secret() -> None:
     assert bare.post("/api/save-dialog", json={"name": "a", "extension": "wav"}).status_code == 401
     assert bare.post("/api/unsaved", json={"unsaved": True}).status_code == 401
     assert session.unsaved is False
+
+
+def test_busy_export_keeps_the_ticket(tmp_path: Path) -> None:
+    """A Save while a Speak runs is refused with 409, and its ticket is still good for the retry."""
+    session = Session(SaveTickets())
+    client = panel(session)
+    target = tmp_path / "x.wav"
+    ticket = session.tickets.issue(target)
+    client.app.state.slot.acquire("a Speak")  # type: ignore[attr-defined]
+    r = client.post(f"/api/export?format=wav&quality=standard&ticket={ticket}", content=b"RIFF")
+    assert r.status_code == 409 and r.json() == {"error": "a Speak is running"}
+    assert session.tickets.redeem(ticket) == target

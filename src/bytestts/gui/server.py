@@ -305,22 +305,22 @@ def create_app(
             return _error(400, f"format {format} is not available")
         if quality not in QUALITIES:
             return _error(400, f"quality must be one of {', '.join(QUALITIES)}")
-        target: Path | None = None
-        if ticket is not None:
-            try:
-                target = session.tickets.redeem(ticket)
-            except TicketError as e:
-                return _error(400, one_line(e))
         cap = saving.BYTE_CAP
         length = request.headers.get("content-length")
         if length is not None and (not length.isdigit() or int(length) > cap):
             return _error(413, f"the audio is larger than {cap} bytes")
         try:
-            slot.acquire("export")
+            slot.acquire("export")  # before the ticket: a busy refusal must leave the ticket good for the retry
         except Busy as e:
             return _error(409, one_line(e))
         temporary: list[Path] = []
         try:
+            target: Path | None = None
+            if ticket is not None:
+                try:
+                    target = session.tickets.redeem(ticket)
+                except TicketError as e:
+                    return _error(400, one_line(e))
             fd, name = tempfile.mkstemp(prefix="bytestts-", suffix=".wav")
             temporary.append(Path(name))
             with os.fdopen(fd, "wb") as out:
