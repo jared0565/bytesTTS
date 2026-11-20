@@ -88,6 +88,15 @@ def test_static_files_and_headers() -> None:
         assert client.get(path).status_code == 404, path
 
 
+def test_favicon_is_served_and_linked() -> None:
+    client = panel()
+    icon = client.get("/favicon.svg")
+    assert icon.status_code == 200 and icon.headers["content-type"] == "image/svg+xml"
+    assert icon.headers["content-security-policy"] == CSP
+    assert "<script" not in icon.text and "href=" not in icon.text and icon.text.lstrip().startswith("<svg")
+    assert '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' in client.get("/").text
+
+
 def test_status(monkeypatch: pytest.MonkeyPatch) -> None:
     client = panel(max_threads=2)
     monkeypatch.setattr(onnxruntime, "get_available_providers", lambda: ["CPUExecutionProvider"])
