@@ -66,6 +66,8 @@ def announce(url: str) -> None:
 
 
 def _listen(port: int) -> socket.socket:
+    if not 0 <= port <= 65535:
+        raise ValueError("port must be from 0 to 65535")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         if sys.platform == "win32":  # no other process may bind this port too, even with SO_REUSEADDR

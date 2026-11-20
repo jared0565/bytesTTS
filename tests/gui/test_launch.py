@@ -20,7 +20,7 @@ from gui_helpers import install, tiny_manifest, use_catalogue
 
 from bytestts import Audio
 from bytestts.cli import main
-from bytestts.gui import jobs, window
+from bytestts.gui import jobs, launch, window
 from bytestts.gui.launch import LaunchOptions, resolve_mode, run_panel, thread_cap
 
 URL_RE = re.compile(r"^http://127\.0\.0\.1:(\d+)/\?s=([\w-]{43})$")
@@ -63,6 +63,17 @@ def test_resolve_mode() -> None:
     assert resolve_mode("auto", "linux") == "browser"
     for mode in ("window", "browser", "none"):
         assert resolve_mode(mode, "linux") == mode  # type: ignore[arg-type]
+
+
+def test_listen_refuses_ports_outside_0_to_65535() -> None:
+    for port in (-1, 65536, -(2**63)):
+        with pytest.raises(ValueError, match="port must be from 0 to 65535"):
+            launch._listen(port)
+    sock = launch._listen(0)
+    try:
+        assert 1 <= sock.getsockname()[1] <= 65535
+    finally:
+        sock.close()
 
 
 def test_serves_on_loopback_until_quit() -> None:
