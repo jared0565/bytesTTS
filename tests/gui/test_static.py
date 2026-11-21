@@ -208,7 +208,73 @@ def test_speaker_copy_is_exact() -> None:
 
 
 def test_voice_change_clears_a_speaker_note() -> None:
-    """"Speaker is now p262: the filters hide p228" is about the voice being left: a voice change clears it."""
+    """ "Speaker is now p262: the filters hide p228" is about the voice being left: a voice change clears it."""
     change = _function(read("app.js"), "onVoiceChange")
     assert '$("status").textContent.startsWith("Speaker is now ")' in change
     assert 'setStatus("Ready", "ready")' in change
+
+
+def _samples(script: str) -> str:
+    """The samples section of app.js, between its two markers."""
+    marker = "// ---- Samples (voice labels design §5)"
+    assert marker in script and "// ---- End of samples" in script, "app.js has no samples section"
+    start = script.index(marker)
+    return script[start : script.index("// ---- End of samples", start)]
+
+
+def test_sampler_is_not_the_player() -> None:
+    samples = _samples(read("app.js"))
+    assert "const sampler = new Audio();" in samples
+    assert samples.count('$("player")') == samples.count('$("player").pause()') >= 1  # only ever to pause it
+
+
+def test_samples_never_touch_the_recording() -> None:
+    samples = _samples(read("app.js"))
+    for name in ("loadRecording", "setUnsaved", "state.recording"):
+        assert name not in samples, name
+
+
+def test_no_media_src_points_at_the_api() -> None:
+    """Recordings and clips come through api() with the secret, as blobs: never from a link to /api."""
+    for name in ("app.js", "index.html"):
+        text = read(name).replace(" ", "")
+        assert 'src="/api' not in text and "src='/api" not in text, name
+
+
+def test_api_passes_an_abort_signal() -> None:  # Review Focus 2
+    """The page's 30 s limit on a clip aborts the fetch: that must not read as "The panel has stopped"."""
+    api = _function(read("app.js"), "api")
+    assert "signal: options.signal" in api
+    caught = api[api.index("} catch (e) {") :]
+    assert caught.index('e.name === "AbortError"') < caught.index("SERVER_GONE")
+
+
+def test_sample_requests_encode_the_speaker() -> None:
+    samples = _samples(read("app.js"))
+    assert '"/voices/" + encodeURIComponent(voice.id) + "/sample"' in samples
+    assert '"?speaker=" + encodeURIComponent(speaker)' in samples
+
+
+def test_playing_buttons_change_their_names() -> None:
+    samples = _samples(read("app.js"))
+    for copy in ('"■ Stop"', '"Stop the sample"', '"Stop the preview"', '"Play a sample of this voice"'):
+        assert copy in samples, copy
+    assert '"Preview this speaker"' in samples
+
+
+def test_sample_copy_and_limit() -> None:
+    samples = _samples(read("app.js"))
+    for copy in ('"Fetching the sample"', '"could not fetch the sample: timed out"', "SAMPLE_TIMEOUT_MS = 30000"):
+        assert copy in samples, copy
+
+
+def test_sampler_and_player_stop_each_other() -> None:
+    """Starting the sampler pauses #player; #player starting (or a finished Speak) and Stop stop the sampler; the
+    sampler's own events feed updateControls, since Stop's state looked only at #player."""
+    script = read("app.js")
+    wire = _function(script, "wire")
+    assert '$("player").addEventListener("play", stopSample)' in wire
+    assert "sampler.addEventListener(event, updateControls)" in wire
+    assert '$("sample").addEventListener("click", onSampleClick)' in wire
+    assert "stopSample();" in _function(script, "stop")
+    assert "sampler.paused" in _function(script, "updateControls")

@@ -22,6 +22,12 @@ const state = {
   overLimitShown: false,
   chosenSpeaker: null, // the speaker the user chose, or the voice's default; kept while the filters hide it
   noMatchShown: false,
+  choice: "", // the voice and speaker in view, so a change of either can stop a sample
+  sampleToken: 0, // bumped by every sample press, voice or speaker change, and Stop
+  sampleAbort: null, // the pending clip fetch's AbortController
+  sampleUrl: null, // the blob URL the sampler plays
+  samplePlaying: null, // {voice, speaker}: what the sampler holds
+  sampleButton: null, // the button whose clip plays: it reads ■ Stop
   locked: false,
   closed: false,
 };
@@ -103,8 +109,17 @@ async function api(path, options = {}) {
   }
   let response;
   try {
-    response = await fetch("/api" + path, { method: options.method || "GET", headers, body, cache: "no-store" });
+    response = await fetch("/api" + path, {
+      method: options.method || "GET",
+      headers,
+      body,
+      cache: "no-store",
+      signal: options.signal,
+    });
   } catch (e) {
+    if (e && e.name === "AbortError") {
+      throw e; // the caller's own time limit, not a stopped server
+    }
     throw new ApiError(0, SERVER_GONE); // no answer at all: Quit, Ctrl+C or a reused address stopped the server
   }
   if (response.status === 401) {
@@ -182,11 +197,13 @@ function showVoice() {
   const busy = state.downloading !== null;
   $("download").hidden = !voice || voice.state !== "missing" || busy;
   $("repair").hidden = !voice || voice.state !== "needs-repair" || busy;
+  $("sample").hidden = !voice || !voice.has_sample;
   if (voice) {
     $("download").textContent = "Download " + megabytes(voice.size_bytes);
   }
   showFilters(voice);
   fillSpeakers(voice, false);
+  noteChoice();
   $("info").disabled = !voice;
   updateControls();
 }
@@ -317,11 +334,13 @@ function fillSpeakers(voice, filterChanged) {
 
 function onFilterChange() {
   fillSpeakers(currentVoice(), true);
+  noteChoice();
   updateControls();
 }
 
 function onSpeakerChange() {
   state.chosenSpeaker = $("speaker").value;
+  noteChoice();
   updateControls();
 }
 
@@ -481,7 +500,8 @@ function updateControls() {
   $("speak").disabled =
     running || state.waiting || !voice || voice.state !== "downloaded" || n === 0 || over || noMatch;
   $("preview").disabled = noMatch;
-  $("stop").disabled = !running && !state.waiting && $("player").paused;
+  $("stop").disabled =
+    !running && !state.waiting && $("player").paused && sampler.paused && state.sampleAbort === null;
   $("save").disabled = !state.recording || running;
   if (over) {
     setStatus("Remove " + count(n - textLimit(), "character") + " to speak", "error");
@@ -652,6 +672,7 @@ function loadRecording(blob, name) {
 
 async function stop() {
   $("player").pause();
+  stopSample();
   if (state.waiting) {
     state.waiting = false;
     setStatus("Ready", "ready");
@@ -666,6 +687,133 @@ async function stop() {
   }
   updateControls();
 }
+
+// ---- Samples (voice labels design §5): recorded clips, played by a sampler that is not #player. A sample never
+// touches the recording: it comes through api() with the secret as a blob, plays from a blob URL, and is let go after.
+
+const sampler = new Audio();
+const SAMPLE_TIMEOUT_MS = 30000; // the server can't bound a slow fetch, so the page gives up on it here
+const FETCHING_SAMPLE = "Fetching the sample";
+const SAMPLE_TIMED_OUT = "could not fetch the sample: timed out";
+
+// Plays a voice's recorded clip: the default speaker's when `speaker` is null. Only the newest press plays: each
+// press takes a token, and a reply that comes after a later press, a voice or speaker change, or Stop is dropped.
+// Resolves false only when this press's clip could not be fetched or played (so ▶ Preview can speak it live), and
+// true when it plays or something later replaced it.
+async function playClip(voice, speaker, button) {
+  stopSample();
+  const token = state.sampleToken;
+  const controller = new AbortController();
+  state.sampleAbort = controller;
+  const timer = setTimeout(() => controller.abort(), SAMPLE_TIMEOUT_MS);
+  setStatus(FETCHING_SAMPLE, "busy");
+  updateControls();
+  let blob;
+  try {
+    let path = "/voices/" + encodeURIComponent(voice.id) + "/sample";
+    if (speaker !== null) {
+      path += "?speaker=" + encodeURIComponent(speaker);
+    }
+    const response = await api(path, { raw: true, signal: controller.signal });
+    blob = await response.blob(); // the time limit can land here too, after api() has answered
+  } catch (e) {
+    if (token !== state.sampleToken) {
+      return true;
+    }
+    state.sampleAbort = null;
+    setStatus(e.name === "AbortError" ? SAMPLE_TIMED_OUT : e.message, "error");
+    updateControls();
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (token !== state.sampleToken) {
+    return true;
+  }
+  state.sampleAbort = null;
+  state.sampleUrl = URL.createObjectURL(blob);
+  sampler.src = state.sampleUrl;
+  state.samplePlaying = { voice: voice.id, speaker };
+  state.sampleButton = button;
+  showSampleButtons();
+  $("player").pause();
+  try {
+    await sampler.play();
+  } catch (e) {
+    if (token !== state.sampleToken) {
+      return true; // stopped before it started
+    }
+    releaseSample();
+    setStatus("could not play the sample: " + e.message, "error");
+    updateControls();
+    return false;
+  }
+  if (token === state.sampleToken) {
+    setStatus("Ready", "ready");
+  }
+  updateControls();
+  return true;
+}
+
+// Stops a playing sample and drops a pending one: Stop, a voice or speaker change, #player starting, a new press.
+function stopSample() {
+  state.sampleToken += 1;
+  if (state.sampleAbort !== null) {
+    state.sampleAbort.abort();
+    state.sampleAbort = null;
+    if ($("status").textContent === FETCHING_SAMPLE) {
+      setStatus("Ready", "ready");
+    }
+  }
+  sampler.pause();
+  releaseSample();
+}
+
+// Lets go of the sampler's clip (its blob URL is revoked), and the button that started it reads ▶ again.
+function releaseSample() {
+  if (state.sampleUrl !== null) {
+    sampler.removeAttribute("src");
+    sampler.load();
+    URL.revokeObjectURL(state.sampleUrl);
+    state.sampleUrl = null;
+  }
+  state.samplePlaying = null;
+  state.sampleButton = null;
+  showSampleButtons();
+}
+
+// While its clip plays, the button that started it reads ■ Stop, and its name says what pressing it now does.
+function showSampleButtons() {
+  const name = (button, playing, text, label, stopLabel) => {
+    button.textContent = playing ? "■ Stop" : text;
+    button.setAttribute("aria-label", playing ? stopLabel : label);
+  };
+  name($("sample"), state.sampleButton === $("sample"), "▶ Sample", "Play a sample of this voice", "Stop the sample");
+  name($("preview"), state.sampleButton === $("preview"), "▶ Preview", "Preview this speaker", "Stop the preview");
+}
+
+// A different voice or speaker stops a playing sample and drops a pending one. A refresh that keeps both (a finished
+// download, a failed job) leaves a sample alone, and so does a filter change that keeps the chosen speaker.
+function noteChoice() {
+  const voice = currentVoice();
+  const choice = voice ? voice.id + "\n" + (selectedSpeaker(voice) ?? "") : "";
+  if (choice !== state.choice) {
+    state.choice = choice;
+    stopSample();
+  }
+}
+
+// ▶ Sample: the default speaker's recorded clip, before or after download; never spoken live.
+function onSampleClick() {
+  const voice = currentVoice();
+  if (state.sampleButton === $("sample")) {
+    stopSample();
+  } else if (voice && voice.has_sample) {
+    playClip(voice, null, $("sample"));
+  }
+}
+
+// ---- End of samples.
 
 // ---- Save: the window's Save dialog through the server (design B), or a download in the browser.
 
@@ -773,7 +921,11 @@ function wire() {
   });
   for (const event of ["play", "pause", "ended"]) {
     $("player").addEventListener(event, updateControls);
+    sampler.addEventListener(event, updateControls);
   }
+  $("player").addEventListener("play", stopSample); // a recording starting, or a finished Speak
+  sampler.addEventListener("ended", releaseSample);
+  $("sample").addEventListener("click", onSampleClick);
   window.addEventListener("beforeunload", (e) => {
     if (state.unsaved && !state.closed) {
       e.preventDefault();
