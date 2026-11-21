@@ -17,6 +17,7 @@ from pathlib import Path
 
 from bytestts import __version__
 from bytestts.api import BytesTTS
+from bytestts.catalog import details
 from bytestts.catalog.catalog import list_voices
 from bytestts.catalog.download import ensure_voice
 from bytestts.catalog.manifest import verify_package
@@ -155,10 +156,12 @@ def _voices(args: argparse.Namespace) -> int:
 
 
 def _speakers(args: argparse.Namespace) -> int:
-    """One speaker per line: the name, a tab, then "featured" for the shortlist. The shortlist comes first, in its
-    order, then the rest in the voice's order: the panel's order, so line 1 is the default speaker. A catalogue
-    voice is read from the shipped catalogue only, and a package from its verified voice.json: nothing is
-    downloaded and no model is loaded."""
+    """One speaker per line, in three tab-separated columns: the name; "featured" for the shortlist; and what the
+    voice's published sources say about the speaker (`Female, 22 · English (England), Southern England`), empty for
+    a package or a voice without details. The shortlist comes first, in its order, then the rest in the voice's
+    order: the panel's order, so line 1 is the default speaker. A catalogue voice is read from the shipped catalogue
+    only, and a package from its verified voice.json: nothing is downloaded and no model is loaded."""
+    described: dict[str, str] = {}
     if args.voice_path is not None:
         manifest = verify_package(args.voice_path)
         names, featured = manifest.speakers, manifest.featured
@@ -167,8 +170,12 @@ def _speakers(args: argparse.Namespace) -> int:
         if info is None:
             raise VoiceNotFound(f"unknown voice {args.voice}")
         names, featured = info.speakers, info.featured
+        if (d := details.load_details().voice(info.id)) is not None:
+            described = {name: p.describe() for name in names if (p := d.person(name)) is not None}
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
     for name in [*featured, *(s for s in names if s not in featured)]:
-        print(f"{name}\t{'featured' if name in featured else ''}")
+        line = f"{name}\t{'featured' if name in featured else ''}\t{described.get(name, '')}"
+        print(line.encode(encoding, errors="replace").decode(encoding))  # "?" for " · " on a narrow console
     return EXIT_OK
 
 

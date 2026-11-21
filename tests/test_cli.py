@@ -240,7 +240,7 @@ def test_speakers_lists_the_shortlist_first(
     voice = _tiny(speakers=["a", "b", "c"], featured=["c", "a"])
     monkeypatch.setattr(catalog, "load_catalog", lambda: {"tiny": voice})
     assert main(["speakers", "tiny"]) == 0
-    assert capsys.readouterr().out.splitlines() == ["c\tfeatured", "a\tfeatured", "b\t"]
+    assert capsys.readouterr().out.splitlines() == ["c\tfeatured\t", "a\tfeatured\t", "b\t\t"]
 
 
 def test_speakers_of_a_single_speaker_voice_prints_nothing(
@@ -271,7 +271,7 @@ def test_speakers_reads_a_package(tmp_path: Path, capsys: pytest.CaptureFixture[
     repin(package, "speakers.json")
     edit_json(package / "voice.json", lambda m: m.update(speakers=["a", "b"], featured=["b"]))
     assert main(["speakers", "--voice-path", str(package)]) == 0
-    assert capsys.readouterr().out.splitlines() == ["b\tfeatured", "a\t"]
+    assert capsys.readouterr().out.splitlines() == ["b\tfeatured\t", "a\t\t"]
     (package / "speakers.json").write_bytes(b'{"a": 1, "b": 0}')  # edited after it was pinned
     assert main(["speakers", "--voice-path", str(package)]) == 3
     captured = capsys.readouterr()
@@ -288,7 +288,24 @@ def test_speakers_needs_no_download(monkeypatch: pytest.MonkeyPatch, capsys: pyt
     monkeypatch.setattr(BytesTTS, "load", no)
     monkeypatch.setattr(BytesTTS, "load_path", no)
     assert main(["speakers", "tiny"]) == 0
-    assert capsys.readouterr().out.splitlines() == ["a\t"]
+    assert capsys.readouterr().out.splitlines() == ["a\t\t"]
+
+
+def test_speakers_describes_vctk_speakers(capsys: pytest.CaptureFixture[str]) -> None:  # the real catalogue and details
+    assert main(["speakers", "en-vctk"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == "p228\tfeatured\tFemale, 22 · English (England), Southern England"
+    assert next(line for line in lines if line.startswith("ED\t")).endswith("\tnot in the VCTK speaker table")
+    assert len(lines) == 109 and all(line.count("\t") == 2 for line in lines)
+
+
+def test_speakers_on_an_ascii_stdout(monkeypatch: pytest.MonkeyPatch) -> None:  # Review Focus 6
+    out = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="ascii"))
+    assert main(["speakers", "en-vctk"]) == 0
+    sys.stdout.flush()
+    first = out.getvalue().decode("ascii").splitlines()[0]
+    assert first == "p228\tfeatured\tFemale, 22 ? English (England), Southern England"
 
 
 def test_download_one_and_all(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
