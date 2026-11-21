@@ -19,13 +19,15 @@
   <section class="row" aria-label="Voice">
     <label for="voice">Voice</label>
     <select id="voice"></select>
-    <button id="sample" type="button" aria-label="Play a sample of this voice" hidden>▶ Sample</button>
-    <button id="download" type="button" hidden>Download</button>
-    <button id="repair" type="button" hidden>Repair</button>
-    <progress id="download-bar" max="1" value="0" aria-label="Download progress" hidden></progress>
-    <span id="download-text" class="quiet figures" hidden></span>
-    <button id="cancel" type="button" hidden>Cancel</button>
-    <button id="info" type="button" class="round" aria-label="About this voice">i</button>
+    <span class="actions">
+      <button id="sample" type="button" aria-label="Play a sample of this voice" hidden>▶ Sample</button>
+      <button id="download" type="button" hidden>Download</button>
+      <button id="repair" type="button" hidden>Repair</button>
+      <progress id="download-bar" max="1" value="0" aria-label="Download progress" hidden></progress>
+      <span id="download-text" class="quiet figures" hidden></span>
+      <button id="cancel" type="button" hidden>Cancel</button>
+      <button id="info" type="button" class="round" aria-label="About this voice">i</button>
+    </span>
   </section>
 
   <section class="row" id="filter-row" aria-label="Speaker filters" hidden>

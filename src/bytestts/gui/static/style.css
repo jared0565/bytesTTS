@@ -54,6 +54,8 @@ body {
 .masthead h1 { margin: 0; font-size: 1.35rem; font-weight: 650; letter-spacing: 0.01em; }
 
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+/* Controls that wrap as one: the Voice row's buttons, so (i) never sits alone on a line of its own. */
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 .gap { flex: 0 0 18px; }
 .quiet { color: var(--muted); font-size: 0.9rem; }
 .figures { font-variant-numeric: tabular-nums; }

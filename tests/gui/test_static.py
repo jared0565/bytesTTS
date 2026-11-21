@@ -360,3 +360,17 @@ def test_the_settled_status_follows_what_still_runs() -> None:
     for name in ("speak", "pollJob", "previewLive"):
         assert "setJobStatus(" in _function(script, name), name
     assert "setStatus(WAITING" in _function(script, "waitThenSpeak")
+
+
+def test_the_voice_actions_wrap_together() -> None:
+    """The Voice row's buttons and download progress sit in one group that wraps as a unit: at the window's minimum
+    size (i) used to wrap alone onto a second line."""
+    html = read("index.html")
+    start = html.index('<span class="actions">', html.index('aria-label="Voice"'))
+    group = html[start : html.index("</span>\n  </section>", start)]
+    order = [
+        group.index(f'id="{i}"') for i in ("sample", "download", "repair", "download-bar", "download-text", "cancel")
+    ]
+    assert order == sorted(order) and group.index('id="info"') > order[-1]
+    assert 'id="voice"' not in group
+    assert ".actions { display: flex; flex-wrap: wrap;" in read("style.css")
