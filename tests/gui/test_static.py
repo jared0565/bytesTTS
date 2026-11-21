@@ -212,7 +212,7 @@ def test_voice_change_clears_a_speaker_note() -> None:
     """ "Speaker is now p262: the filters hide p228" is about the voice being left: a voice change clears it."""
     change = _function(read("app.js"), "onVoiceChange")
     assert '$("status").textContent.startsWith("Speaker is now ")' in change
-    assert 'setStatus("Ready", "ready")' in change
+    assert "settleStatus();" in change  # Ready, or what a running task is doing
 
 
 def _samples(script: str) -> str:
@@ -315,7 +315,7 @@ def test_stopping_a_sample_never_leaves_it_fetching() -> None:
     """Stop, or a voice change, between a clip's arrival and its start finds no pending fetch: the status line must
     still leave "Fetching the sample", so that reset can't depend on a fetch being pending."""
     stop = _function(read("app.js"), "stopSample")
-    assert '\n  if ($("status").textContent === FETCHING_SAMPLE) {\n    setStatus("Ready", "ready");\n  }\n' in stop
+    assert '\n  if ($("status").textContent === FETCHING_SAMPLE) {\n    settleStatus();\n  }\n' in stop
 
 
 def test_status_lines_name_the_voice() -> None:
@@ -335,3 +335,28 @@ def test_recordings_are_named_by_voice_and_speaker() -> None:
     assert 'voice.name.split(" · ").join(" ")' in base and "speaker" in base
     assert "recordingBase(voice, request.speaker)" in _function(script, "speak")
     assert "recordingName(recordingBase)" in _function(script, "pollJob")
+
+
+def test_samples_hand_the_status_line_back() -> None:
+    """A sample that ends, or is stopped, puts back what a running task says instead of "Ready": a Sample pressed
+    during a download used to leave "Ready" while the download went on."""
+    script = read("app.js")
+    samples = _samples(script)
+    assert 'setStatus("Ready"' not in samples and samples.count("settleStatus();") >= 3
+    for name in ("onVoiceChange", "updateControls", "stop"):
+        assert 'setStatus("Ready"' not in _function(script, name), name
+        assert "settleStatus();" in _function(script, name), name
+
+
+def test_the_settled_status_follows_what_still_runs() -> None:
+    """settleStatus() shows a running job's status, else a waiting Speak's, else a download's, else Ready; each
+    task records its own line, so a job that ends during a download leaves the download's line, not its own."""
+    script = read("app.js")
+    settle = _function(script, "settleStatus")
+    order = [settle.index(s) for s in ("state.job !== null", "state.waiting", "state.downloading !== null", '"Ready"')]
+    assert order == sorted(order)
+    assert "state.jobStatus" in settle and "state.downloadStatus" in settle and "WAITING" in settle
+    assert "state.downloadStatus = " in _function(script, "startDownload")
+    for name in ("speak", "pollJob", "previewLive"):
+        assert "setJobStatus(" in _function(script, name), name
+    assert "setStatus(WAITING" in _function(script, "waitThenSpeak")

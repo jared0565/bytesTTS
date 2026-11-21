@@ -30,6 +30,8 @@ const state = {
   sampleButton: null, // the button whose clip plays: it reads ■ Stop
   jobKind: "speak", // "speak" or "preview": where a finished job's audio goes
   jobNote: null, // what a running job's status says instead of its sentence count
+  jobStatus: null, // the running job's last status line, for settleStatus()
+  downloadStatus: null, // the running download's status line, for settleStatus()
   preview: null, // {token, voice, speaker}: the running live Preview
   locked: false,
   closed: false,
@@ -215,7 +217,7 @@ function showVoice() {
 // refreshVoices() calls showVoice() instead, which keeps both (after a finished download or a failed job).
 function onVoiceChange() {
   if ($("status").textContent.startsWith("Speaker is now ")) {
-    setStatus("Ready", "ready"); // that note was about the voice being left
+    settleStatus(); // that note was about the voice being left
   }
   $("gender").value = "";
   $("accent").value = "";
@@ -375,7 +377,8 @@ async function startDownload() {
     $(id).hidden = false;
   }
   showVoice();
-  setStatus((voice.state === "needs-repair" ? "Repairing " : "Downloading ") + voice.name, "busy");
+  state.downloadStatus = (voice.state === "needs-repair" ? "Repairing " : "Downloading ") + voice.name;
+  setStatus(state.downloadStatus, "busy");
   pollDownload(voice.id);
 }
 
@@ -497,6 +500,28 @@ async function openTextFile() {
 
 // ---- Controls: what can be pressed right now.
 
+const WAITING = "Waiting for the running task to finish";
+
+// A running job's status line: shown, and kept for settleStatus().
+function setJobStatus(text) {
+  state.jobStatus = text;
+  setStatus(text, "busy");
+}
+
+// The status line once a sample, a stop or a note is done with it: what a running job, a waiting Speak or a
+// download is doing, in that order, else Ready. Before, a Sample pressed during a download left "Ready".
+function settleStatus() {
+  if (state.job !== null && state.jobStatus !== null) {
+    setStatus(state.jobStatus, "busy");
+  } else if (state.waiting) {
+    setStatus(WAITING, "busy");
+  } else if (state.downloading !== null && state.downloadStatus !== null) {
+    setStatus(state.downloadStatus, "busy");
+  } else {
+    setStatus("Ready", "ready");
+  }
+}
+
 function updateControls() {
   if (state.locked || state.closed) {
     return;
@@ -526,7 +551,7 @@ function updateControls() {
     state.overLimitShown = false;
   } else if (state.overLimitShown || (state.noMatchShown && $("status").textContent === NO_MATCH)) {
     state.overLimitShown = false;
-    setStatus("Ready", "ready");
+    settleStatus();
   }
   state.noMatchShown = noMatch;
 }
@@ -600,7 +625,7 @@ async function speak() {
     state.job = started.id;
     state.jobKind = "speak";
     state.jobNote = null;
-    setStatus("Generating: sentence 1", "busy");
+    setJobStatus("Generating: sentence 1");
     $("progress").textContent = "";
     updateControls();
     pollJob(started.id, recordingBase(voice, request.speaker));
@@ -618,7 +643,7 @@ async function speak() {
 async function waitThenSpeak() {
   if (!state.waiting) {
     state.waiting = true;
-    setStatus("Waiting for the running task to finish", "busy");
+    setStatus(WAITING, "busy");
     updateControls();
   }
   let s = null;
@@ -651,7 +676,7 @@ async function pollJob(id, recordingBase) {
     return;
   }
   if (s.state === "running") {
-    setStatus(state.jobNote || "Generating: sentence " + (s.sentences_done + 1), "busy");
+    setJobStatus(state.jobNote || "Generating: sentence " + (s.sentences_done + 1));
     setTimeout(() => pollJob(id, recordingBase), POLL_MS);
     return;
   }
@@ -702,7 +727,7 @@ async function stop() {
   stopSample();
   if (state.waiting) {
     state.waiting = false;
-    setStatus("Ready", "ready");
+    settleStatus();
   }
   if (state.job !== null) {
     try {
@@ -787,7 +812,7 @@ async function playBlob(blob, playing, button, token) {
     return false;
   }
   if (token === state.sampleToken) {
-    setStatus("Ready", "ready");
+    settleStatus();
   }
   updateControls();
   return true;
@@ -802,7 +827,7 @@ function stopSample() {
   }
   // Not only while a fetch is pending: also between a clip's arrival and its start.
   if ($("status").textContent === FETCHING_SAMPLE) {
-    setStatus("Ready", "ready");
+    settleStatus();
   }
   sampler.pause();
   releaseSample();
@@ -921,7 +946,7 @@ async function previewLive(voice, speaker, fellBack) {
     state.jobKind = "preview";
     state.jobNote = fellBack ? PREVIEW_FELL_BACK : null;
     state.preview = { token, voice: voice.id, speaker };
-    setStatus(state.jobNote || "Generating: sentence 1", "busy");
+    setJobStatus(state.jobNote || "Generating: sentence 1");
     updateControls();
     pollJob(started.id, recordingBase(voice, speaker)); // a Preview's audio is never a recording
   } catch (e) {
@@ -935,7 +960,7 @@ async function playPreview(blob) {
   const preview = state.preview;
   state.preview = null;
   if (preview === null || preview.token !== state.sampleToken) {
-    setStatus("Ready", "ready");
+    settleStatus();
     return;
   }
   await playBlob(blob, { voice: preview.voice, speaker: preview.speaker }, $("preview"), preview.token);
