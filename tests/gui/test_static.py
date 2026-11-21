@@ -309,3 +309,10 @@ def test_preview_job_has_its_kind() -> None:
     assert 'state.job = started.id;\n    state.jobKind = "speak";' in _function(script, "speak")
     assert 'state.job = started.id;\n    state.jobKind = "preview";' in _function(script, "previewLive")
     assert '$("preview").addEventListener("click", onPreviewClick)' in _function(script, "wire")
+
+
+def test_stopping_a_sample_never_leaves_it_fetching() -> None:
+    """Stop, or a voice change, between a clip's arrival and its start finds no pending fetch: the status line must
+    still leave "Fetching the sample", so that reset can't depend on a fetch being pending."""
+    stop = _function(read("app.js"), "stopSample")
+    assert '\n  if ($("status").textContent === FETCHING_SAMPLE) {\n    setStatus("Ready", "ready");\n  }\n' in stop

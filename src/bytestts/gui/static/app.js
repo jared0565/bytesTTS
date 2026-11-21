@@ -786,9 +786,10 @@ function stopSample() {
   if (state.sampleAbort !== null) {
     state.sampleAbort.abort();
     state.sampleAbort = null;
-    if ($("status").textContent === FETCHING_SAMPLE) {
-      setStatus("Ready", "ready");
-    }
+  }
+  // Not only while a fetch is pending: also between a clip's arrival and its start.
+  if ($("status").textContent === FETCHING_SAMPLE) {
+    setStatus("Ready", "ready");
   }
   sampler.pause();
   releaseSample();
