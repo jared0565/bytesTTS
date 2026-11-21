@@ -6,19 +6,23 @@ from pathlib import Path
 import onnxruntime
 import pytest
 from gui_helpers import (
+    CLIP_FILES,
     CODE,
     PORT,
     SECRET,
     TINY_SIZE,
+    BytesServer,
     FileServer,
     api_client,
     install,
     tiny_manifest,
     use_catalogue,
+    use_sample_details,
     wait_until,
 )
 from starlette.testclient import TestClient
 
+from bytestts.catalog import details, download
 from bytestts.errors import FrontendUnavailable
 from bytestts.gui.protection import CSP, JSON_BODY_CAP, LaunchCode
 from bytestts.gui.saving import SaveTickets
@@ -173,3 +177,53 @@ def test_api_errors_are_one_line_json() -> None:
     no_secret = TestClient(client.app, base_url=f"http://127.0.0.1:{PORT}")
     refused = no_secret.get("/api/status")
     assert refused.status_code == 401 and "\n" not in refused.json()["error"]
+
+
+def test_voices_carry_labels_and_filters(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    with BytesServer(CLIP_FILES) as server:
+        use_sample_details(monkeypatch, tmp_path, server.url_base)
+        voices = {v["id"]: v for v in panel().get("/api/voices").json()}
+        assert sum(server.hits.values()) == 0  # listing the voices fetches no clip
+    three, tiny = voices["three"], voices["tiny"]
+    assert three["speakers"] == ["b", "a", "c"]  # unchanged: featured first
+    assert three["label"] == "English · Test · 3 speakers, 2 accents"
+    assert (three["sample_text"], three["has_sample"], three["reader_label"]) == ("Hello.", True, None)
+    assert (three["featured"], three["speakers_with_samples"]) == (["b"], ["b", "a"])
+    assert three["speaker_info"] == {
+        "a": {"label": "a · Female, 30 · Scottish", "gender": "Female", "accent": "Scottish"},
+        "b": {"label": "b · Male, 40 · Welsh, Cardiff", "gender": "Male", "accent": "Welsh"},
+        "c": {"label": "c · no clip", "gender": None, "accent": None},
+    }
+    assert (tiny["label"], tiny["has_sample"], tiny["reader_label"]) == (
+        "English · Reader · 1 speaker",
+        True,
+        "Reader · Female",
+    )
+    assert (tiny["speaker_info"], tiny["featured"], tiny["speakers_with_samples"]) == ({}, [], [])
+
+
+def test_voice_without_details_falls_back_to_its_id(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    with BytesServer(CLIP_FILES) as server:
+        use_sample_details(monkeypatch, tmp_path, server.url_base)
+        bare = {v["id"]: v for v in panel().get("/api/voices").json()}["bare"]
+    assert (bare["label"], bare["has_sample"], bare["reader_label"], bare["speakers_with_samples"]) == (
+        "bare",
+        False,
+        None,
+        [],
+    )
+    assert bare["speaker_info"] == {"z": {"label": "z", "gender": None, "accent": None}}
+    assert bare["sample_text"] == "Hello."  # the language's sentence: a live Preview still works once downloaded
+
+
+def test_voices_fetch_no_clip(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # Review Focus 5
+    def no_network(*args: object, **kwargs: object) -> None:
+        raise OSError("no network")
+
+    monkeypatch.setattr(download, "download_file", no_network)
+    monkeypatch.setattr(details, "download_file", no_network)
+    with BytesServer(CLIP_FILES) as server:
+        use_sample_details(monkeypatch, tmp_path, server.url_base)
+        reply = panel().get("/api/voices")
+        assert reply.status_code == 200 and len(reply.json()) == 3
+        assert sum(server.hits.values()) == 0

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 """Shared helpers for the control panel tests (tests/gui/). Imported as `gui_helpers` (pythonpath = tests)."""
 
+import hashlib
 import shutil
 import threading
 import time
@@ -15,8 +16,9 @@ import pytest
 from helpers import TINY
 from starlette.testclient import TestClient
 
-from bytestts.catalog import catalog
+from bytestts.catalog import catalog, details
 from bytestts.catalog.cache import voice_dir
+from bytestts.catalog.details import Details, Person, VoiceDetails
 from bytestts.catalog.manifest import FileEntry, VoiceManifest, safe_name
 
 PORT = 8765
@@ -52,6 +54,34 @@ def install(m: VoiceManifest) -> Path:
     for name in TINY_FILES:
         shutil.copyfile(TINY / name, d / safe_name(name))
     return d
+
+
+CLIPS = {"a": b"RIFF-a" * 100, "b": b"RIFF-b" * 100, "reader": b"RIFF-r" * 100}
+CLIP_FILES = {f"{name}.wav": data for name, data in CLIPS.items()}  # for a BytesServer
+
+
+def use_sample_details(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, url_base: str) -> None:
+    """A catalogue of `three` (speakers a, b, c; b featured; c without a clip), `tiny` (no speakers: a reader with a
+    clip) and `bare` (speaker z, no details), with details whose clips are on a BytesServer at `url_base`."""
+
+    def clip(name: str) -> FileEntry:
+        return FileEntry(hashlib.sha256(CLIPS[name]).hexdigest(), len(CLIPS[name]), f"{url_base}/{name}.wav")
+
+    use_catalogue(
+        monkeypatch,
+        tmp_path,
+        {
+            "three": tiny_manifest(id="three", speakers=["a", "b", "c"], featured=["b"]),
+            "tiny": tiny_manifest(),
+            "bare": tiny_manifest(id="bare", speakers=["z"]),
+        },
+    )
+    a = Person("Female", 30, "Scottish", sample=clip("a"))
+    b = Person("Male", 40, "Welsh", "Cardiff", sample=clip("b"))
+    three = VoiceDetails("English", "Test", {"a": a, "b": b, "c": Person(note="no clip")}, None)
+    reader = VoiceDetails("English", "Reader", None, Person("Female", sample=clip("reader")))
+    found = Details({"en": "Hello."}, {"three": three, "tiny": reader})
+    monkeypatch.setattr(details, "load_details", lambda: found)
 
 
 def wait_until(predicate: Callable[[], bool], timeout: float = 10.0) -> None:

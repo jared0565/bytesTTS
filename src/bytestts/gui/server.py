@@ -23,9 +23,9 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
 from bytestts import __version__
-from bytestts.catalog import catalog
+from bytestts.catalog import catalog, details
 from bytestts.catalog.catalog import VoiceInfo
-from bytestts.errors import FrontendUnavailable, VoiceNotFound
+from bytestts.errors import FrontendUnavailable, IntegrityError, VoiceNotFound
 from bytestts.gui import jobs as jobs_module
 from bytestts.gui import saving
 from bytestts.gui.downloads import Downloads, DownloadStatus
@@ -95,17 +95,34 @@ def _error(status: int, message: str) -> JSONResponse:
     return JSONResponse({"error": one_line(Exception(message))}, status_code=status)
 
 
-def _voice_json(v: VoiceInfo, state: str) -> dict[str, Any]:
+def _voice_json(v: VoiceInfo, state: str, found: details.Details) -> dict[str, Any]:
+    """A voice for the page, with its labels and filter facts from details.json (voice labels design §6.4)."""
+    d = found.voice(v.id)
+    speakers = [*v.featured, *(s for s in v.speakers if s not in v.featured)]
+    people = {s: d.person(s) if d else None for s in speakers}
+    default = (people.get(v.default_speaker) if v.default_speaker else d.reader) if d else None
     return {
         "id": v.id,
         "language": v.language,
-        "speakers": [*v.featured, *(s for s in v.speakers if s not in v.featured)],
+        "speakers": speakers,
         "licence": v.licence,
         "data_licence": v.data_licence,
         "attribution": v.attribution,
         "sample_rate": v.sample_rate,
         "size_bytes": v.size_bytes,
         "state": state,
+        "label": details.voice_label(v.id, v.speakers, d),
+        "sample_text": found.sentence(v.language),
+        "has_sample": default is not None and default.sample is not None,
+        "speaker_info": {
+            s: {"label": p.label(s), "gender": p.gender, "accent": p.accent}
+            if p
+            else {"label": s, "gender": None, "accent": None}
+            for s, p in people.items()
+        },
+        "reader_label": d.reader_label() if d else None,
+        "featured": list(v.featured),
+        "speakers_with_samples": [s for s, p in people.items() if p is not None and p.sample is not None],
     }
 
 
@@ -217,7 +234,39 @@ def create_app(
 
     @app.get("/api/voices")
     def voices() -> list[dict[str, Any]]:
-        return [_voice_json(v, downloads.state(v.id)) for v in catalog.list_voices()]
+        found = details.load_details()  # labels only: no clip is fetched here
+        return [_voice_json(v, downloads.state(v.id), found) for v in catalog.list_voices()]
+
+    @app.get("/api/voices/{voice_id}/sample")
+    def voice_sample(voice_id: str, request: Request) -> Response:
+        """A voice's recorded clip, or one speaker's (voice labels design §6.4). The voice and the speaker are looked
+        up in the catalogue and the details, never used to build a path; the clip comes from the cache by its hash."""
+        query = request.query_params.multi_items()  # the framework would ignore unknown or repeated parameters
+        if len(query) > 1 or any(key != "speaker" for key, _ in query):
+            return _error(400, "the sample request takes only a speaker")
+        manifest = catalog.load_catalog().get(voice_id)
+        if manifest is None:
+            return _error(404, f"no sample for voice {voice_id}")
+        d = details.load_details().voice(voice_id)
+        if query:
+            speaker = query[0][1]
+            if not manifest.speakers:
+                return _error(400, f"voice {voice_id} has no speakers")
+            if speaker not in manifest.speakers:
+                return _error(404, f"speaker {speaker} is not in voice {voice_id}")
+            person = d.person(speaker) if d else None
+            if person is None or person.sample is None:
+                return _error(404, f"no sample for speaker {speaker} in voice {voice_id}")
+        else:
+            default = VoiceInfo.from_manifest(manifest).default_speaker
+            person = (d.person(default) if default else d.reader) if d else None
+            if person is None or person.sample is None:
+                return _error(404, f"no sample for voice {voice_id}")
+        try:
+            clip = details.sample_bytes(person.sample)
+        except (IntegrityError, OSError, ValueError) as e:  # OSError covers requests' errors and TimeoutError
+            return _error(502, f"could not fetch the sample: {one_line(e)}")
+        return Response(clip, media_type="audio/wav")
 
     @app.post("/api/voices/{voice_id}/download", status_code=202)
     def start_download(voice_id: str) -> Any:
