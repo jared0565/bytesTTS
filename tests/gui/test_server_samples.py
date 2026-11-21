@@ -8,6 +8,7 @@ import pytest
 from gui_helpers import CLIP_FILES, CLIPS, CODE, PORT, SECRET, BytesServer, api_client, use_sample_details
 from starlette.testclient import TestClient
 
+from bytestts.catalog import details
 from bytestts.gui.protection import LaunchCode
 from bytestts.gui.saving import SaveTickets
 from bytestts.gui.server import create_app
@@ -74,3 +75,13 @@ def test_sample_fetch_failure_is_one_line(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert reply.status_code == 502
     error = reply.json()["error"]
     assert error.startswith("could not fetch the sample: ") and "\n" not in error
+
+
+def test_a_stalled_clip_says_timed_out(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """The server gives up before the page does, so its reply is what the page shows: the same `timed out` as the
+    page's own limit, not requests' wording with the host and port."""
+    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.5)  # 25 s in use
+    with BytesServer(CLIP_FILES) as s:
+        use_sample_details(monkeypatch, tmp_path, s.url_base + "/stall")
+        reply = api_client(_app()).get("/api/voices/three/sample?speaker=a")
+    assert (reply.status_code, reply.json()["error"]) == (502, "could not fetch the sample: timed out")

@@ -22,6 +22,8 @@ from importlib import resources
 from types import MappingProxyType
 from typing import Any, NoReturn
 
+import requests
+
 from bytestts.catalog.cache import cache_root
 from bytestts.catalog.catalog import _PINNED_URL
 from bytestts.catalog.download import download_file
@@ -212,13 +214,29 @@ def load_details() -> Details:
     return parse_details(resources.files("bytestts.catalog").joinpath("details.json").read_bytes())
 
 
+def _timed_out(error: BaseException) -> bool:
+    """A time-out anywhere in `error`'s chain. requests wraps the socket's TimeoutError in errors of its own, worded
+    with the host and port ("HTTPConnectionPool(...): Read timed out."), and a read time-out while streaming the body
+    is even a ConnectionError."""
+    todo, seen = [error], set()
+    while todo:
+        e = todo.pop()
+        if id(e) in seen:
+            continue
+        seen.add(id(e))
+        if isinstance(e, TimeoutError | requests.Timeout):
+            return True
+        todo += [c for c in (e.__cause__, e.__context__) if c is not None]
+    return False
+
+
 def sample_bytes(entry: FileEntry) -> bytes:
     """A sample clip's pinned bytes, from the cache under `samples/` when it holds them, else fetched first.
 
     One fetch per clip at a time: a second request for the same clip waits for the first. A request takes at most
-    SAMPLE_BUDGET_S in all, waiting included, then raises TimeoutError("timed out") (or requests' own time-out, also
-    an OSError). The bytes returned are read once and checked against the pin, so a cached file changed after the
-    check is fetched again rather than sent.
+    SAMPLE_BUDGET_S in all, waiting included. Any time-out raises TimeoutError("timed out"), the page's own wording,
+    whatever requests called it. The bytes returned are read once and checked against the pin, so a cached file
+    changed after the check is fetched again rather than sent.
     """
     if entry.url is None or not _SHA256.fullmatch(entry.sha256):  # the sha256 names the cached file
         raise IntegrityError("a sample needs a url and a sha256 of 64 lowercase hex digits")
@@ -230,9 +248,14 @@ def sample_bytes(entry: FileEntry) -> bytes:
     try:
         path = cache_root() / "samples" / f"{entry.sha256}.wav"
         for _ in range(2):
-            download_file(
-                entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT, deadline=deadline
-            )
+            try:
+                download_file(
+                    entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT, deadline=deadline
+                )
+            except OSError as e:
+                if _timed_out(e):
+                    raise TimeoutError("timed out") from e
+                raise
             with path.open("rb") as f:
                 data = f.read(entry.size + 1)
             if len(data) == entry.size and hashlib.sha256(data).hexdigest() == entry.sha256:

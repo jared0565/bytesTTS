@@ -433,7 +433,8 @@ def test_a_stalled_clip_gives_up_within_the_budget(home: Path, monkeypatch: pyte
     monkeypatch.setattr(details, "SAMPLE_TIMEOUT", (10.0, 5.0))  # without the budget, the 5 s read limit governs
     with BytesServer({"a.wav": CLIP_BYTES}) as server:
         start = time.monotonic()
-        with pytest.raises(OSError):  # TimeoutError or requests' read time-out: both end as the route's one-line 502
+        # exactly "timed out", the page's own wording: not requests' "HTTPConnectionPool(...): Read timed out."
+        with pytest.raises(TimeoutError, match=r"^timed out$"):
             details.sample_bytes(_entry(server, "stall/a.wav"))
         assert time.monotonic() - start < 2
 
