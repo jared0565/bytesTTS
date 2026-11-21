@@ -414,14 +414,17 @@ def test_same_clip_at_once_is_fetched_once(home: Path) -> None:
         assert server.hits["/stall/a.wav"] == 1
 
 
-def test_a_stalled_clip_does_not_hold_up_another(home: Path) -> None:
+def test_a_stalled_clip_does_not_hold_up_another(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The other clip arrives while the stalled one still waits. The proof is that the stalled fetch is still running
+    when the other returns, not a time limit: a busy CI runner once took 6 s for the other clip."""
+    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 60.0)  # the stalled fetch waits for the server's 30 s release
+    monkeypatch.setattr(details, "SAMPLE_TIMEOUT", (10.0, 60.0))
     with BytesServer({"a.wav": CLIP_BYTES, "b.wav": OTHER_BYTES}) as server:
         stalled = threading.Thread(target=details.sample_bytes, args=(_entry(server, "stall/a.wav"),), daemon=True)
         stalled.start()
         wait_until(lambda: server.hits["/stall/a.wav"] == 1)
-        start = time.monotonic()
         assert details.sample_bytes(_entry(server, "b.wav", OTHER_BYTES)) == OTHER_BYTES
-        assert time.monotonic() - start < 2
+        assert stalled.is_alive()  # still stalled: had the other clip waited for it, it would have ended first
         server.release.set()
         stalled.join(10)
 
