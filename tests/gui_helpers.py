@@ -147,12 +147,14 @@ class FileServer:
 
 class BytesServer:
     """Serves `files` (path -> bytes) on 127.0.0.1 at `/<path>`. `/stall/<path>` sends the headers, then no body
-    until `release` is set. Anything else is 404. `hits` counts requests per path, as the client asked for it."""
+    until `release` is set; `/trickle/<path>` sends the body a byte every `trickle_s` seconds until `release` is set.
+    Anything else is 404. `hits` counts requests per path, as the client asked for it."""
 
     def __init__(self, files: dict[str, bytes]) -> None:
         self.files = files
         self.hits: Counter[str] = Counter()
         self.release = threading.Event()
+        self.trickle_s = 0.1
         server = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -162,7 +164,8 @@ class BytesServer:
             def do_GET(self) -> None:
                 server.hits[self.path] += 1
                 stall = self.path.startswith("/stall/")
-                body = server.files.get(self.path.removeprefix("/stall/").lstrip("/"))
+                trickle = self.path.startswith("/trickle/")
+                body = server.files.get(self.path.removeprefix("/stall/").removeprefix("/trickle/").lstrip("/"))
                 if body is None:
                     self.send_error(404)
                     return
@@ -174,6 +177,13 @@ class BytesServer:
                     self.wfile.flush()
                     if stall:
                         server.release.wait(30)
+                    if trickle:  # each byte well inside any read time-out; released, the body ends short
+                        for i in range(len(body)):
+                            if server.release.wait(server.trickle_s):
+                                return
+                            self.wfile.write(body[i : i + 1])
+                            self.wfile.flush()
+                        return
                     self.wfile.write(body)
                 except OSError:
                     pass  # the client gave up first

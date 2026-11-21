@@ -429,7 +429,7 @@ def test_a_stalled_clip_does_not_hold_up_another(home: Path) -> None:
 def test_a_stalled_clip_gives_up_within_the_budget(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The server stops working on a clip before the page gives up on it (30 s), so a stalled fetch never holds a
     worker after its request has ended."""
-    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.5)  # 25 s in use
+    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.5)  # 15 s in use
     monkeypatch.setattr(details, "SAMPLE_TIMEOUT", (10.0, 5.0))  # without the budget, the 5 s read limit governs
     with BytesServer({"a.wav": CLIP_BYTES}) as server:
         start = time.monotonic()
@@ -439,11 +439,40 @@ def test_a_stalled_clip_gives_up_within_the_budget(home: Path, monkeypatch: pyte
         assert time.monotonic() - start < 2
 
 
+@pytest.mark.parametrize("interval", [0.1, 0.25])
+def test_a_trickling_clip_gives_up_within_the_budget(
+    home: Path, monkeypatch: pytest.MonkeyPatch, interval: float
+) -> None:
+    """A body sent a byte at a time keeps every read inside the read time-out, and is still cut off at the budget plus
+    one read time-out at most: reading whole chunks would wait for each chunk to fill."""
+    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.5)  # 15 s in use
+    monkeypatch.setattr(details, "SAMPLE_TIMEOUT", (5.0, 0.3))  # (10, 10) in use: at most 0.8 s here, 25 s in use
+    outcome: list[object] = []
+
+    def fetch(entry: FileEntry) -> None:
+        try:
+            outcome.append(details.sample_bytes(entry))
+        except Exception as e:  # the outcome is asserted below
+            outcome.append(e)
+
+    with BytesServer({"a.wav": CLIP_BYTES}) as server:
+        server.trickle_s = interval
+        start = time.monotonic()
+        worker = threading.Thread(target=fetch, args=(_entry(server, "trickle/a.wav"),), daemon=True)
+        worker.start()
+        worker.join(3)
+        took = time.monotonic() - start
+        server.release.set()
+        worker.join(10)
+    assert took < 0.95, f"{took:.2f} s for a 0.5 s budget and a 0.3 s read time-out"
+    assert len(outcome) == 1 and isinstance(outcome[0], TimeoutError) and str(outcome[0]) == "timed out", outcome
+
+
 def test_waiting_for_a_stalled_clip_gives_up(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     with BytesServer({"a.wav": CLIP_BYTES}) as server:
         entry = _entry(server, "stall/a.wav")
         first = threading.Thread(target=details.sample_bytes, args=(entry,), daemon=True)
-        first.start()  # with the 25 s budget: it holds the clip's lock until the server lets go
+        first.start()  # with the 15 s budget: it holds the clip's lock until the server lets go
         wait_until(lambda: server.hits["/stall/a.wav"] == 1)
         monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.2)  # the second request's budget, spent waiting
         start = time.monotonic()

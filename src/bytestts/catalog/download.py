@@ -19,7 +19,7 @@ import os
 import re
 import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import BinaryIO
 from urllib.parse import urljoin, urlsplit
@@ -101,6 +101,42 @@ def _replace_into(part: Path, dest: Path, already_right: Callable[[], bool]) -> 
             time.sleep(0.01 * (attempt + 1))
 
 
+def _timed_out(error: BaseException) -> bool:
+    """A time-out anywhere in `error`'s chain: requests and urllib3 wrap the socket's TimeoutError in errors of their
+    own, worded with the host and port, and a read time-out in the body is even a ConnectionError."""
+    todo, seen = [error], set()
+    while todo:
+        e = todo.pop()
+        if id(e) in seen:
+            continue
+        seen.add(id(e))
+        if isinstance(e, TimeoutError | requests.Timeout):
+            return True
+        todo += [c for c in (e.__cause__, e.__context__) if c is not None]
+    return False
+
+
+def _arriving(r: requests.Response, deadline: float) -> Iterator[bytes]:
+    """The body as it arrives, one socket read at a time, checking the deadline before each: a body that trickles in
+    a byte at a time still stops at the deadline. (iter_content reads whole chunks, and a chunk waits to fill, every
+    read inside the read time-out.) A read started before the deadline may still wait its read time-out. urllib3's
+    own errors, which are not OSErrors, are raised as requests raises them."""
+    while True:
+        if time.monotonic() >= deadline:
+            raise TimeoutError("timed out")
+        try:
+            piece = r.raw.read1(_CHUNK, decode_content=True)
+        except OSError:
+            raise
+        except Exception as e:  # urllib3's HTTPError family: a read time-out, a short body
+            if _timed_out(e):
+                raise TimeoutError("timed out") from e
+            raise requests.ConnectionError(e) from e
+        if not piece:
+            return
+        yield piece
+
+
 def _fetch(
     url: str,
     out: BinaryIO,
@@ -129,9 +165,7 @@ def _fetch(
                 if announced.isdigit() and int(announced) > size:
                     raise IntegrityError(f"{url} announces {announced} bytes, more than the pinned {size}")
                 done = 0
-                for chunk in r.iter_content(_CHUNK):
-                    if deadline is not None and time.monotonic() > deadline:
-                        raise TimeoutError("timed out")  # a slow trickle, each read inside the read time-out
+                for chunk in r.iter_content(_CHUNK) if deadline is None else _arriving(r, deadline):
                     done += len(chunk)
                     if done > size:
                         raise IntegrityError(f"{url} sent more than the pinned {size} bytes")
@@ -154,8 +188,11 @@ def download_file(
 ) -> Path:
     """`dest`, holding exactly the pinned bytes: reused if it already does, else downloaded and verified.
 
-    `deadline` (a `time.monotonic()` value) bounds the whole download: no request waits past it, and a download
-    still running then stops with TimeoutError("timed out"), leaving nothing behind."""
+    `deadline` (a `time.monotonic()` value) bounds the whole download, leaving nothing behind when it passes: each
+    request's connect and read time-outs are capped at the time left when it starts, no request starts after it, and
+    the body is read as it arrives and stopped at the first read that ends after it. So a download ends by the
+    deadline plus one read time-out at most. With a deadline every time-out raises TimeoutError("timed out"),
+    whatever requests called it."""
     dest = Path(dest)
     _check_url(url)
     if _verified(dest, sha256, size):
@@ -165,7 +202,12 @@ def download_file(
     part = Path(name)
     try:
         with os.fdopen(fd, "wb") as out:
-            _fetch(url, out, size=size, timeout=timeout, progress=progress, deadline=deadline)
+            try:
+                _fetch(url, out, size=size, timeout=timeout, progress=progress, deadline=deadline)
+            except OSError as e:
+                if deadline is not None and _timed_out(e):
+                    raise TimeoutError("timed out") from e
+                raise
         if not _verified(part, sha256, size):
             raise IntegrityError(f"{dest.name}: the download does not match its pinned size and sha256")
         _replace_into(part, dest, lambda: _verified(dest, sha256, size))

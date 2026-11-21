@@ -22,8 +22,6 @@ from importlib import resources
 from types import MappingProxyType
 from typing import Any, NoReturn
 
-import requests
-
 from bytestts.catalog.cache import cache_root
 from bytestts.catalog.catalog import _PINNED_URL
 from bytestts.catalog.download import download_file
@@ -46,10 +44,11 @@ _VOICE_KEYS = frozenset(("language_name", "dataset", "speakers", "reader"))
 _TOP_KEYS = frozenset(("sentences", "voices"))
 
 # Read when sample_bytes runs, not bound as defaults, so tests can shorten them.
-SAMPLE_TIMEOUT: tuple[float, float] = (10.0, 30.0)  # connect, read: each capped by the budget below
-# One sample request's whole time, waiting for another request's fetch of the same clip included. Under the page's
-# 30 s limit, so the server has stopped working on a clip by the time the page gives up on it.
-SAMPLE_BUDGET_S: float = 25.0
+# A sample request's time, waiting for another request's fetch of the same clip included. A read started before the
+# budget runs out may still wait its read time-out, so a request ends within 15 + 10 = 25 s: under the page's 30 s
+# limit, so the server has stopped working on a clip by the time the page gives up on it.
+SAMPLE_BUDGET_S: float = 15.0
+SAMPLE_TIMEOUT: tuple[float, float] = (10.0, 10.0)  # connect, read: each capped at the budget left
 _clip_locks: dict[str, threading.Lock] = {}  # one per clip (by sha256), so a stalled clip holds up only itself
 _clip_locks_guard = threading.Lock()
 
@@ -214,29 +213,14 @@ def load_details() -> Details:
     return parse_details(resources.files("bytestts.catalog").joinpath("details.json").read_bytes())
 
 
-def _timed_out(error: BaseException) -> bool:
-    """A time-out anywhere in `error`'s chain. requests wraps the socket's TimeoutError in errors of its own, worded
-    with the host and port ("HTTPConnectionPool(...): Read timed out."), and a read time-out while streaming the body
-    is even a ConnectionError."""
-    todo, seen = [error], set()
-    while todo:
-        e = todo.pop()
-        if id(e) in seen:
-            continue
-        seen.add(id(e))
-        if isinstance(e, TimeoutError | requests.Timeout):
-            return True
-        todo += [c for c in (e.__cause__, e.__context__) if c is not None]
-    return False
-
-
 def sample_bytes(entry: FileEntry) -> bytes:
     """A sample clip's pinned bytes, from the cache under `samples/` when it holds them, else fetched first.
 
-    One fetch per clip at a time: a second request for the same clip waits for the first. A request takes at most
-    SAMPLE_BUDGET_S in all, waiting included. Any time-out raises TimeoutError("timed out"), the page's own wording,
-    whatever requests called it. The bytes returned are read once and checked against the pin, so a cached file
-    changed after the check is fetched again rather than sent.
+    One fetch per clip at a time: a second request for the same clip waits for the first. A request gives up once
+    SAMPLE_BUDGET_S has passed, waiting included, a body trickling in included, and ends within SAMPLE_BUDGET_S plus
+    one read time-out. Any time-out raises TimeoutError("timed out"), the page's own wording, whatever requests
+    called it. The bytes returned are read
+    once and checked against the pin, so a cached file changed after the check is fetched again rather than sent.
     """
     if entry.url is None or not _SHA256.fullmatch(entry.sha256):  # the sha256 names the cached file
         raise IntegrityError("a sample needs a url and a sha256 of 64 lowercase hex digits")
@@ -248,14 +232,9 @@ def sample_bytes(entry: FileEntry) -> bytes:
     try:
         path = cache_root() / "samples" / f"{entry.sha256}.wav"
         for _ in range(2):
-            try:
-                download_file(
-                    entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT, deadline=deadline
-                )
-            except OSError as e:
-                if _timed_out(e):
-                    raise TimeoutError("timed out") from e
-                raise
+            download_file(
+                entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT, deadline=deadline
+            )
             with path.open("rb") as f:
                 data = f.read(entry.size + 1)
             if len(data) == entry.size and hashlib.sha256(data).hexdigest() == entry.sha256:

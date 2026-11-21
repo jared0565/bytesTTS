@@ -150,6 +150,31 @@ def test_truncated_response_leaves_nothing(server: Server, tmp_path: Path) -> No
     assert leftovers(tmp_path) == []
 
 
+@pytest.mark.parametrize("path", ["f", "truncated", "huge-unannounced"])
+def test_with_a_deadline_the_body_follows_the_same_rules(server: Server, tmp_path: Path, path: str) -> None:
+    """With a deadline the body is read as it arrives (so a trickle stops at the deadline), under the same rules:
+    the pinned bytes are kept; a short or oversized body is refused as IntegrityError or an OSError, never as
+    urllib3's own errors (the panel's sample route answers those with a 502), and leaves nothing."""
+    deadline = time.monotonic() + 30
+    if path == "f":
+        assert (
+            sha256_file(download_file(server.url(path), tmp_path / "f", sha256=SHA, size=N, deadline=deadline)) == SHA
+        )
+        return
+    read: list[int] = []
+    with pytest.raises((IntegrityError, OSError)):
+        download_file(
+            server.url(path),
+            tmp_path / "f",
+            sha256=SHA,
+            size=N,
+            deadline=deadline,
+            progress=lambda d, _: read.append(d),
+        )
+    assert max(read, default=0) <= N
+    assert leftovers(tmp_path) == []
+
+
 @pytest.mark.parametrize("path", ["huge", "huge-unannounced"])
 def test_oversized_body_aborted(server: Server, tmp_path: Path, path: str, monkeypatch: pytest.MonkeyPatch) -> None:
     read: list[int] = []

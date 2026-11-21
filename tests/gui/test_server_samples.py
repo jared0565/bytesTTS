@@ -80,7 +80,7 @@ def test_sample_fetch_failure_is_one_line(monkeypatch: pytest.MonkeyPatch, tmp_p
 def test_a_stalled_clip_says_timed_out(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """The server gives up before the page does, so its reply is what the page shows: the same `timed out` as the
     page's own limit, not requests' wording with the host and port."""
-    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.5)  # 25 s in use
+    monkeypatch.setattr(details, "SAMPLE_BUDGET_S", 0.5)  # 15 s in use
     with BytesServer(CLIP_FILES) as s:
         use_sample_details(monkeypatch, tmp_path, s.url_base + "/stall")
         reply = api_client(_app()).get("/api/voices/three/sample?speaker=a")
