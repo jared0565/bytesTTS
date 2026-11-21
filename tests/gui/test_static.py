@@ -128,3 +128,18 @@ def test_replace_question_exists() -> None:
     assert '$("speak").addEventListener("click", onSpeakClick)' in script
     assert '$("speak").addEventListener("click", speak)' not in script
     assert '$("replace-dialog").returnValue = ""' in script  # Esc keeps the last choice: clear it before asking
+
+
+def test_job_stays_running_until_its_audio_is_fetched() -> None:  # Review Focus 3
+    """Between a job's last poll and its audio arriving, Speak stays locked: a second press there would start a job
+    whose recording the first one's then overwrites."""
+    script = read("app.js")
+    poll = script[script.index("async function pollJob(") : script.index("\nfunction loadRecording(")]
+    fetch = poll.index('api("/jobs/" + id + "/audio"')
+    assert "state.fetchingAudio = true;" in poll[:fetch]
+    assert poll.rindex("state.fetchingAudio = true;", 0, fetch) > poll.index("state.job = null;\n  if (s.state")
+    after = poll[fetch:]
+    assert "finally {" in after and "state.fetchingAudio = false;" in after[after.index("finally {") :]
+    controls = script[script.index("function updateControls(") : script.index("\nfunction applyStatus(")]
+    assert "const running = state.job !== null || state.fetchingAudio;" in controls
+    assert "fetchingAudio: false," in script[: script.index("};")]  # declared in the state object

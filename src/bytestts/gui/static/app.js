@@ -14,6 +14,7 @@ const state = {
   status: null, // GET /api/status
   voices: [], // GET /api/voices
   job: null, // the running job's id
+  fetchingAudio: false, // a finished job's audio is on its way: until then the job still counts as running
   waiting: false, // a Speak queued behind another CPU task
   downloading: null, // the voice being downloaded
   recording: null, // {blob, url, name}
@@ -329,7 +330,7 @@ function updateControls() {
   const voice = currentVoice();
   const n = textLength();
   const over = n > textLimit();
-  const running = state.job !== null;
+  const running = state.job !== null || state.fetchingAudio;
   $("speak").disabled = running || state.waiting || !voice || voice.state !== "downloaded" || n === 0 || over;
   $("stop").disabled = !running && !state.waiting && $("player").paused;
   $("save").disabled = !state.recording || running;
@@ -463,6 +464,8 @@ async function pollJob(id, voiceId) {
     updateControls();
     return;
   }
+  // The server keeps only the newest job's audio, so a job started before this fetch ends would lose it.
+  state.fetchingAudio = true;
   try {
     const response = await api("/jobs/" + id + "/audio", { raw: true });
     loadRecording(await response.blob(), recordingName(voiceId));
@@ -471,6 +474,8 @@ async function pollJob(id, voiceId) {
     $("player").play().catch(() => {});
   } catch (e) {
     setStatus(e.message, "error");
+  } finally {
+    state.fetchingAudio = false;
   }
   updateControls();
 }
