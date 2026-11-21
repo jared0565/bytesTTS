@@ -23,6 +23,8 @@ All notable changes to BytesTTS are recorded here. The format follows
 
 ### Fixed
 
+- In the control panel, Speak stays disabled until a finished recording has been fetched. Before, pressing Speak
+  in that moment started a new job that replaced the server's copy, and the recording was lost.
 - The control panel's reply to an unexpected server error carries the same `Cache-Control: no-store` and
   `X-Content-Type-Options: nosniff` headers as every other reply, and the terminal shows one line for it instead of
   a traceback.
@@ -50,6 +52,12 @@ All notable changes to BytesTTS are recorded here. The format follows
 ### Added
 
 - First public version of the code, 0.1.0 (pre-release, not yet on PyPI).
+- **Voice labels and samples:** the control panel lists voices by label (`English · VCTK · 109 speakers,
+  11 accents`) and speakers by description (`p262 · Female, 23 · Scottish, Edinburgh`), from the new
+  `details.json` shipped beside the catalogue. Gender and Accent filters narrow `en-vctk`'s 109 speakers.
+  **▶ Sample** plays a recorded clip of a voice before you download it, and **▶ Preview** plays the chosen
+  speaker, speaking live on a downloaded voice at other speeds or when the clip can't be fetched.
+  `bytestts speakers` adds each speaker's description as a third column.
 - **Library:** `BytesTTS.load_path` and `BytesTTS.load`, `synthesize` and `stream` with `speed` and `speaker`,
   `Audio` with WAV output, `VoiceInfo` and `list_voices`, and an error hierarchy under `BytesTTSError`.
 - **Command line:** `bytestts say`, `bytestts voices` and `bytestts download`, with stable exit codes.

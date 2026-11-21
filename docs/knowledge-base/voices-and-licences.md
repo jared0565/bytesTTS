@@ -54,6 +54,22 @@ so a later change to that repository cannot change what an installed BytesTTS do
 Planned: German and Italian voices. A voice is added to the [licence register](../licences.md)
 before it is added to the catalogue. A test checks that each register row matches its voice's manifest exactly.
 
+## Voice and speaker descriptions
+
+The control panel and `bytestts speakers` describe voices and speakers from `details.json`, which ships inside
+BytesTTS beside the catalogue and is trusted the same way. A voice's label names its language, the dataset it was
+trained on and its number of speakers. The `en-vctk` speakers are described with their gender, age, accent and
+region from the corpus's own `speaker-info.txt` (CC BY 4.0), kept unmodified in the BytesTTS repository under
+`tools/convert/data/` and pinned by SHA-256. The descriptions change it only in form: the gender is spelled out,
+accent names are split into words, `English` is shown as `English (England)`, and `Unknown` accents and the
+comments in parentheses are left out. The ages are the speakers' ages when the corpus was recorded. `ED` is not
+in the table. The `en-ljspeech` reader is described as female, as the CSS10 paper states of the LJ Speech
+recordings.
+
+The sample clips that ▶ Sample and ▶ Preview play are the voices' own output: one short sentence per language,
+spoken by the published model for each speaker. They are in each voice's Hugging Face repository under
+`samples/`, and `details.json` pins each one by commit, size and SHA-256.
+
 ## Licences
 
 There are three separate licences to keep apart:

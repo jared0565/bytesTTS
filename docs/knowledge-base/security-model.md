@@ -5,8 +5,9 @@ local web server. This page describes what it trusts, what it checks, and where 
 
 ## What is trusted
 
-- **The BytesTTS package you installed**, including the catalogue `voices.json` it ships with. The catalogue pins
-  every voice file by size and SHA-256, so a download is trusted only after it matches.
+- **The BytesTTS package you installed**, including the catalogue `voices.json` and the voice details
+  `details.json` it ships with. The catalogue pins every voice file by size and SHA-256, so a download is trusted
+  only after it matches. The details pin every sample clip the same way.
 - **The voice package directories you load with `load_path`.** BytesTTS verifies them against their own
   `voice.json`, which proves the files are the ones the manifest names. It does not prove who made the package, so
   load packages only from sources you trust.
@@ -62,6 +63,11 @@ built from the verified bytes, with ONNX Runtime's external-data directory point
   digits and ideographic full stops onto ASCII, so `１２７。０。０。１` could otherwise spell `127.0.0.1`. The cost is that
   a redirect to a public internationalized name is refused too.
 - Archives are never extracted.
+- **Sample clips**, for the control panel's ▶ Sample and ▶ Preview, are pinned in `details.json` by size and
+  SHA-256, at most 1 MiB each, and fetched under the same rules, only when a button is pressed. Each is cached
+  under `samples/` in the cache folder, named by its SHA-256. The bytes sent to the page are read once and
+  checked again, so a cached file that changed after its check is fetched again rather than sent. At most one
+  fetch per clip runs at a time.
 
 ## The control panel
 
@@ -88,6 +94,10 @@ server on your own computer, so the panel checks each request before acting on i
   body is the recording sent to `/api/export`: raw bytes under their own byte cap, accepted only as a 16-bit PCM WAV
   (mono or stereo, 8 to 48 kHz, at most 60 minutes of mono or 30 of stereo at 48 kHz), and read with Python's
   standard `wave` module, never a decoder library. No field takes a file path.
+- **Samples by name only.** `GET /api/voices/{id}/sample` takes a voice id and at most one `speaker`, each looked
+  up in the catalogue and the voice details and never used to build a path: the clip is found by its pinned
+  SHA-256. Any other query parameter, or a repeated one, is refused. Clips reach the page like recordings,
+  through `fetch` with the header, as blob URLs.
 - **Saving without paths in the page.** In the window, the Save dialog is opened by Python, not by the page. The page
   gets back a random ticket that can be used once and expires after 10 minutes, and sends the recording with it. The
   server checks that the recording is a valid 16-bit PCM WAV, writes it to a temporary file beside the target, and
@@ -104,7 +114,9 @@ server on your own computer, so the panel checks each request before acting on i
   the app window not even the address, which the window does not need. Requests are not logged, so neither the
   secret nor your text appears in the terminal. Error replies are one line, never a traceback.
 - **One CPU task at a time.** A second task is refused (the page waits for the first instead), so the panel keeps at
-  most the Threads setting busy, plus one download.
+  most the Threads setting busy, plus one download. A live ▶ Preview is a CPU task like Speak, including one that
+  speaks live because its clip could not be fetched; it does not wait, but says the panel is busy. Sample clips
+  are small downloads apart from the voice download, at most one per clip at a time, and need no CPU slot.
 
 ## Known limits
 

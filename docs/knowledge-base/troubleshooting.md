@@ -170,6 +170,20 @@ a second use.
 **`That file is not UTF-8 text`**, **`… is larger than 1 MB`**
 Open text file reads UTF-8 text files of up to 1 MB. Save the file as UTF-8 in your editor, or split a longer text.
 
+**`could not fetch the sample: …`** (after ▶ Sample or ▶ Preview)
+A clip is fetched from huggingface.co the first time it is played, and the rest of the line says why that
+failed: no network, a proxy or firewall in the way, Hugging Face unavailable, or `timed out` when nothing
+arrived within 30 s. Try again later: once a clip has played it is cached and needs no network. A clip whose
+bytes don't match its pinned SHA-256 is refused the same way and never played. On a downloaded voice ▶ Preview
+speaks the sentence live instead and says `Couldn't fetch the sample, so speaking it live`.
+
+**`Wait for the running task to finish, then press Preview again`**
+Speaking a Preview live needs the CPU, and a Speak or another Preview is running. Press Preview again when it
+has finished; at Speed 1.00, a speaker with a recorded clip plays it without waiting.
+
+**`No speaker matches these filters: set one back to Any`**
+No speaker of the voice has both the Gender and the Accent chosen. Set one of them back to *Any*.
+
 **`the Save dialog is already open`** (in the window)
 Finish or cancel the Save dialog that is open; it may be behind the window.
 

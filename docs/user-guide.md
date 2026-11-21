@@ -116,6 +116,12 @@ Irish, Indian, South African, Australian or New Zealand accents. One more speake
 model that is not a VCTK speaker. `bytestts speakers en-vctk` lists every speaker name, the featured ten first
 (see [`bytestts speakers`](#bytestts-speakers)); in Python, `list_voices("en-gb")[0].speakers` does.
 
+The control panel and `bytestts speakers` describe each `en-vctk` speaker with what the corpus records about them:
+gender, age, accent and region, such as `p262 · Female, 23 · Scottish, Edinburgh`. The ages are the speakers' ages
+when the corpus was recorded. `ED` is described as `not in the VCTK speaker table`. See
+[Voices and licences](knowledge-base/voices-and-licences.md#voice-and-speaker-descriptions) for where the
+descriptions come from.
+
 Each voice has its own licence and required attribution: see [Voices and licences](knowledge-base/voices-and-licences.md)
 and [docs/licences.md](licences.md).
 
@@ -287,11 +293,14 @@ closing the tab does not stop it, and its address cannot be opened again: press 
 
 | Control | What it does |
 |---|---|
-| **Voice** | The catalogue voices, marked *(downloaded)* or *(needs repair)*. |
+| **Voice** | The catalogue voices by label: language, dataset and number of speakers, with the number of accents when there are several, such as `English · VCTK · 109 speakers, 11 accents`. Marked *(downloaded)* or *(needs repair)*. The voice id, for the command line, is in the (i) dialog. |
+| **▶ Sample** | Plays a recorded clip of the voice's default speaker (or of its reader), before or after you download the voice. The first press fetches the clip from huggingface.co; after that it plays from the cache. While it plays the button reads **■ Stop**. |
 | **Download** | Shown while the selected voice is missing, with its size. Shows a progress bar in MB; **Cancel** stops it and removes the partial files. |
 | **Repair** | Shown instead of Download when a downloaded voice fails its integrity check. It fetches again only the files that fail. |
-| **(i)** | The voice's language, licence, data licence, size, sample rate and attribution. **Copy attribution** copies the credit text; links in it are shown as text, never opened. |
-| **Speaker** | The voice's speakers. Disabled for a voice with one speaker. |
+| **(i)** | The voice's id, language, licence, data licence, size, sample rate and attribution. **Copy attribution** copies the credit text; links in it are shown as text, never opened. |
+| **Gender**, **Accent** | Shown for a voice with many described speakers (`en-vctk`). Each choice shows how many speakers have it, and the Speaker list then shows only the speakers matching both. They go back to *Any* when you choose another voice. If they hide the speaker you had chosen, the first match is chosen and the status line says so; if no speaker matches, Speak is disabled until you set one back to *Any*. |
+| **Speaker** | The voice's speakers by their descriptions, the featured ones first. Disabled for a voice with one speaker; for a voice read by one person (`en-ljspeech`) it describes the reader. |
+| **▶ Preview** | Plays the chosen speaker. Before you download the voice it plays the speaker's recorded clip, and is shown only for a speaker with one. On a downloaded voice it always works: at Speed 1.00 it plays the clip; at any other speed, for a speaker without a clip, or when the clip can't be fetched, it speaks a short sentence live with the current Speed, GPU and Threads, and the status line says when it fell back. Speaking live needs the CPU like Speak, so a live Preview is greyed out while a Speak runs (playing a clip is not), and a Preview never replaces your recording. |
 | **Speed** | 0.5 (slower) to 2.0 (faster) in steps of 0.05. **Reset** sets 1.00. |
 | **GPU** | Off runs on the CPU, on runs on CUDA. It is off at every launch, and greyed out with the reason when CUDA is not available (see [The GPU switch](#the-gpu-switch)). |
 | **Threads** | The CPU threads for one Speak, 1 at every launch. The box stops at the cap shown beside it. |
@@ -393,25 +402,27 @@ Lists the catalogue voices, one per line, tab-separated: id, language, number of
 
 ### `bytestts speakers`
 
-Lists a voice's speakers, one per line, tab-separated: the name, then `featured` for a speaker on the voice's
-shortlist (empty otherwise). The featured speakers come first, in the shortlist's order, then the others in the
-voice's own order. This is the order of the control panel's Speaker list, so the first line is the speaker used
-when none is given.
+Lists a voice's speakers, one per line, in three tab-separated columns: the name; `featured` for a speaker on the
+voice's shortlist (empty otherwise); and the speaker's description, as the control panel shows it (empty for a
+package, and for a voice without descriptions). The featured speakers come first, in the shortlist's order, then
+the others in the voice's own order. This is the order of the control panel's Speaker list, so the first line is
+the speaker used when none is given. On a console that can't show the ` · ` separator, it prints `?` instead.
 
 | Option | Meaning |
 |---|---|
 | `VOICE` | A catalogue voice. Its speakers come from the catalogue shipped with BytesTTS: nothing is downloaded. |
 | `--voice-path DIR` | A voice package directory, read after the usual integrity check. Give exactly one of the two. |
 
-A voice with a single speaker prints nothing. An unknown voice, or a package that fails its check, is exit 3.
+A voice without a speaker table, such as `en-ljspeech`, prints nothing. An unknown voice, or a package that fails
+its check, is exit 3.
 
 ```
 bytestts speakers en-vctk
-p228	featured
-p232	featured
+p228	featured	Female, 22 · English (England), Southern England
+p232	featured	Male, 23 · English (England), Southern England
 ...
-ED
-p225
+ED		not in the VCTK speaker table
+p225		Female, 23 · English (England), Southern England
 ...
 ```
 

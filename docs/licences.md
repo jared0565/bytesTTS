@@ -52,8 +52,18 @@ you must keep when you use or redistribute it. The same three strings ship in ea
   - Speakers: the model has 109 speaker rows. 108 are VCTK speakers, named by their VCTK ids (`p225` to `p376`).
     Row 0 is named `"ED\n"` in the checkpoint and is not a VCTK speaker id; the package names it `ED`. The accents
     shown for the featured speakers come from the corpus's own `speaker-info.txt`.
+  - Speaker descriptions: the gender, age, accent and region shown for each speaker are adapted from the corpus's
+    `speaker-info.txt` (CC BY 4.0), with these changes: the gender is spelled out (`F` as Female, `M` as Male),
+    accent names are split into words (`NorthernIrish` as Northern Irish), `English` is shown as
+    `English (England)`, and `Unknown` accents and the comments in parentheses are left out. The table itself is in
+    `tools/convert/data/vctk-speaker-info.txt`, unmodified, under CC BY 4.0.
   - Published files: [fbmacagba/bytestts-en-vctk](https://huggingface.co/fbmacagba/bytestts-en-vctk) on Hugging
     Face; the catalogue pins commit `f62b990f0bd6992cb860f303e1f607f18d4b0c13`.
+
+Sample clips: each voice's Hugging Face repository also holds `samples/`, short clips of the published model
+speaking one sentence, one per speaker (one for the reader of `en-ljspeech`). The control panel plays them, and
+`src/bytestts/catalog/details.json` pins each by commit, size and SHA-256. They are the model's own output, under
+the voice's licences above.
 
 A voice is added here before it is added to the catalogue; `tests/test_licence_register.py` checks that every row
 matches its voice's manifest exactly.
