@@ -9,21 +9,38 @@
       "language_name": "English",
       "dataset": "LJSpeech",
       "reader": {
-        "gender": "Female"
+        "gender": "Female",
+        "sample": {
+          "sha256": "f8bccc6a591f5181dcf05a002d05e84f8ac0fa2b2fff041d67c2f85ec9c253f2",
+          "size": 163248,
+          "url": "https://huggingface.co/fbmacagba/bytestts-en-ljspeech/resolve/22215d71b732baa40f2809942fe97e44bb5fe563/samples/reader.wav"
+        }
       }
     },
     "es-css10": {
       "language_name": "Spanish",
       "dataset": "CSS10",
       "speakers": {
-        "tux": {}
+        "tux": {
+          "sample": {
+            "sha256": "94b89544d1c74599b1c1cb91e942b741ad719e29c3945c19d571cf21455be386",
+            "size": 206768,
+            "url": "https://huggingface.co/fbmacagba/bytestts-es-css10/resolve/456575d2187d107477618efdb4f91f85031ba5e2/samples/tux.wav"
+          }
+        }
       }
     },
     "fr-css10": {
       "language_name": "French",
       "dataset": "CSS10",
       "speakers": {
-        "gilles": {}
+        "gilles": {
+          "sample": {
+            "sha256": "eebf5c36ffc278a0411c8b0effe659907b38d519ae2a61e5eb256e33577afca0",
+            "size": 168368,
+            "url": "https://huggingface.co/fbmacagba/bytestts-fr-css10/resolve/16c797cdbe4c23a5112e3a139e64d018d252f0fd/samples/gilles.wav"
+          }
+        }
       }
     },
     "en-vctk": {
@@ -31,648 +48,1193 @@
       "dataset": "VCTK",
       "speakers": {
         "ED": {
-          "note": "not in the VCTK speaker table"
+          "note": "not in the VCTK speaker table",
+          "sample": {
+            "sha256": "332bd00c32e38b8d4906d865300eaf9f932cc2d1489bb7896b3f7664e0a0dc85",
+            "size": 155056,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/ED.wav"
+          }
         },
         "p225": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "15ef39ce68f08b000c7a46241c566701d840620f3f9f9fc1a546d2526ef4f634",
+            "size": 163248,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p225.wav"
+          }
         },
         "p226": {
           "gender": "Male",
           "age": 22,
           "accent": "English (England)",
-          "region": "Surrey"
+          "region": "Surrey",
+          "sample": {
+            "sha256": "d123c481396d8d49f15986f296e73011995adc2bd670df31da04bdc3c5ccaacc",
+            "size": 138160,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p226.wav"
+          }
         },
         "p227": {
           "gender": "Male",
           "age": 38,
           "accent": "English (England)",
-          "region": "Cumbria"
+          "region": "Cumbria",
+          "sample": {
+            "sha256": "e81e17674148b8b9ff29642dfe6969ab117c40f29e1c27b2214b119146b613a0",
+            "size": 165296,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p227.wav"
+          }
         },
         "p228": {
           "gender": "Female",
           "age": 22,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "0853663475150b2df81bd795433cc2ea21dfecf4b333ad36bf76ee19e8aa781a",
+            "size": 134576,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p228.wav"
+          }
         },
         "p229": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "fc7c65f7c3f972fe674e85d121aec3d18c5ffb036f7810785025230c5eeb4ea3",
+            "size": 167856,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p229.wav"
+          }
         },
         "p230": {
           "gender": "Female",
           "age": 22,
           "accent": "English (England)",
-          "region": "Stockton-on-tees"
+          "region": "Stockton-on-tees",
+          "sample": {
+            "sha256": "e3908402f9c0274915f89cbda2ee9535b67d342c6112a79a11326255c4b86dc9",
+            "size": 140208,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p230.wav"
+          }
         },
         "p231": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "7fb64e1dfe76923e372bf3ace7fa4d8043d0f2da1b23f2db85910265831758df",
+            "size": 145840,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p231.wav"
+          }
         },
         "p232": {
           "gender": "Male",
           "age": 23,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "cd432777d8af57e865e766a0cccd00e3a16330453cf4e6735c74d95c620db283",
+            "size": 144816,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p232.wav"
+          }
         },
         "p233": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Staffordshire"
+          "region": "Staffordshire",
+          "sample": {
+            "sha256": "45cb3ee8f4235bd291c1707372db6841aa65e13bb7b0447a1194274c32f0a6ca",
+            "size": 136624,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p233.wav"
+          }
         },
         "p234": {
           "gender": "Female",
           "age": 22,
           "accent": "Scottish",
-          "region": "West Dumfries"
+          "region": "West Dumfries",
+          "sample": {
+            "sha256": "4fe262ccf2d51b122e0d74ec3769232740a1a0764baee6d4c44ca539263d249c",
+            "size": 132528,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p234.wav"
+          }
         },
         "p236": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Manchester"
+          "region": "Manchester",
+          "sample": {
+            "sha256": "60aed66803542731f75a30faefec1195a9d9b27ad0e4397adb08c2644064035b",
+            "size": 158128,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p236.wav"
+          }
         },
         "p237": {
           "gender": "Male",
           "age": 22,
           "accent": "Scottish",
-          "region": "Fife"
+          "region": "Fife",
+          "sample": {
+            "sha256": "2c90740831fd7672b61502afe036bd491dd41995753c8b81b31f20f99b6f4018",
+            "size": 167344,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p237.wav"
+          }
         },
         "p238": {
           "gender": "Female",
           "age": 22,
           "accent": "Northern Irish",
-          "region": "Belfast"
+          "region": "Belfast",
+          "sample": {
+            "sha256": "7cc00b84a7eb489efb35b064e3b8eeecc62d38a1ed89eb79b80582a1457d32ee",
+            "size": 138160,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p238.wav"
+          }
         },
         "p239": {
           "gender": "Female",
           "age": 22,
           "accent": "English (England)",
-          "region": "SW England"
+          "region": "SW England",
+          "sample": {
+            "sha256": "44b5dd3f7cbadd6ff3d494d780f3e3aa6f46c9765f7419fa6376d42427e69509",
+            "size": 141744,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p239.wav"
+          }
         },
         "p240": {
           "gender": "Female",
           "age": 21,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "e431237f1dbcbcb79b9a0fb36fc09b6392ca587c4a77cd24ebe773dd254a79f7",
+            "size": 149936,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p240.wav"
+          }
         },
         "p241": {
           "gender": "Male",
           "age": 21,
           "accent": "Scottish",
-          "region": "Perth"
+          "region": "Perth",
+          "sample": {
+            "sha256": "f30c3793e7c899e5a200dc2f4f87c46e1ec2008bece38f4da07905bf2b778bbb",
+            "size": 138160,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p241.wav"
+          }
         },
         "p243": {
           "gender": "Male",
           "age": 22,
           "accent": "English (England)",
-          "region": "London"
+          "region": "London",
+          "sample": {
+            "sha256": "324d18fd41d15de082ea2b5ef39b2a8dfdfd366b8ffb2f832e488d7d60807f90",
+            "size": 136112,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p243.wav"
+          }
         },
         "p244": {
           "gender": "Female",
           "age": 22,
           "accent": "English (England)",
-          "region": "Manchester"
+          "region": "Manchester",
+          "sample": {
+            "sha256": "3ca44554aea8faac06d35cc35a8552b68d36414a2a13aadc80cf26ba3cd64d48",
+            "size": 140720,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p244.wav"
+          }
         },
         "p245": {
           "gender": "Male",
           "age": 25,
           "accent": "Irish",
-          "region": "Dublin"
+          "region": "Dublin",
+          "sample": {
+            "sha256": "f380feb2604449c9ba389505999d87c8b4958870d76cab684c581c360028a1f7",
+            "size": 146352,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p245.wav"
+          }
         },
         "p246": {
           "gender": "Male",
           "age": 22,
           "accent": "Scottish",
-          "region": "Selkirk"
+          "region": "Selkirk",
+          "sample": {
+            "sha256": "ea1425e4c3bca4f6ac6b4ddc0172cdef4d5cf2393b001bb531a1fe8c8eb8bc10",
+            "size": 135088,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p246.wav"
+          }
         },
         "p247": {
           "gender": "Male",
           "age": 22,
           "accent": "Scottish",
-          "region": "Argyll"
+          "region": "Argyll",
+          "sample": {
+            "sha256": "162c9fe40c33298b3acc6c1805a06d2b65ddb382adb3ed3ac588907f3ab9a4eb",
+            "size": 157616,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p247.wav"
+          }
         },
         "p248": {
           "gender": "Female",
           "age": 23,
-          "accent": "Indian"
+          "accent": "Indian",
+          "sample": {
+            "sha256": "4836b3d63d9f6376b94c349b5b942ea055356e268f4ef88e390980c05bc3127b",
+            "size": 149424,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p248.wav"
+          }
         },
         "p249": {
           "gender": "Female",
           "age": 22,
           "accent": "Scottish",
-          "region": "Aberdeen"
+          "region": "Aberdeen",
+          "sample": {
+            "sha256": "3da7ad1e2799e3d712719504cd3837020576dba7c225a4b56a125fb2c0636b24",
+            "size": 149424,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p249.wav"
+          }
         },
         "p250": {
           "gender": "Female",
           "age": 22,
           "accent": "English (England)",
-          "region": "SE England"
+          "region": "SE England",
+          "sample": {
+            "sha256": "1a78d5ee26578233a1df05a0a363a8f0df4078daebddef56644b9252050798ab",
+            "size": 119728,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p250.wav"
+          }
         },
         "p251": {
           "gender": "Male",
           "age": 26,
-          "accent": "Indian"
+          "accent": "Indian",
+          "sample": {
+            "sha256": "55c7ffeef6bb47e4c3f46619807c32ca25e8fc190f96d83403c57162e2f94ccf",
+            "size": 130480,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p251.wav"
+          }
         },
         "p252": {
           "gender": "Male",
           "age": 22,
           "accent": "Scottish",
-          "region": "Edinburgh"
+          "region": "Edinburgh",
+          "sample": {
+            "sha256": "ef6dd57002f8fcc670788d459314c7604a56597955e5fb2b8dc32bb0d8551678",
+            "size": 139184,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p252.wav"
+          }
         },
         "p253": {
           "gender": "Female",
           "age": 22,
           "accent": "Welsh",
-          "region": "Cardiff"
+          "region": "Cardiff",
+          "sample": {
+            "sha256": "fdcd1fccc195d8cd5783b2ffdad3e3560149b5f5ca994218f515a1685c254a84",
+            "size": 148400,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p253.wav"
+          }
         },
         "p254": {
           "gender": "Male",
           "age": 21,
           "accent": "English (England)",
-          "region": "Surrey"
+          "region": "Surrey",
+          "sample": {
+            "sha256": "a2e8a6d7695d8e369e82c8a85e7c1272283b99ee91d299b474290492d932f215",
+            "size": 137136,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p254.wav"
+          }
         },
         "p255": {
           "gender": "Male",
           "age": 19,
           "accent": "Scottish",
-          "region": "Galloway"
+          "region": "Galloway",
+          "sample": {
+            "sha256": "f1754ff6e8b6f94763070d4d5566953eed030439d6ab3214b29fccac0da5044d",
+            "size": 146352,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p255.wav"
+          }
         },
         "p256": {
           "gender": "Male",
           "age": 24,
           "accent": "English (England)",
-          "region": "Birmingham"
+          "region": "Birmingham",
+          "sample": {
+            "sha256": "29a1afd40ca88101f8ac6ab821a61551f5a9ced9caad361e7c8da5728c38ed34",
+            "size": 122800,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p256.wav"
+          }
         },
         "p257": {
           "gender": "Female",
           "age": 24,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "ee1e27427dde81b7e49eabde8a3134131d1c4aec3fd9403c5fb8690b6e45dee1",
+            "size": 164784,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p257.wav"
+          }
         },
         "p258": {
           "gender": "Male",
           "age": 22,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "bcb8f7acb782f76fec19a7bb51474964716fd8e12169a76e94dc4459505493cd",
+            "size": 153520,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p258.wav"
+          }
         },
         "p259": {
           "gender": "Male",
           "age": 23,
           "accent": "English (England)",
-          "region": "Nottingham"
+          "region": "Nottingham",
+          "sample": {
+            "sha256": "01efbb3357e127fffbfcc62b6b0b2941a5ff61fbffe226058d66165b1dcf3c5b",
+            "size": 139696,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p259.wav"
+          }
         },
         "p260": {
           "gender": "Male",
           "age": 21,
           "accent": "Scottish",
-          "region": "Orkney"
+          "region": "Orkney",
+          "sample": {
+            "sha256": "8e2671f25ffb95cb392b17c9d805896a6b7b76f82a5a075dd87c81059b523749",
+            "size": 168368,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p260.wav"
+          }
         },
         "p261": {
           "gender": "Female",
           "age": 26,
           "accent": "Northern Irish",
-          "region": "Belfast"
+          "region": "Belfast",
+          "sample": {
+            "sha256": "d8b5b93a28fa1773137437a09cdeb5a5155aee745fe4f57592667e080edaa2a9",
+            "size": 162224,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p261.wav"
+          }
         },
         "p262": {
           "gender": "Female",
           "age": 23,
           "accent": "Scottish",
-          "region": "Edinburgh"
+          "region": "Edinburgh",
+          "sample": {
+            "sha256": "788f9c07260d0e345f31ca154735e4dc88bb53653b4071b077fcf493c79f28a3",
+            "size": 149424,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p262.wav"
+          }
         },
         "p263": {
           "gender": "Male",
           "age": 22,
           "accent": "Scottish",
-          "region": "Aberdeen"
+          "region": "Aberdeen",
+          "sample": {
+            "sha256": "ecca6105407cb81b8784badf364d08ee3de497ae367e09f79cefe8f60519c886",
+            "size": 159152,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p263.wav"
+          }
         },
         "p264": {
           "gender": "Female",
           "age": 23,
           "accent": "Scottish",
-          "region": "West Lothian"
+          "region": "West Lothian",
+          "sample": {
+            "sha256": "0656c039c4e44ed1cf27cce69caf2c938fb5a8496131fa0b3f0d35420518fb59",
+            "size": 130480,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p264.wav"
+          }
         },
         "p265": {
           "gender": "Female",
           "age": 23,
           "accent": "Scottish",
-          "region": "Ross"
+          "region": "Ross",
+          "sample": {
+            "sha256": "29343b36db449349a66ba344f202d47eaa33b01104da346ed45e0e0a5edca31e",
+            "size": 142256,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p265.wav"
+          }
         },
         "p266": {
           "gender": "Female",
           "age": 22,
           "accent": "Irish",
-          "region": "Athlone"
+          "region": "Athlone",
+          "sample": {
+            "sha256": "a155d5ecd165d68a6170f129190b80084dfd0e8a34d22ebb02f6c9b3027ab9b6",
+            "size": 136624,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p266.wav"
+          }
         },
         "p267": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Yorkshire"
+          "region": "Yorkshire",
+          "sample": {
+            "sha256": "1e892081b78fc3b000f2bd743c59a820368d5807d6639c65e5727d576de9fdee",
+            "size": 134064,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p267.wav"
+          }
         },
         "p268": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Southern England"
+          "region": "Southern England",
+          "sample": {
+            "sha256": "31de2c44a2ec386f9225c08d989f620466a7dc60f1a4ca3f9ab163d73b276790",
+            "size": 146352,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p268.wav"
+          }
         },
         "p269": {
           "gender": "Female",
           "age": 20,
           "accent": "English (England)",
-          "region": "Newcastle"
+          "region": "Newcastle",
+          "sample": {
+            "sha256": "8f025535699a14b9148f913011588eb78c06607451799298f58f2aafc60fd324",
+            "size": 149936,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p269.wav"
+          }
         },
         "p270": {
           "gender": "Male",
           "age": 21,
           "accent": "English (England)",
-          "region": "Yorkshire"
+          "region": "Yorkshire",
+          "sample": {
+            "sha256": "104da764f495a80efedab0850de8d72a17a0dce0894cd0c163e303fafc6feafb",
+            "size": 150448,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p270.wav"
+          }
         },
         "p271": {
           "gender": "Male",
           "age": 19,
           "accent": "Scottish",
-          "region": "Fife"
+          "region": "Fife",
+          "sample": {
+            "sha256": "9a5f2c910255ab66b9d18799cdbf20e41de98c18373d6b4132bd5804575797f3",
+            "size": 155568,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p271.wav"
+          }
         },
         "p272": {
           "gender": "Male",
           "age": 23,
           "accent": "Scottish",
-          "region": "Edinburgh"
+          "region": "Edinburgh",
+          "sample": {
+            "sha256": "a48087fd8fe287342b89063a458ac6fb109ce85d4c1376613a9c0f0044d9d0b0",
+            "size": 157104,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p272.wav"
+          }
         },
         "p273": {
           "gender": "Male",
           "age": 23,
           "accent": "English (England)",
-          "region": "Suffolk"
+          "region": "Suffolk",
+          "sample": {
+            "sha256": "02606e15db67801e43d08c05e9755ac80ec2107f1290046a68c1c6a61928a369",
+            "size": 138160,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p273.wav"
+          }
         },
         "p274": {
           "gender": "Male",
           "age": 22,
           "accent": "English (England)",
-          "region": "Essex"
+          "region": "Essex",
+          "sample": {
+            "sha256": "2d21ec1b1fec66ace294a04f02a6ea78a0e12a25dd2e2d0e94a4d8557ca3fd6a",
+            "size": 141232,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p274.wav"
+          }
         },
         "p275": {
           "gender": "Male",
           "age": 23,
           "accent": "Scottish",
-          "region": "Midlothian"
+          "region": "Midlothian",
+          "sample": {
+            "sha256": "e3fc8e2d7068ae80947033861947ab112f2c48b877201374bb739ce6d320faa1",
+            "size": 149424,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p275.wav"
+          }
         },
         "p276": {
           "gender": "Female",
           "age": 24,
           "accent": "English (England)",
-          "region": "Oxford"
+          "region": "Oxford",
+          "sample": {
+            "sha256": "b2261b4664df22ccd6dcbc77181ac876b196aea7e10ebfb25ae336eedd4eea9d",
+            "size": 128432,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p276.wav"
+          }
         },
         "p277": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "NE England"
+          "region": "NE England",
+          "sample": {
+            "sha256": "3545b7c907948bbd90faad28e65f92870fa2ac7cebf5f683dc2e891cd47c554f",
+            "size": 153520,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p277.wav"
+          }
         },
         "p278": {
           "gender": "Male",
           "age": 22,
           "accent": "English (England)",
-          "region": "Cheshire"
+          "region": "Cheshire",
+          "sample": {
+            "sha256": "51a2192d9cca24d63ca1fb481542ae4611a7ac128801ee6c760142d1527504dc",
+            "size": 148912,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p278.wav"
+          }
         },
         "p279": {
           "gender": "Male",
           "age": 23,
           "accent": "English (England)",
-          "region": "Leicester"
+          "region": "Leicester",
+          "sample": {
+            "sha256": "cc836090a373a0c1036b8f177826121df00819b463d0ba0e7715f3da4d4b0826",
+            "size": 151984,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p279.wav"
+          }
         },
         "p280": {
           "gender": "Female",
           "age": 25,
-          "region": "France"
+          "region": "France",
+          "sample": {
+            "sha256": "bb45cf5507af846c380dcd13d3794c6a98aae48c9b7c95268738e8776e317190",
+            "size": 150448,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p280.wav"
+          }
         },
         "p281": {
           "gender": "Male",
           "age": 29,
           "accent": "Scottish",
-          "region": "Edinburgh"
+          "region": "Edinburgh",
+          "sample": {
+            "sha256": "c55a197965c8cc91d91133a9e88bcda8a51e35c9e747b1e25741b424ac380508",
+            "size": 139184,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p281.wav"
+          }
         },
         "p282": {
           "gender": "Female",
           "age": 23,
           "accent": "English (England)",
-          "region": "Newcastle"
+          "region": "Newcastle",
+          "sample": {
+            "sha256": "842dd2c9c145ad3883855e0be981429ba2144bd8ae89644f1f7ae7f221ae4f6c",
+            "size": 138672,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p282.wav"
+          }
         },
         "p283": {
           "gender": "Female",
           "age": 24,
           "accent": "Irish",
-          "region": "Cork"
+          "region": "Cork",
+          "sample": {
+            "sha256": "ca2a723ddd354f05ac797893cf8e0c8cd605177e142c4f07e1c807e80e8f041f",
+            "size": 145840,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p283.wav"
+          }
         },
         "p284": {
           "gender": "Male",
           "age": 20,
           "accent": "Scottish",
-          "region": "Fife"
+          "region": "Fife",
+          "sample": {
+            "sha256": "f5ebf08f030f2a6483de22bbc338e294f2e2906ef8f07237ec3a658247d41993",
+            "size": 143280,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p284.wav"
+          }
         },
         "p285": {
           "gender": "Male",
           "age": 21,
           "accent": "Scottish",
-          "region": "Edinburgh"
+          "region": "Edinburgh",
+          "sample": {
+            "sha256": "15208074dc4c53b298a06bc4950707b0a59093c37929401fa13089897b366728",
+            "size": 154544,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p285.wav"
+          }
         },
         "p286": {
           "gender": "Male",
           "age": 23,
           "accent": "English (England)",
-          "region": "Newcastle"
+          "region": "Newcastle",
+          "sample": {
+            "sha256": "08676bb47711353497f39660c92725fd00f647c4ae34f864c3c491767318130f",
+            "size": 129456,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p286.wav"
+          }
         },
         "p287": {
           "gender": "Male",
           "age": 23,
           "accent": "English (England)",
-          "region": "York"
+          "region": "York",
+          "sample": {
+            "sha256": "9ccfeb85afd01a46de22abb488a0c194f7f3b14774285b5f3328bfe0b578d514",
+            "size": 132528,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p287.wav"
+          }
         },
         "p288": {
           "gender": "Female",
           "age": 22,
           "accent": "Irish",
-          "region": "Dublin"
+          "region": "Dublin",
+          "sample": {
+            "sha256": "dc693f1c379c167d6c27f87a55337c2ff562bb7134371de500892205efc4fd9d",
+            "size": 141232,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p288.wav"
+          }
         },
         "p292": {
           "gender": "Male",
           "age": 23,
           "accent": "Northern Irish",
-          "region": "Belfast"
+          "region": "Belfast",
+          "sample": {
+            "sha256": "a8bc2faf8487a9bddd3a1a358a47b3a9d8a3424f484389f30af9692f63f3b54d",
+            "size": 149424,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p292.wav"
+          }
         },
         "p293": {
           "gender": "Female",
           "age": 22,
           "accent": "Northern Irish",
-          "region": "Belfast"
+          "region": "Belfast",
+          "sample": {
+            "sha256": "64ae22c7cc7605762f44eb05547f3a5150288a586e6547ba502699c69072cb0b",
+            "size": 142256,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p293.wav"
+          }
         },
         "p294": {
           "gender": "Female",
           "age": 33,
           "accent": "American",
-          "region": "San Francisco"
+          "region": "San Francisco",
+          "sample": {
+            "sha256": "3215f58df69f6f1b0e88520f2f2f572e16001840b686da5059131f24399cfa6c",
+            "size": 143792,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p294.wav"
+          }
         },
         "p295": {
           "gender": "Female",
           "age": 23,
           "accent": "Irish",
-          "region": "Dublin"
+          "region": "Dublin",
+          "sample": {
+            "sha256": "0e899aab612776476e4e43ea77b7c9ee0bfcb3200a31a3841ccdca10289c5513",
+            "size": 168880,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p295.wav"
+          }
         },
         "p297": {
           "gender": "Female",
           "age": 20,
           "accent": "American",
-          "region": "New York"
+          "region": "New York",
+          "sample": {
+            "sha256": "383df6b967682074afbff11c3e7406b7a18654517804664f640d7e8c7bd08aff",
+            "size": 140208,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p297.wav"
+          }
         },
         "p298": {
           "gender": "Male",
           "age": 19,
           "accent": "Irish",
-          "region": "Tipperary"
+          "region": "Tipperary",
+          "sample": {
+            "sha256": "2d8668cb41ee6ed890ffc6ea6b5c1fda7c34ec56ce276e1f3a26b8e39b86a17b",
+            "size": 135600,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p298.wav"
+          }
         },
         "p299": {
           "gender": "Female",
           "age": 25,
           "accent": "American",
-          "region": "California"
+          "region": "California",
+          "sample": {
+            "sha256": "23f315f06af3a3c8c8a465926b624d1583ed7f70d3c0bfe2bdec06da46a57ce6",
+            "size": 140208,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p299.wav"
+          }
         },
         "p300": {
           "gender": "Female",
           "age": 23,
           "accent": "American",
-          "region": "California"
+          "region": "California",
+          "sample": {
+            "sha256": "c2211a4c7d6a787472f7af609a993d90dab75c2485dd8512b63c41bafa2cf1b2",
+            "size": 135088,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p300.wav"
+          }
         },
         "p301": {
           "gender": "Female",
           "age": 23,
           "accent": "American",
-          "region": "North Carolina"
+          "region": "North Carolina",
+          "sample": {
+            "sha256": "776214d96b5fd05c899cd2cb61342afcd2dcc93059e14a1caf39f60cbf94b03a",
+            "size": 142256,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p301.wav"
+          }
         },
         "p302": {
           "gender": "Male",
           "age": 20,
           "accent": "Canadian",
-          "region": "Montreal"
+          "region": "Montreal",
+          "sample": {
+            "sha256": "a1d93cfb65b043bea46967a88709f4e24640d00ed77e4c287ab7bde360f570af",
+            "size": 133552,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p302.wav"
+          }
         },
         "p303": {
           "gender": "Female",
           "age": 24,
           "accent": "Canadian",
-          "region": "Toronto"
+          "region": "Toronto",
+          "sample": {
+            "sha256": "382e873a9985dd4dfb25299ceece35625261559fb0d63279e9332506b5726715",
+            "size": 159664,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p303.wav"
+          }
         },
         "p304": {
           "gender": "Male",
           "age": 22,
           "accent": "Northern Irish",
-          "region": "Belfast"
+          "region": "Belfast",
+          "sample": {
+            "sha256": "771ab758198d8ebb5051dbcd212cca7e5c3e90ef7e1d60f8ffdedaa633a004a0",
+            "size": 135088,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p304.wav"
+          }
         },
         "p305": {
           "gender": "Female",
           "age": 19,
           "accent": "American",
-          "region": "Philadelphia"
+          "region": "Philadelphia",
+          "sample": {
+            "sha256": "9f15bc53a41ecb8d5be82be91281479a20a863205456c002964323656e3e06ea",
+            "size": 142256,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p305.wav"
+          }
         },
         "p306": {
           "gender": "Female",
           "age": 21,
           "accent": "American",
-          "region": "New York"
+          "region": "New York",
+          "sample": {
+            "sha256": "c65faa4a39144c2c3f61089e7f5cad34379812942e29f60734ca41744a048618",
+            "size": 155056,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p306.wav"
+          }
         },
         "p307": {
           "gender": "Female",
           "age": 23,
           "accent": "Canadian",
-          "region": "Ontario"
+          "region": "Ontario",
+          "sample": {
+            "sha256": "ec9416adebff2860cb41de6780fffa74f34999ee65d22066c49a509f7f4bd588",
+            "size": 139696,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p307.wav"
+          }
         },
         "p308": {
           "gender": "Female",
           "age": 18,
           "accent": "American",
-          "region": "Alabama"
+          "region": "Alabama",
+          "sample": {
+            "sha256": "473e514501f2085d5f6a705ab9470f895e3600a28a4f9031f1be383a8d350709",
+            "size": 135600,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p308.wav"
+          }
         },
         "p310": {
           "gender": "Female",
           "age": 21,
           "accent": "American",
-          "region": "Tennessee"
+          "region": "Tennessee",
+          "sample": {
+            "sha256": "53c0d31b3351bb83d2301e1311ad912e0ccfbfc5b25e9f86927ff486f6f4c2f3",
+            "size": 130480,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p310.wav"
+          }
         },
         "p311": {
           "gender": "Male",
           "age": 21,
           "accent": "American",
-          "region": "Iowa"
+          "region": "Iowa",
+          "sample": {
+            "sha256": "8d26f6b9a04159ff7478c85a8f6f1437c4907beab834cfd04ca164f031ca9952",
+            "size": 148400,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p311.wav"
+          }
         },
         "p312": {
           "gender": "Female",
           "age": 19,
           "accent": "Canadian",
-          "region": "Hamilton"
+          "region": "Hamilton",
+          "sample": {
+            "sha256": "612e1bd22f604bb9756cd9daea13feb94835e766832fa6ffff49b0581a11b77d",
+            "size": 130992,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p312.wav"
+          }
         },
         "p313": {
           "gender": "Female",
           "age": 24,
           "accent": "Irish",
-          "region": "County Down"
+          "region": "County Down",
+          "sample": {
+            "sha256": "e265d34312e974dc5484531293959eabe0cf086395973601721575e13591de3b",
+            "size": 135088,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p313.wav"
+          }
         },
         "p314": {
           "gender": "Female",
           "age": 26,
           "accent": "South African",
-          "region": "Cape Town"
+          "region": "Cape Town",
+          "sample": {
+            "sha256": "a62e7d4d3457ce69687833f263258d7cbb3d4fd5ec9afdb7301489ac6d2799b6",
+            "size": 139184,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p314.wav"
+          }
         },
         "p316": {
           "gender": "Male",
           "age": 20,
           "accent": "Canadian",
-          "region": "Alberta"
+          "region": "Alberta",
+          "sample": {
+            "sha256": "29496498209a60ee03d9e65e82f422a326ce966ae2f684618df2877d60ed5dc6",
+            "size": 137136,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p316.wav"
+          }
         },
         "p317": {
           "gender": "Female",
           "age": 23,
           "accent": "Canadian",
-          "region": "Hamilton"
+          "region": "Hamilton",
+          "sample": {
+            "sha256": "574e82f998c3940520a057a653c999294f24fcd6fb6aef9a033a118799b1ddef",
+            "size": 141232,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p317.wav"
+          }
         },
         "p318": {
           "gender": "Female",
           "age": 32,
           "accent": "American",
-          "region": "Napa"
+          "region": "Napa",
+          "sample": {
+            "sha256": "56f56e7b25fe3f34de3c051fe3016d7c61a34015a9c7cbaf7a0426f2348024bc",
+            "size": 134576,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p318.wav"
+          }
         },
         "p323": {
           "gender": "Female",
           "age": 19,
           "accent": "South African",
-          "region": "Pretoria"
+          "region": "Pretoria",
+          "sample": {
+            "sha256": "f3283507b5f4786481fbe675db3e8085771b8fe2a92111024fd640e3bab6e83e",
+            "size": 152496,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p323.wav"
+          }
         },
         "p326": {
           "gender": "Male",
           "age": 26,
           "accent": "Australian",
-          "region": "English Sydney"
+          "region": "English Sydney",
+          "sample": {
+            "sha256": "1dcf2cb6610c913447c2448e5bbd462aa87c3f2a0b798a223bd8e5fd2dfedc7a",
+            "size": 144816,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p326.wav"
+          }
         },
         "p329": {
           "gender": "Female",
           "age": 23,
-          "accent": "American"
+          "accent": "American",
+          "sample": {
+            "sha256": "fd88bac6f0e051d0534ef6c6bd2e8daf84abf31a9fba83eb69119f27d5a282d8",
+            "size": 147376,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p329.wav"
+          }
         },
         "p330": {
           "gender": "Female",
           "age": 26,
-          "accent": "American"
+          "accent": "American",
+          "sample": {
+            "sha256": "cadfa2cd8dc2bcbb7728b076477895f63c6e0f7089afde9dd080854849c2bcb3",
+            "size": 154544,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p330.wav"
+          }
         },
         "p333": {
           "gender": "Female",
           "age": 19,
           "accent": "American",
-          "region": "Indiana"
+          "region": "Indiana",
+          "sample": {
+            "sha256": "0717a68bdef320d6f6b3a62eaf8d8d9b58597e76aa828a1ac8a452d9a6596716",
+            "size": 153520,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p333.wav"
+          }
         },
         "p334": {
           "gender": "Male",
           "age": 18,
           "accent": "American",
-          "region": "Chicago"
+          "region": "Chicago",
+          "sample": {
+            "sha256": "7ef1f585be99dc178ab30fc33c81db4c19bcc538b1b5d72adaae0e620056bc62",
+            "size": 137648,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p334.wav"
+          }
         },
         "p335": {
           "gender": "Female",
           "age": 25,
           "accent": "New Zealand",
-          "region": "English"
+          "region": "English",
+          "sample": {
+            "sha256": "2d958fceefcdbce614b4aa24e6269f1c1c930258991f4a9f9513fd2b42f2c9d2",
+            "size": 141232,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p335.wav"
+          }
         },
         "p336": {
           "gender": "Female",
           "age": 18,
           "accent": "South African",
-          "region": "Johannesburg"
+          "region": "Johannesburg",
+          "sample": {
+            "sha256": "bf7415cf8616eb7a0db785e6f9feca4fcecab926d21d5abe31697012627ae2ae",
+            "size": 138160,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p336.wav"
+          }
         },
         "p339": {
           "gender": "Female",
           "age": 21,
           "accent": "American",
-          "region": "Pennsylvania"
+          "region": "Pennsylvania",
+          "sample": {
+            "sha256": "7f28113e3b3185ac55cbcfd8127fae15f952705a5be0cc1027e3bb3a66a4959f",
+            "size": 157104,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p339.wav"
+          }
         },
         "p340": {
           "gender": "Female",
           "age": 18,
           "accent": "Irish",
-          "region": "Dublin"
+          "region": "Dublin",
+          "sample": {
+            "sha256": "9b055abfc3f35e6cb05f88d5afc9ece2b4bc1b7049b50620e60572de7a161646",
+            "size": 128432,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p340.wav"
+          }
         },
         "p341": {
           "gender": "Female",
           "age": 26,
           "accent": "American",
-          "region": "Ohio"
+          "region": "Ohio",
+          "sample": {
+            "sha256": "4b9d89bc87020ed9723a25f6516983e864cc4020a3a02825629439f229da355f",
+            "size": 137136,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p341.wav"
+          }
         },
         "p343": {
           "gender": "Female",
           "age": 27,
           "accent": "Canadian",
-          "region": "Alberta"
+          "region": "Alberta",
+          "sample": {
+            "sha256": "d81fbb15af5a8d40dcf25cc0532dffe30b7335d569518f54614eaf62e710b995",
+            "size": 140208,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p343.wav"
+          }
         },
         "p345": {
           "gender": "Male",
           "age": 22,
           "accent": "American",
-          "region": "Florida"
+          "region": "Florida",
+          "sample": {
+            "sha256": "98fb3c83df3a4c76e4a1de841c52d9b165c787447ea15e3b9a0f3910da890d96",
+            "size": 150960,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p345.wav"
+          }
         },
         "p347": {
           "gender": "Male",
           "age": 26,
           "accent": "South African",
-          "region": "Johannesburg"
+          "region": "Johannesburg",
+          "sample": {
+            "sha256": "09951aac0cb11c6ba7c90947274cc42d259047799362c8a3160ac9407a0e5d6c",
+            "size": 158640,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p347.wav"
+          }
         },
         "p351": {
           "gender": "Female",
           "age": 21,
           "accent": "Northern Irish",
-          "region": "Derry"
+          "region": "Derry",
+          "sample": {
+            "sha256": "35216b728ac20ead1d35a1f71d8a667fc0b159af9e73cd0dff9e99c4ce88ed2d",
+            "size": 146864,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p351.wav"
+          }
         },
         "p360": {
           "gender": "Male",
           "age": 19,
           "accent": "American",
-          "region": "New Jersey"
+          "region": "New Jersey",
+          "sample": {
+            "sha256": "05a1ea70cf469c9abed878c8aa0cb7b24880421da735330109d528e7c325f361",
+            "size": 148912,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p360.wav"
+          }
         },
         "p361": {
           "gender": "Female",
           "age": 19,
           "accent": "American",
-          "region": "New Jersey"
+          "region": "New Jersey",
+          "sample": {
+            "sha256": "9374b207159d1858387709b0aceed21206bf7841931292255f8af162e41f356b",
+            "size": 151472,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p361.wav"
+          }
         },
         "p362": {
           "gender": "Female",
           "age": 29,
-          "accent": "American"
+          "accent": "American",
+          "sample": {
+            "sha256": "ee0d41076888ff807b555b5b966ebc7e6e092a5ebbb95f1a140b08f3e1474b9a",
+            "size": 139696,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p362.wav"
+          }
         },
         "p363": {
           "gender": "Male",
           "age": 22,
           "accent": "Canadian",
-          "region": "Toronto"
+          "region": "Toronto",
+          "sample": {
+            "sha256": "6c89f0f0a46f9132f6dd491d8fbba5c747b7caf8b947628438b0fa467fa3536f",
+            "size": 131504,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p363.wav"
+          }
         },
         "p364": {
           "gender": "Male",
           "age": 23,
           "accent": "Irish",
-          "region": "Donegal"
+          "region": "Donegal",
+          "sample": {
+            "sha256": "f24327a4b22df57141be09b4037e454008db171dc03c7ba83d4b081465f9de52",
+            "size": 153520,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p364.wav"
+          }
         },
         "p374": {
           "gender": "Male",
           "age": 28,
           "accent": "Australian",
-          "region": "English"
+          "region": "English",
+          "sample": {
+            "sha256": "765331d1cb14ee8cf3e499ed5b3a58547f570a19ba515f1070fcb9b03e95209f",
+            "size": 139184,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p374.wav"
+          }
         },
         "p376": {
           "gender": "Male",
           "age": 22,
-          "accent": "Indian"
+          "accent": "Indian",
+          "sample": {
+            "sha256": "465a3e4603643d1e103f785c2ee1050c96eb18c849b79d68d076634eae0bbd8b",
+            "size": 151472,
+            "url": "https://huggingface.co/fbmacagba/bytestts-en-vctk/resolve/fb0601e773365082675793937f848e4eb5ba5782/samples/p376.wav"
+          }
         }
       }
     }

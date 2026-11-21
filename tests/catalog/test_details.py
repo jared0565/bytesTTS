@@ -311,6 +311,19 @@ def test_samples_live_in_their_own_voice_repo() -> None:  # vacuous until the cl
                 assert p.sample.url.startswith(f"https://huggingface.co/fbmacagba/bytestts-{voice_id}/"), voice_id
 
 
+def test_every_speaker_and_reader_has_a_sample() -> None:  # design §7.1: every Sample and Preview can play a clip
+    found = load_details()
+    pinned = 0
+    for voice_id, manifest in load_catalog().items():
+        v = found.voice(voice_id)
+        assert v is not None, voice_id
+        people = [v.person(name) for name in manifest.speakers] if manifest.speakers else [v.reader]
+        for person in people:
+            assert person is not None and person.sample is not None, voice_id
+            pinned += 1
+    assert pinned == 112
+
+
 def test_vctk_counts() -> None:  # the design's §6.2 table, counted from the shipped file
     v = load_details().voice("en-vctk")
     assert v is not None and v.speakers is not None
@@ -322,7 +335,15 @@ def test_vctk_counts() -> None:  # the design's §6.2 table, counted from the sh
     }  # fmt: skip
     assert sorted(name for name, p in v.speakers.items() if p.accent is None) == ["ED", "p280"]
     assert voice_label("en-vctk", load_catalog()["en-vctk"].speakers, v) == "English · VCTK · 109 speakers, 11 accents"
-    assert v.speakers["ED"] == Person(note="not in the VCTK speaker table")
+    ed = v.speakers["ED"]  # its facts; its sample is pinned like every other speaker's
+    assert (ed.gender, ed.age, ed.accent, ed.region, ed.note) == (
+        None,
+        None,
+        None,
+        None,
+        "not in the VCTK speaker table",
+    )
+    assert ed.sample is not None
     assert v.speakers["p228"].label("p228") == "p228 · Female, 22 · English (England), Southern England"
 
 
