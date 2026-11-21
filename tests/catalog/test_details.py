@@ -15,7 +15,15 @@ from gui_helpers import BytesServer, wait_until
 from bytestts.catalog import details
 from bytestts.catalog.cache import cache_root
 from bytestts.catalog.catalog import load_catalog
-from bytestts.catalog.details import Details, Person, VoiceDetails, load_details, parse_details, voice_label
+from bytestts.catalog.details import (
+    Details,
+    Person,
+    VoiceDetails,
+    load_details,
+    parse_details,
+    voice_label,
+    voice_name,
+)
 from bytestts.catalog.manifest import FileEntry
 from bytestts.errors import IntegrityError
 
@@ -262,6 +270,13 @@ def test_voice_labels() -> None:
     lj = VoiceDetails("English", "LJSpeech", None, Person())
     assert voice_label("en-ljspeech", [], lj) == "English · LJSpeech · 1 speaker"  # an empty table is 1 speaker
     assert voice_label("tiny", [], None) == "tiny"
+
+
+def test_voice_name() -> None:  # status lines and recording names: the label without its counts
+    found = load_details()
+    assert voice_name("en-vctk", found.voice("en-vctk")) == "English · VCTK"
+    assert voice_name("en-ljspeech", found.voice("en-ljspeech")) == "English · LJSpeech"
+    assert voice_name("tiny", None) == "tiny"  # no details: the id
 
 
 def test_sentences_and_reader_label() -> None:

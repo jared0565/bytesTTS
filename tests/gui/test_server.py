@@ -187,6 +187,7 @@ def test_voices_carry_labels_and_filters(monkeypatch: pytest.MonkeyPatch, tmp_pa
     three, tiny = voices["three"], voices["tiny"]
     assert three["speakers"] == ["b", "a", "c"]  # unchanged: featured first
     assert three["label"] == "English · Test · 3 speakers, 2 accents"
+    assert (three["name"], tiny["name"]) == ("English · Test", "English · Reader")
     assert (three["sample_text"], three["has_sample"], three["reader_label"]) == ("Hello.", True, None)
     assert (three["featured"], three["speakers_with_samples"]) == (["b"], ["b", "a"])
     assert three["speaker_info"] == {
@@ -213,6 +214,7 @@ def test_voice_without_details_falls_back_to_its_id(monkeypatch: pytest.MonkeyPa
         [],
     )
     assert bare["speaker_info"] == {"z": {"label": "z", "gender": None, "accent": None}}
+    assert bare["name"] == "bare"
     assert bare["sample_text"] == "Hello."  # the language's sentence: a live Preview still works once downloaded
 
 

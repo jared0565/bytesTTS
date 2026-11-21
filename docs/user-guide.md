@@ -319,8 +319,8 @@ it is installed. Character voices such as `es-css10` work without it.
 
 ### Saving
 
-Recordings are 16-bit PCM WAV files at the voice's sample rate, named after the voice and the time, for example
-`en-ljspeech 14-03-27.wav`.
+Recordings are 16-bit PCM WAV files at the voice's sample rate, named after the voice, its speaker and the time,
+for example `English VCTK p253 14-03-27.wav` (`English LJSpeech 14-03-27.wav` for a voice without speakers).
 
 - **In the window**, Save opens the Windows Save dialog. It starts in your Documents folder, then in the folder you
   last saved to. The name must end in `.wav`.

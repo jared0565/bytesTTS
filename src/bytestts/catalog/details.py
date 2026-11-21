@@ -243,6 +243,12 @@ def sample_bytes(entry: FileEntry) -> bytes:
         lock.release()
 
 
+def voice_name(voice_id: str, d: VoiceDetails | None) -> str:
+    """`English · VCTK`: a voice's short name, for status lines and recording names; the voice id when it has no
+    details."""
+    return voice_id if d is None else f"{d.language_name}{SEPARATOR}{d.dataset}"
+
+
 def voice_label(voice_id: str, speakers: Sequence[str], d: VoiceDetails | None) -> str:
     """`English · VCTK · 109 speakers, 11 accents`; the voice id when it has no details.
 
@@ -252,6 +258,6 @@ def voice_label(voice_id: str, speakers: Sequence[str], d: VoiceDetails | None) 
     if d is None:
         return voice_id
     count = max(1, len(speakers))
-    label = SEPARATOR.join((d.language_name, d.dataset, f"{count} speaker" if count == 1 else f"{count} speakers"))
+    label = SEPARATOR.join((voice_name(voice_id, d), f"{count} speaker" if count == 1 else f"{count} speakers"))
     accents = {p.accent for p in (d.speakers or {}).values() if p.accent}
     return f"{label}, {len(accents)} accents" if len(accents) > 1 else label

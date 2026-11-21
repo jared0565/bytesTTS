@@ -57,7 +57,8 @@ All notable changes to BytesTTS are recorded here. The format follows
   `details.json` shipped beside the catalogue. Gender and Accent filters narrow `en-vctk`'s 109 speakers.
   **▶ Sample** plays a recorded clip of a voice before you download it, and **▶ Preview** plays the chosen
   speaker, speaking live on a downloaded voice at other speeds or when the clip can't be fetched.
-  `bytestts speakers` adds each speaker's description as a third column.
+  `bytestts speakers` adds each speaker's description as a third column. Status lines and recordings name the
+  voice the same way (`Downloading English · VCTK`, `English VCTK p253 14-03-27.wav`).
 - **Library:** `BytesTTS.load_path` and `BytesTTS.load`, `synthesize` and `stream` with `speed` and `speaker`,
   `Audio` with WAV output, `VoiceInfo` and `list_voices`, and an error hierarchy under `BytesTTSError`.
 - **Command line:** `bytestts say`, `bytestts voices` and `bytestts download`, with stable exit codes.

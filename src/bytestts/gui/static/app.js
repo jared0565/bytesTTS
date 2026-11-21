@@ -375,8 +375,14 @@ async function startDownload() {
     $(id).hidden = false;
   }
   showVoice();
-  setStatus((voice.state === "needs-repair" ? "Repairing " : "Downloading ") + voice.id, "busy");
+  setStatus((voice.state === "needs-repair" ? "Repairing " : "Downloading ") + voice.name, "busy");
   pollDownload(voice.id);
+}
+
+// A voice's short name (`English · VCTK`) for status lines, by its id; the id itself for a voice no longer listed.
+function voiceName(id) {
+  const voice = state.voices.find((v) => v.id === id);
+  return voice ? voice.name : id;
 }
 
 async function pollDownload(id) {
@@ -397,7 +403,7 @@ async function pollDownload(id) {
   }
   endDownload();
   if (s.state === "done") {
-    setStatus(id + " is ready", "ready");
+    setStatus(voiceName(id) + " is ready", "ready");
   } else if (s.state === "cancelled") {
     setStatus("Download cancelled", "ready");
   } else {
@@ -545,10 +551,17 @@ function threadsValue() {
 
 // ---- Speak, Stop and the player (spec §6.4).
 
-function recordingName(voiceId) {
+// What a recording, and the file Save writes, is named after: the voice's name with a space for its separator
+// (" · " is odd in a file name), and the speaker when one was sent: "English VCTK p253".
+function recordingBase(voice, speaker) {
+  const name = voice.name.split(" · ").join(" ");
+  return speaker === null ? name : name + " " + speaker;
+}
+
+function recordingName(base) {
   const now = new Date();
   const two = (n) => String(n).padStart(2, "0");
-  return voiceId + " " + two(now.getHours()) + "-" + two(now.getMinutes()) + "-" + two(now.getSeconds());
+  return base + " " + two(now.getHours()) + "-" + two(now.getMinutes()) + "-" + two(now.getSeconds());
 }
 
 // The Speak button. It asks first when the last recording is unsaved; speak() itself never asks, because
@@ -590,7 +603,7 @@ async function speak() {
     setStatus("Generating: sentence 1", "busy");
     $("progress").textContent = "";
     updateControls();
-    pollJob(started.id, voice.id);
+    pollJob(started.id, recordingBase(voice, request.speaker));
   } catch (e) {
     if (e.status === 409) {
       waitThenSpeak(); // spec §6.2 rule 9: the page queues instead of sending a second CPU task
@@ -627,7 +640,7 @@ async function waitThenSpeak() {
   }
 }
 
-async function pollJob(id, voiceId) {
+async function pollJob(id, recordingBase) {
   let s;
   try {
     s = await api("/jobs/" + id);
@@ -639,7 +652,7 @@ async function pollJob(id, voiceId) {
   }
   if (s.state === "running") {
     setStatus(state.jobNote || "Generating: sentence " + (s.sentences_done + 1), "busy");
-    setTimeout(() => pollJob(id, voiceId), POLL_MS);
+    setTimeout(() => pollJob(id, recordingBase), POLL_MS);
     return;
   }
   state.job = null;
@@ -662,7 +675,7 @@ async function pollJob(id, voiceId) {
     if (state.jobKind === "preview") {
       await playPreview(blob); // to the sampler: a Preview never becomes the recording
     } else {
-      loadRecording(blob, recordingName(voiceId));
+      loadRecording(blob, recordingName(recordingBase));
       const done = s.state === "stopped" ? "Stopped: kept " + count(s.sentences_done, "sentence") : "Done";
       setStatus([done, ...s.warnings].join(". "), "ready");
       $("player").play().catch(() => {});
@@ -910,7 +923,7 @@ async function previewLive(voice, speaker, fellBack) {
     state.preview = { token, voice: voice.id, speaker };
     setStatus(state.jobNote || "Generating: sentence 1", "busy");
     updateControls();
-    pollJob(started.id, voice.id);
+    pollJob(started.id, recordingBase(voice, speaker)); // a Preview's audio is never a recording
   } catch (e) {
     setStatus(e.status === 409 ? PREVIEW_BUSY : e.message, "error");
     updateControls();

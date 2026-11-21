@@ -316,3 +316,22 @@ def test_stopping_a_sample_never_leaves_it_fetching() -> None:
     still leave "Fetching the sample", so that reset can't depend on a fetch being pending."""
     stop = _function(read("app.js"), "stopSample")
     assert '\n  if ($("status").textContent === FETCHING_SAMPLE) {\n    setStatus("Ready", "ready");\n  }\n' in stop
+
+
+def test_status_lines_name_the_voice() -> None:
+    """A download's status lines name the voice as the list does, not by its id (`Downloading English · VCTK`)."""
+    script = read("app.js")
+    start = _function(script, "startDownload")
+    assert '"Downloading ") + voice.name' in start and '+ voice.id, "busy")' not in start
+    assert 'voiceName(id) + " is ready"' in _function(script, "pollDownload")
+    assert "v.id === id" in _function(script, "voiceName") and ".name" in _function(script, "voiceName")
+
+
+def test_recordings_are_named_by_voice_and_speaker() -> None:
+    """A recording, and the file Save writes, is named by the voice's name and the speaker: `English VCTK p253
+    06-53-16`. The name's separator becomes a space, since " · " is odd in a file name."""
+    script = read("app.js")
+    base = _function(script, "recordingBase")
+    assert 'voice.name.split(" · ").join(" ")' in base and "speaker" in base
+    assert "recordingBase(voice, request.speaker)" in _function(script, "speak")
+    assert "recordingName(recordingBase)" in _function(script, "pollJob")

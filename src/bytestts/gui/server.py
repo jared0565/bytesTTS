@@ -112,6 +112,7 @@ def _voice_json(v: VoiceInfo, state: str, found: details.Details) -> dict[str, A
         "size_bytes": v.size_bytes,
         "state": state,
         "label": details.voice_label(v.id, v.speakers, d),
+        "name": details.voice_name(v.id, d),
         "sample_text": found.sentence(v.language),
         "has_sample": default is not None and default.sample is not None,
         "speaker_info": {
