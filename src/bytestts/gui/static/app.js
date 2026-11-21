@@ -28,6 +28,9 @@ const state = {
   sampleUrl: null, // the blob URL the sampler plays
   samplePlaying: null, // {voice, speaker}: what the sampler holds
   sampleButton: null, // the button whose clip plays: it reads ■ Stop
+  jobKind: "speak", // "speak" or "preview": where a finished job's audio goes
+  jobNote: null, // what a running job's status says instead of its sentence count
+  preview: null, // {token, voice, speaker}: the running live Preview
   locked: false,
   closed: false,
 };
@@ -499,7 +502,11 @@ function updateControls() {
   const noMatch = voice !== null && voice.speakers.length > 0 && selectedSpeaker(voice) === null;
   $("speak").disabled =
     running || state.waiting || !voice || voice.state !== "downloaded" || n === 0 || over || noMatch;
-  $("preview").disabled = noMatch;
+  const plan = previewPlan(voice);
+  $("preview").hidden = plan === null;
+  // Playing a clip needs no CPU slot: only a live Preview waits for a running task or a waiting Speak.
+  $("preview").disabled =
+    state.sampleButton !== $("preview") && (noMatch || (plan === "live" && (running || state.waiting)));
   $("stop").disabled =
     !running && !state.waiting && $("player").paused && sampler.paused && state.sampleAbort === null;
   $("save").disabled = !state.recording || running;
@@ -578,6 +585,8 @@ async function speak() {
     const started = await api("/jobs", { method: "POST", json: request });
     state.waiting = false;
     state.job = started.id;
+    state.jobKind = "speak";
+    state.jobNote = null;
     setStatus("Generating: sentence 1", "busy");
     $("progress").textContent = "";
     updateControls();
@@ -629,7 +638,7 @@ async function pollJob(id, voiceId) {
     return;
   }
   if (s.state === "running") {
-    setStatus("Generating: sentence " + (s.sentences_done + 1), "busy");
+    setStatus(state.jobNote || "Generating: sentence " + (s.sentences_done + 1), "busy");
     setTimeout(() => pollJob(id, voiceId), POLL_MS);
     return;
   }
@@ -649,10 +658,15 @@ async function pollJob(id, voiceId) {
   state.fetchingAudio = true;
   try {
     const response = await api("/jobs/" + id + "/audio", { raw: true });
-    loadRecording(await response.blob(), recordingName(voiceId));
-    const done = s.state === "stopped" ? "Stopped: kept " + count(s.sentences_done, "sentence") : "Done";
-    setStatus([done, ...s.warnings].join(". "), "ready");
-    $("player").play().catch(() => {});
+    const blob = await response.blob();
+    if (state.jobKind === "preview") {
+      await playPreview(blob); // to the sampler: a Preview never becomes the recording
+    } else {
+      loadRecording(blob, recordingName(voiceId));
+      const done = s.state === "stopped" ? "Stopped: kept " + count(s.sentences_done, "sentence") : "Done";
+      setStatus([done, ...s.warnings].join(". "), "ready");
+      $("player").play().catch(() => {});
+    }
   } catch (e) {
     setStatus(e.message, "error");
   } finally {
@@ -731,9 +745,20 @@ async function playClip(voice, speaker, button) {
     return true;
   }
   state.sampleAbort = null;
+  return playBlob(blob, { voice: voice.id, speaker }, button, token);
+}
+
+// Plays a clip, or a live Preview's audio, on the sampler while `token` is still the newest press. Resolves false
+// when it won't play.
+async function playBlob(blob, playing, button, token) {
+  if (token !== state.sampleToken) {
+    return true;
+  }
+  sampler.pause();
+  releaseSample();
   state.sampleUrl = URL.createObjectURL(blob);
   sampler.src = state.sampleUrl;
-  state.samplePlaying = { voice: voice.id, speaker };
+  state.samplePlaying = playing;
   state.sampleButton = button;
   showSampleButtons();
   $("player").pause();
@@ -811,6 +836,95 @@ function onSampleClick() {
   } else if (voice && voice.has_sample) {
     playClip(voice, null, $("sample"));
   }
+}
+
+
+// ---- ▶ Preview (voice labels design §5). Before download it plays the chosen speaker's clip. On a downloaded voice it
+// always works: the clip at Speed 1.00, otherwise (or when the clip can't be fetched) the language's sentence spoken
+// live as a job, with the current Speed, GPU and Threads. A live Preview never queues, and its audio goes to the
+// sampler, never to the recording.
+
+const PREVIEW_FELL_BACK = "Couldn't fetch the sample, so speaking it live";
+const PREVIEW_BUSY = "Wait for the running task to finish, then press Preview again";
+
+function speedIsOne() {
+  return Math.abs(Number($("speed").value) - 1) < 1e-9;
+}
+
+// What ▶ Preview does for the voice and speaker in view: "clip", "live", or null to hide it.
+function previewPlan(voice) {
+  if (!voice) {
+    return null;
+  }
+  const speaker = selectedSpeaker(voice);
+  const clip =
+    voice.speakers.length === 0 ? voice.has_sample : speaker !== null && voice.speakers_with_samples.includes(speaker);
+  if (voice.state !== "downloaded" || !voice.sample_text) {
+    return clip ? "clip" : null;
+  }
+  return clip && speedIsOne() ? "clip" : "live";
+}
+
+async function onPreviewClick() {
+  const voice = currentVoice();
+  if (state.sampleButton === $("preview")) {
+    stopSample();
+    return;
+  }
+  const plan = previewPlan(voice);
+  const speaker = selectedSpeaker(voice);
+  if (plan === null || (voice.speakers.length > 0 && speaker === null)) {
+    return;
+  }
+  if (plan === "live") {
+    previewLive(voice, speaker, false);
+    return;
+  }
+  const played = await playClip(voice, speaker, $("preview"));
+  if (!played && voice.state === "downloaded" && voice.sample_text) {
+    previewLive(voice, speaker, true);
+  }
+}
+
+// A live Preview: a job like Speak's, so it takes the CPU slot and Stop stops it; on a busy CPU it says so and stops
+// there. `fellBack` when the clip couldn't be fetched: the status says why it is speaking live.
+async function previewLive(voice, speaker, fellBack) {
+  if (!fellBack) {
+    stopSample();
+  }
+  const token = state.sampleToken;
+  const request = {
+    text: voice.sample_text,
+    voice: voice.id,
+    speaker,
+    speed: Number($("speed").value),
+    device: $("gpu").checked ? "cuda" : "cpu",
+    threads: threadsValue(),
+  };
+  try {
+    const started = await api("/jobs", { method: "POST", json: request });
+    state.job = started.id;
+    state.jobKind = "preview";
+    state.jobNote = fellBack ? PREVIEW_FELL_BACK : null;
+    state.preview = { token, voice: voice.id, speaker };
+    setStatus(state.jobNote || "Generating: sentence 1", "busy");
+    updateControls();
+    pollJob(started.id, voice.id);
+  } catch (e) {
+    setStatus(e.status === 409 ? PREVIEW_BUSY : e.message, "error");
+    updateControls();
+  }
+}
+
+// A finished live Preview's audio: played on the sampler unless something was pressed or changed since.
+async function playPreview(blob) {
+  const preview = state.preview;
+  state.preview = null;
+  if (preview === null || preview.token !== state.sampleToken) {
+    setStatus("Ready", "ready");
+    return;
+  }
+  await playBlob(blob, { voice: preview.voice, speaker: preview.speaker }, $("preview"), preview.token);
 }
 
 // ---- End of samples.
@@ -892,10 +1006,12 @@ function wire() {
   $("copy-attribution").addEventListener("click", copyAttribution);
   $("speed").addEventListener("input", () => {
     $("speed-value").textContent = Number($("speed").value).toFixed(2);
+    updateControls(); // Preview plays the clip only at 1.00
   });
   $("speed-reset").addEventListener("click", () => {
     $("speed").value = "1";
     $("speed-value").textContent = "1.00";
+    updateControls();
   });
   $("threads").addEventListener("change", threadsValue);
   $("text").addEventListener("input", updateCounter);
@@ -926,6 +1042,7 @@ function wire() {
   $("player").addEventListener("play", stopSample); // a recording starting, or a finished Speak
   sampler.addEventListener("ended", releaseSample);
   $("sample").addEventListener("click", onSampleClick);
+  $("preview").addEventListener("click", onPreviewClick);
   window.addEventListener("beforeunload", (e) => {
     if (state.unsaved && !state.closed) {
       e.preventDefault();

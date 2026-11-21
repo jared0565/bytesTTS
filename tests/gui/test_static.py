@@ -147,6 +147,7 @@ def test_job_stays_running_until_its_audio_is_fetched() -> None:  # Review Focus
 
 def _function(script: str, name: str) -> str:
     """The source of one top-level function in app.js, up to the next top-level line."""
+    assert f"function {name}(" in script, f"app.js has no {name}()"
     start = script.index(f"function {name}(")
     end = script.index("\n}\n", start)
     return script[start : end + 3]
@@ -278,3 +279,33 @@ def test_sampler_and_player_stop_each_other() -> None:
     assert '$("sample").addEventListener("click", onSampleClick)' in wire
     assert "stopSample();" in _function(script, "stop")
     assert "sampler.paused" in _function(script, "updateControls")
+
+
+def test_preview_audio_never_reaches_the_recording() -> None:  # Review Focus 4
+    """A live Preview's audio goes to the sampler: it must never become the recording or mark it unsaved."""
+    script = read("app.js")
+    poll = _function(script, "pollJob")
+    assert 'if (state.jobKind === "preview") {' in poll, "pollJob has no preview branch"
+    start = poll.index('if (state.jobKind === "preview") {')
+    branch = poll[start : poll.index("} else {", start)]
+    assert "playPreview(blob)" in branch
+    assert "loadRecording" not in branch and "setUnsaved" not in branch
+    assert "function playPreview(" in _samples(script)
+
+
+def test_preview_does_not_queue() -> None:
+    """A live Preview on a busy CPU says so and stops there: only Speak waits for its turn."""
+    script = read("app.js")
+    live = _function(script, "previewLive")
+    assert "e.status === 409 ? PREVIEW_BUSY" in live and "waitThenSpeak" not in live
+    samples = _samples(script)
+    assert 'const PREVIEW_BUSY = "Wait for the running task to finish, then press Preview again";' in samples
+    assert 'const PREVIEW_FELL_BACK = "Couldn\'t fetch the sample, so speaking it live";' in samples
+
+
+def test_preview_job_has_its_kind() -> None:
+    """Wherever a job starts, its kind is set with it, so pollJob knows where the audio goes."""
+    script = read("app.js")
+    assert 'state.job = started.id;\n    state.jobKind = "speak";' in _function(script, "speak")
+    assert 'state.job = started.id;\n    state.jobKind = "preview";' in _function(script, "previewLive")
+    assert '$("preview").addEventListener("click", onPreviewClick)' in _function(script, "wire")
