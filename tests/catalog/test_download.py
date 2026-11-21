@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 """The downloader and cache, against a local HTTP server on 127.0.0.1 (no network)."""
 
+import time
 import hashlib
 import json
 import os
@@ -123,6 +124,13 @@ def leftovers(d: Path) -> list[Path]:
 def test_downloads_and_verifies(server: Server, tmp_path: Path) -> None:
     assert sha256_file(download_file(server.url("f"), tmp_path / "f", sha256=SHA, size=N)) == SHA
     assert leftovers(tmp_path) == [tmp_path / "f"]
+
+
+def test_a_passed_deadline_requests_nothing(server: Server, tmp_path: Path, requested: list[str]) -> None:
+    with pytest.raises(TimeoutError, match="timed out"):
+        download_file(server.url("f"), tmp_path / "f", sha256=SHA, size=N, deadline=time.monotonic() - 1)
+    assert requested == []
+    assert leftovers(tmp_path) == []
 
 
 def test_asks_for_the_identity_encoding(server: Server, tmp_path: Path) -> None:  # no gzip behind the size cap

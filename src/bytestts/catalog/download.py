@@ -101,12 +101,26 @@ def _replace_into(part: Path, dest: Path, already_right: Callable[[], bool]) -> 
             time.sleep(0.01 * (attempt + 1))
 
 
-def _fetch(url: str, out: BinaryIO, *, size: int, timeout: tuple[float, float], progress: Progress | None) -> None:
+def _fetch(
+    url: str,
+    out: BinaryIO,
+    *,
+    size: int,
+    timeout: tuple[float, float],
+    progress: Progress | None,
+    deadline: float | None,
+) -> None:
     previous: str | None = None
     with requests.Session() as session:
         for _ in range(MAX_REDIRECTS + 1):
             _check_url(url, after=previous)  # every hop, before it is requested
-            with session.get(url, stream=True, allow_redirects=False, timeout=timeout, headers=_HEADERS) as r:
+            hop = timeout
+            if deadline is not None:  # no hop may wait past the deadline
+                left = deadline - time.monotonic()
+                if left <= 0:
+                    raise TimeoutError("timed out")
+                hop = (min(timeout[0], left), min(timeout[1], left))
+            with session.get(url, stream=True, allow_redirects=False, timeout=hop, headers=_HEADERS) as r:
                 if r.is_redirect:
                     previous, url = url, urljoin(url, r.headers["Location"])
                     continue
@@ -116,6 +130,8 @@ def _fetch(url: str, out: BinaryIO, *, size: int, timeout: tuple[float, float], 
                     raise IntegrityError(f"{url} announces {announced} bytes, more than the pinned {size}")
                 done = 0
                 for chunk in r.iter_content(_CHUNK):
+                    if deadline is not None and time.monotonic() > deadline:
+                        raise TimeoutError("timed out")  # a slow trickle, each read inside the read time-out
                     done += len(chunk)
                     if done > size:
                         raise IntegrityError(f"{url} sent more than the pinned {size} bytes")
@@ -134,8 +150,12 @@ def download_file(
     size: int,
     timeout: tuple[float, float] = (10.0, 60.0),
     progress: Progress | None = None,
+    deadline: float | None = None,
 ) -> Path:
-    """`dest`, holding exactly the pinned bytes: reused if it already does, else downloaded and verified."""
+    """`dest`, holding exactly the pinned bytes: reused if it already does, else downloaded and verified.
+
+    `deadline` (a `time.monotonic()` value) bounds the whole download: no request waits past it, and a download
+    still running then stops with TimeoutError("timed out"), leaving nothing behind."""
     dest = Path(dest)
     _check_url(url)
     if _verified(dest, sha256, size):
@@ -145,7 +165,7 @@ def download_file(
     part = Path(name)
     try:
         with os.fdopen(fd, "wb") as out:
-            _fetch(url, out, size=size, timeout=timeout, progress=progress)
+            _fetch(url, out, size=size, timeout=timeout, progress=progress, deadline=deadline)
         if not _verified(part, sha256, size):
             raise IntegrityError(f"{dest.name}: the download does not match its pinned size and sha256")
         _replace_into(part, dest, lambda: _verified(dest, sha256, size))

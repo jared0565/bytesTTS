@@ -67,7 +67,8 @@ built from the verified bytes, with ONNX Runtime's external-data directory point
   SHA-256, at most 1 MiB each, and fetched under the same rules, only when a button is pressed. Each is cached
   under `samples/` in the cache folder, named by its SHA-256. The bytes sent to the page are read once and
   checked again, so a cached file that changed after its check is fetched again rather than sent. At most one
-  fetch per clip runs at a time.
+  fetch per clip runs at a time, and each request ends within 25 s, waiting included: before the page gives up
+  (30 s), so a stalled fetch never keeps a server thread busy after its request.
 
 ## The control panel
 

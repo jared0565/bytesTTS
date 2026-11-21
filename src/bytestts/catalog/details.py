@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import re
 import threading
+import time
 import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -43,8 +44,10 @@ _VOICE_KEYS = frozenset(("language_name", "dataset", "speakers", "reader"))
 _TOP_KEYS = frozenset(("sentences", "voices"))
 
 # Read when sample_bytes runs, not bound as defaults, so tests can shorten them.
-SAMPLE_TIMEOUT: tuple[float, float] = (10.0, 30.0)  # connect, read
-LOCK_WAIT_S: float = 30.0  # how long a second request for the same clip waits for the first
+SAMPLE_TIMEOUT: tuple[float, float] = (10.0, 30.0)  # connect, read: each capped by the budget below
+# One sample request's whole time, waiting for another request's fetch of the same clip included. Under the page's
+# 30 s limit, so the server has stopped working on a clip by the time the page gives up on it.
+SAMPLE_BUDGET_S: float = 25.0
 _clip_locks: dict[str, threading.Lock] = {}  # one per clip (by sha256), so a stalled clip holds up only itself
 _clip_locks_guard = threading.Lock()
 
@@ -212,20 +215,24 @@ def load_details() -> Details:
 def sample_bytes(entry: FileEntry) -> bytes:
     """A sample clip's pinned bytes, from the cache under `samples/` when it holds them, else fetched first.
 
-    One fetch per clip at a time: a second request for the same clip waits up to LOCK_WAIT_S for the first, then
-    raises TimeoutError("timed out"). The bytes returned are read once and checked against the pin, so a cached file
-    changed after the check is fetched again rather than sent.
+    One fetch per clip at a time: a second request for the same clip waits for the first. A request takes at most
+    SAMPLE_BUDGET_S in all, waiting included, then raises TimeoutError("timed out") (or requests' own time-out, also
+    an OSError). The bytes returned are read once and checked against the pin, so a cached file changed after the
+    check is fetched again rather than sent.
     """
     if entry.url is None or not _SHA256.fullmatch(entry.sha256):  # the sha256 names the cached file
         raise IntegrityError("a sample needs a url and a sha256 of 64 lowercase hex digits")
+    deadline = time.monotonic() + SAMPLE_BUDGET_S
     with _clip_locks_guard:
         lock = _clip_locks.setdefault(entry.sha256, threading.Lock())
-    if not lock.acquire(timeout=LOCK_WAIT_S):
+    if not lock.acquire(timeout=SAMPLE_BUDGET_S):
         raise TimeoutError("timed out")
     try:
         path = cache_root() / "samples" / f"{entry.sha256}.wav"
         for _ in range(2):
-            download_file(entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT)
+            download_file(
+                entry.url, path, sha256=entry.sha256, size=entry.size, timeout=SAMPLE_TIMEOUT, deadline=deadline
+            )
             with path.open("rb") as f:
                 data = f.read(entry.size + 1)
             if len(data) == entry.size and hashlib.sha256(data).hexdigest() == entry.sha256:
