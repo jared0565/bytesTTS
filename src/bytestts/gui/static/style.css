@@ -58,7 +58,7 @@ body {
 .quiet { color: var(--muted); font-size: 0.9rem; }
 .figures { font-variant-numeric: tabular-nums; }
 
-label { font-weight: 550; }
+label, .row-title { font-weight: 550; }
 
 button, .button-like, select, input[type="number"] {
   font: inherit;
@@ -72,7 +72,8 @@ button, .button-like, select, input[type="number"] {
 button, .button-like { cursor: pointer; font-weight: 550; }
 button:hover:not(:disabled), .button-like:hover { border-color: var(--muted); }
 button:disabled, select:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
-select { min-width: 12rem; padding-right: 8px; }
+select { min-width: 12rem; max-width: 100%; padding-right: 8px; }
+#gender, #accent { min-width: 8rem; }
 input[type="number"] { width: 4.5rem; padding: 5px 8px; }
 input[type="range"] { width: 14rem; accent-color: var(--accent); }
 input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }

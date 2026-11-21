@@ -20,6 +20,8 @@ const state = {
   recording: null, // {blob, url, name}
   unsaved: false,
   overLimitShown: false,
+  chosenSpeaker: null, // the speaker the user chose, or the voice's default; kept while the filters hide it
+  noMatchShown: false,
   locked: false,
   closed: false,
 };
@@ -163,7 +165,7 @@ async function refreshVoices() {
   const chosen = $("voice").value;
   state.voices = await api("/voices");
   const marks = { downloaded: " (downloaded)", "needs-repair": " (needs repair)", missing: "" };
-  $("voice").replaceChildren(...state.voices.map((v) => option(v.id, v.id + (marks[v.state] || ""))));
+  $("voice").replaceChildren(...state.voices.map((v) => option(v.id, v.label + (marks[v.state] || ""))));
   if (state.voices.some((v) => v.id === chosen)) {
     $("voice").value = chosen;
   } else {
@@ -183,11 +185,154 @@ function showVoice() {
   if (voice) {
     $("download").textContent = "Download " + megabytes(voice.size_bytes);
   }
-  const speakers = voice ? voice.speakers : [];
-  $("speaker").replaceChildren(...speakers.map((name) => option(name, name)));
-  $("speaker").disabled = speakers.length <= 1;
+  showFilters(voice);
+  fillSpeakers(voice, false);
   $("info").disabled = !voice;
   updateControls();
+}
+
+// The Voice list's own change: another voice, so the filters go back to Any and its default speaker is chosen.
+// refreshVoices() calls showVoice() instead, which keeps both (after a finished download or a failed job).
+function onVoiceChange() {
+  if ($("status").textContent.startsWith("Speaker is now ")) {
+    setStatus("Ready", "ready"); // that note was about the voice being left
+  }
+  $("gender").value = "";
+  $("accent").value = "";
+  state.chosenSpeaker = null;
+  showVoice();
+}
+
+// ---- Speakers (voice labels design §5): their labels, the Gender and Accent filters, and the chosen speaker.
+
+const NO_MATCH = "No speaker matches these filters: set one back to Any";
+const NOT_STATED = "none"; // a stated fact's value is "=" + the fact, so no gender or accent can be taken for it
+
+function speakerInfo(voice, name) {
+  return (voice.speaker_info && voice.speaker_info[name]) || { label: name, gender: null, accent: null };
+}
+
+function factValue(fact) {
+  return fact === null || fact === undefined ? NOT_STATED : "=" + fact;
+}
+
+// The filters are for a voice with more than one speaker whose gender or accent is stated.
+function hasFilters(voice) {
+  if (!voice || voice.speakers.length <= 1) {
+    return false;
+  }
+  const stated = voice.speakers.filter((name) => {
+    const info = speakerInfo(voice, name);
+    return info.gender !== null || info.accent !== null;
+  });
+  return stated.length > 1;
+}
+
+// One filter's options: Any, each stated value with its count (a value no speaker has never appears), then Not
+// stated. The choice is kept when the new options still hold it.
+function fillFilter(select, voice, key, order) {
+  const counts = new Map();
+  for (const name of voice ? voice.speakers : []) {
+    const fact = speakerInfo(voice, name)[key];
+    const k = fact === undefined ? null : fact;
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const stated = order(
+    Array.from(counts.keys()).filter((fact) => fact !== null),
+    counts,
+  );
+  const items = [option("", "Any"), ...stated.map((fact) => option("=" + fact, fact + " (" + counts.get(fact) + ")"))];
+  if (counts.has(null)) {
+    items.push(option(NOT_STATED, "Not stated (" + counts.get(null) + ")"));
+  }
+  const kept = select.value;
+  select.replaceChildren(...items);
+  select.value = items.some((item) => item.value === kept) ? kept : "";
+}
+
+function showFilters(voice) {
+  const shown = hasFilters(voice);
+  $("filter-row").hidden = !shown;
+  const genders = (facts) => ["Female", "Male"].filter((g) => facts.includes(g));
+  const byCount = (facts, counts) => facts.sort((a, b) => counts.get(b) - counts.get(a) || (a < b ? -1 : a > b ? 1 : 0));
+  fillFilter($("gender"), shown ? voice : null, "gender", genders);
+  fillFilter($("accent"), shown ? voice : null, "accent", byCount);
+}
+
+function matchesFilters(voice, name) {
+  const info = speakerInfo(voice, name);
+  const gender = $("gender").value;
+  const accent = $("accent").value;
+  return (gender === "" || factValue(info.gender) === gender) && (accent === "" || factValue(info.accent) === accent);
+}
+
+// The Speaker list: the speakers both filters match, by their labels, featured first. It is disabled for a voice
+// with one speaker or none, never because the filters leave one match. The chosen speaker stays while it matches;
+// otherwise the first match is chosen, and after a filter change the status line says so, since Speak would
+// otherwise use a speaker nobody picked. With no match the chosen speaker is kept for when a filter goes back.
+function fillSpeakers(voice, filterChanged) {
+  const list = $("speaker");
+  const names = voice ? voice.speakers : [];
+  list.disabled = names.length <= 1;
+  if (names.length === 0) {
+    state.chosenSpeaker = null;
+    list.replaceChildren(...(voice && voice.reader_label ? [option("", voice.reader_label)] : []));
+    return;
+  }
+  const shown = hasFilters(voice) ? names.filter((name) => matchesFilters(voice, name)) : names;
+  if (shown.length === 0) {
+    const none = option("", "No speaker matches");
+    none.disabled = true;
+    list.replaceChildren(none);
+    none.selected = true; // a list whose one entry is disabled would otherwise show no entry at all
+    return;
+  }
+  const item = (name) => option(name, speakerInfo(voice, name).label);
+  if (voice.featured.length === 0) {
+    list.replaceChildren(...shown.map(item));
+  } else {
+    const groups = [
+      ["Featured", shown.filter((name) => voice.featured.includes(name))],
+      ["More speakers", shown.filter((name) => !voice.featured.includes(name))],
+    ];
+    list.replaceChildren(
+      ...groups
+        .filter(([, members]) => members.length > 0)
+        .map(([title, members]) => {
+          const group = document.createElement("optgroup");
+          group.label = title;
+          group.append(...members.map(item));
+          return group;
+        }),
+    );
+  }
+  const old = state.chosenSpeaker;
+  const pick = old !== null && shown.includes(old) ? old : shown[0];
+  list.value = pick;
+  state.chosenSpeaker = pick;
+  if (filterChanged && old !== null && pick !== old) {
+    setStatus("Speaker is now " + pick + ": the filters hide " + old, "ready");
+  }
+}
+
+function onFilterChange() {
+  fillSpeakers(currentVoice(), true);
+  updateControls();
+}
+
+function onSpeakerChange() {
+  state.chosenSpeaker = $("speaker").value;
+  updateControls();
+}
+
+// The speaker Speak and Preview send: the chosen name whenever the voice has speakers, else null. Null for a voice
+// with speakers means the filters match none, and then nothing may be sent: the server would use its default.
+function selectedSpeaker(voice) {
+  if (!voice || voice.speakers.length === 0) {
+    return null;
+  }
+  const name = $("speaker").value;
+  return voice.speakers.includes(name) ? name : null;
 }
 
 async function startDownload() {
@@ -263,7 +408,8 @@ function showInfo() {
   if (!voice) {
     return;
   }
-  $("info-title").textContent = voice.id;
+  $("info-title").textContent = voice.label;
+  $("info-id").textContent = voice.id;
   $("info-language").textContent = voice.language;
   $("info-licence").textContent = voice.licence || "not stated";
   $("info-data-licence").textContent = voice.data_licence || "not stated";
@@ -331,16 +477,25 @@ function updateControls() {
   const n = textLength();
   const over = n > textLimit();
   const running = state.job !== null || state.fetchingAudio;
-  $("speak").disabled = running || state.waiting || !voice || voice.state !== "downloaded" || n === 0 || over;
+  const noMatch = voice !== null && voice.speakers.length > 0 && selectedSpeaker(voice) === null;
+  $("speak").disabled =
+    running || state.waiting || !voice || voice.state !== "downloaded" || n === 0 || over || noMatch;
+  $("preview").disabled = noMatch;
   $("stop").disabled = !running && !state.waiting && $("player").paused;
   $("save").disabled = !state.recording || running;
   if (over) {
     setStatus("Remove " + count(n - textLimit(), "character") + " to speak", "error");
     state.overLimitShown = true;
-  } else if (state.overLimitShown) {
+  } else if (noMatch) {
+    if (state.overLimitShown || !state.noMatchShown) {
+      setStatus(NO_MATCH, "error");
+    }
+    state.overLimitShown = false;
+  } else if (state.overLimitShown || (state.noMatchShown && $("status").textContent === NO_MATCH)) {
     state.overLimitShown = false;
     setStatus("Ready", "ready");
   }
+  state.noMatchShown = noMatch;
 }
 
 function applyStatus(s) {
@@ -385,10 +540,16 @@ async function speak() {
   if (!voice) {
     return;
   }
+  if (voice.speakers.length > 0 && selectedSpeaker(voice) === null) {
+    state.waiting = false; // a filter changed while the Speak waited, and now matches no speaker
+    setStatus(NO_MATCH, "error");
+    updateControls();
+    return;
+  }
   const request = {
     text: $("text").value,
     voice: voice.id,
-    speaker: $("speaker").disabled ? null : $("speaker").value || null,
+    speaker: selectedSpeaker(voice),
     speed: Number($("speed").value),
     device: $("gpu").checked ? "cuda" : "cpu",
     threads: threadsValue(),
@@ -572,7 +733,10 @@ async function doQuit() {
 // ---- Wiring.
 
 function wire() {
-  $("voice").addEventListener("change", showVoice);
+  $("voice").addEventListener("change", onVoiceChange);
+  $("gender").addEventListener("change", onFilterChange);
+  $("accent").addEventListener("change", onFilterChange);
+  $("speaker").addEventListener("change", onSpeakerChange);
   $("download").addEventListener("click", startDownload);
   $("repair").addEventListener("click", startDownload);
   $("cancel").addEventListener("click", cancelDownload);

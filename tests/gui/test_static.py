@@ -143,3 +143,72 @@ def test_job_stays_running_until_its_audio_is_fetched() -> None:  # Review Focus
     controls = script[script.index("function updateControls(") : script.index("\nfunction applyStatus(")]
     assert "const running = state.job !== null || state.fetchingAudio;" in controls
     assert "fetchingAudio: false," in script[: script.index("};")]  # declared in the state object
+
+
+def _function(script: str, name: str) -> str:
+    """The source of one top-level function in app.js, up to the next top-level line."""
+    start = script.index(f"function {name}(")
+    end = script.index("\n}\n", start)
+    return script[start : end + 3]
+
+
+def test_speaker_rule_does_not_use_disabled() -> None:
+    """The list is disabled for a voice with one speaker or none, so `disabled` can't mean "send no speaker": with a
+    filter leaving one match, the server would get null and speak as the default speaker (voice labels design §5)."""
+    script = read("app.js")
+    assert '$("speaker").disabled ? null' not in script
+    assert "speaker: selectedSpeaker(voice)" in _function(script, "speak")
+
+
+def test_voice_change_and_refresh_are_separate() -> None:  # Review Focus 1
+    """Only the Voice list's own change resets the filters; a refresh (a finished download, a failed job) keeps them
+    and the chosen speaker."""
+    script = read("app.js")
+    assert '$("voice").addEventListener("change", onVoiceChange)' in script
+    assert '$("voice").addEventListener("change", showVoice)' not in script
+    refresh = _function(script, "refreshVoices")
+    assert "showVoice()" in refresh and "onVoiceChange" not in refresh
+    change = _function(script, "onVoiceChange")
+    assert '$("gender").value = ""' in change and '$("accent").value = ""' in change
+
+
+def test_new_controls_are_labelled() -> None:
+    page = parsed()
+    for target in ("gender", "accent", "speaker"):
+        assert target in page.label_targets
+    names = {c["attrs"].get("id"): c["attrs"].get("aria-label") for c in page.controls}
+    assert names["sample"] == "Play a sample of this voice"
+    assert names["preview"] == "Preview this speaker"
+    html = read("index.html")
+    assert 'id="filter-row" aria-label="Speaker filters" hidden' in html
+    assert html.index('id="sample"') < html.index('id="download"')  # ▶ Sample comes first after the Voice list
+    assert html.index('id="filter-row"') < html.index('id="speaker"')  # the Speaker row is under the filters
+
+
+def test_info_dialog_shows_the_voice_id() -> None:
+    html = read("index.html")
+    dialog = html[html.index('<dialog id="info-dialog"') : html.index("</dialog>")]
+    first = dialog[dialog.index("<dt>") :]
+    assert first.startswith('<dt>Voice id</dt><dd id="info-id"')
+
+
+def test_speaker_copy_is_exact() -> None:
+    script = read("app.js")
+    for copy in (
+        '"No speaker matches"',
+        '"No speaker matches these filters: set one back to Any"',
+        '"Speaker is now " + pick + ": the filters hide " + old',
+        '"Any"',
+        '"Not stated ("',
+        '"Featured"',
+        '"More speakers"',
+        '["Female", "Male"]',
+    ):
+        assert copy in script, copy
+
+
+def test_voice_change_clears_a_speaker_note() -> None:
+    """"Speaker is now p262: the filters hide p228" is about the voice being left: a voice change clears it."""
+    change = _function(read("app.js"), "onVoiceChange")
+    assert '$("status").textContent.startsWith("Speaker is now ")' in change
+    assert 'setStatus("Ready", "ready")' in change
