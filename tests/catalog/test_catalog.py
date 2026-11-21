@@ -88,14 +88,16 @@ PINNED_DIGESTS = {
     "es-css10": "560d5407ddbfaf58e3551580718f412ba2cfc6f48f18d56f99fa1fa53a3e3f3c",
     "fr-css10": "e09b034d691097852956e64e971baa0493238be5c48718467587f789346cffa8",
 }
-VOICES_JSON_SHA256 = "9fe571381bc332f8fe5b3c3e4571762187d4a6f3c123a18b9b1d838773a7a523"
+# The committed file's sha256. A Windows checkout with core.autocrlf has CRLF line ends, so the bytes are hashed
+# with CRLF folded to LF: the pin means the same on every checkout (CI found it on Linux).
+VOICES_JSON_SHA256 = "cea057ce94af2f56b41d555039b5b860c496ad362ece47f20d1d74ce958854d9"
 REDOWNLOAD = "an installed copy of this voice would download again"
 
 
 def test_catalogue_entries_are_unchanged() -> None:
     assert {voice_id: m.manifest_digest() for voice_id, m in load_catalog().items()} == PINNED_DIGESTS, REDOWNLOAD
     data = resources.files("bytestts.catalog").joinpath("voices.json").read_bytes()
-    assert hashlib.sha256(data).hexdigest() == VOICES_JSON_SHA256, REDOWNLOAD
+    assert hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest() == VOICES_JSON_SHA256, REDOWNLOAD
 
 
 def test_a_url_change_changes_the_digest() -> None:  # the control: the guard above can fail on a moved URL
