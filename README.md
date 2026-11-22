@@ -54,12 +54,11 @@ or from a clone with `pip install .`. Python 3.11 to 3.14 on Windows or Linux.
 
 ```
 msiexec /a espeak-ng.msi /qn TARGETDIR=%LOCALAPPDATA%\bytestts-tools\espeak-ng
-set BYTESTTS_ESPEAK=%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe
 ```
 
-(`espeak-ng.msi` is on the [1.52.0 release page](https://github.com/espeak-ng/espeak-ng/releases/tag/1.52.0).) On
-Linux, install your distribution's `espeak-ng` package or build the `1.52.0` tag. Details:
-[Installing espeak-ng](docs/knowledge-base/espeak-ng.md).
+(`espeak-ng.msi` is on the [1.52.0 release page](https://github.com/espeak-ng/espeak-ng/releases/tag/1.52.0).)
+BytesTTS finds it in that folder by itself. On Linux, install your distribution's `espeak-ng` package or build the
+`1.52.0` tag. Details: [Installing espeak-ng](docs/knowledge-base/espeak-ng.md).
 
 **NVIDIA GPU (optional).** Install the CUDA 13 runtime and cuDNN 9 from NVIDIA, then:
 

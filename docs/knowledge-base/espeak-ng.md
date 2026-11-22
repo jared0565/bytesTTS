@@ -26,8 +26,12 @@ No administrator rights are needed.
 3. Check it:
 
    ```
+   set "ESPEAK_DATA_PATH=%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG"
    "%LOCALAPPDATA%\bytestts-tools\espeak-ng\eSpeak NG\espeak-ng.exe" --version
    ```
+
+   Run by hand from this folder, espeak-ng needs `ESPEAK_DATA_PATH` to find its data, and without it 1.52.0 crashes
+   instead of printing its version. BytesTTS sets it by itself.
 
 If you unpacked it into another folder, tell BytesTTS where it is:
 
