@@ -503,8 +503,9 @@ Downloaded catalogue voices are stored in:
 - Linux: `~/.cache/bytestts/voices/`
 
 or under `$BYTESTTS_HOME/voices/` when `BYTESTTS_HOME` is set. Each voice gets a directory named after a digest of
-its manifest, so an updated voice never mixes with an old one. Files already present and correct are reused; a damaged file is
-downloaded again. Deleting the cache directory is always safe.
+its manifest, so an updated voice never mixes with an old one. Files already present and correct are reused; a
+damaged file is downloaded again. The clips that ▶ Sample and ▶ Preview play are cached in `samples/`, beside
+`voices/`, named by their SHA-256. Deleting the cache directory is always safe.
 
 ## 10. Configuration reference
 

@@ -28,7 +28,7 @@ Use a speed from 0.5 (slower) to 2.0 (faster).
 **`threads must be an int >= 1 or None, not …`** (`ValueError`)
 `threads=0` is refused because ONNX Runtime would read it as "all cores". Use `None` for ONNX Runtime's default.
 
-**Numbers or symbols are read oddly.** The English voice expands numbers, currency, ordinals, years and common
+**Numbers or symbols are read oddly.** The English voices expand numbers, currency, ordinals, years and common
 abbreviations; `:` and `;` become pauses, so `3:30` is read "three, thirty". Write the text the way it should be
 said ("half past three") when that matters. The [User Guide](../user-guide.md#7-how-text-is-spoken) lists the rules.
 
@@ -39,9 +39,8 @@ text.
 ## Voices
 
 **`unknown voice …`** (`VoiceNotFound`, exit 3)
-The id is not in the catalogue. Run `bytestts voices` to see what is available (today: `en-ljspeech`, `es-css10`
-and `fr-css10`). For a voice
-package directory, use `--voice-path` (or `BytesTTS.load_path`) instead of `--voice`.
+The id is not in the catalogue. Run `bytestts voices` to see what is available. For a voice package directory, use
+`--voice-path` (or `BytesTTS.load_path`) instead of `--voice`.
 
 **`… is not cached and offline mode is on`** (`VoiceNotFound`)
 `BytesTTS.load(..., offline=True)` never downloads. Download the voice once with `bytestts download ID` while
@@ -173,9 +172,10 @@ Open text file reads UTF-8 text files of up to 1 MB. Save the file as UTF-8 in y
 **`could not fetch the sample: …`** (after ▶ Sample or ▶ Preview)
 A clip is fetched from huggingface.co the first time it is played, and the rest of the line says why that
 failed: no network, a proxy or firewall in the way, Hugging Face unavailable, or `timed out` when the clip
-didn't arrive in time (the panel waits at most 25 s). Try again later: once a clip has played it is cached and needs no network. A clip whose
-bytes don't match its pinned SHA-256 is refused the same way and never played. On a downloaded voice ▶ Preview
-speaks the sentence live instead and says `Couldn't fetch the sample, so speaking it live`.
+didn't arrive in time (the panel waits at most 25 s). Try again later: once a clip has played it is cached and
+needs no network. A clip whose bytes don't match its pinned SHA-256 is refused the same way and never played. On a
+downloaded voice ▶ Preview speaks the sentence live instead and says
+`Couldn't fetch the sample, so speaking it live`.
 
 **`Wait for the running task to finish, then press Preview again`**
 Speaking a Preview live needs the CPU, and a Speak or another Preview is running. Press Preview again when it

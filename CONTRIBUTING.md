@@ -11,7 +11,7 @@ You need [uv](https://docs.astral.sh/uv/), Python 3.11 to 3.14, and espeak-ng 1.
 ```
 git clone https://github.com/jared0565/bytesTTS
 cd bytesTTS
-uv sync --extra train --extra server --extra torch-cpu
+uv sync --extra train --extra server --extra torch-cpu --extra gui
 ```
 
 This is the same environment CI uses. It includes PyTorch (CPU build) for the conversion and export code.

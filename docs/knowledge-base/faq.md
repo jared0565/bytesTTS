@@ -17,7 +17,7 @@ English (`en-ljspeech`, US English, and `en-vctk`, UK English with 109 speakers)
 
 The Spanish and French voices' alphabets have no digits, and their text cleaner expands nothing, so a digit is
 dropped with a warning. Write numbers as words ("dos euros con cincuenta", "deux euros cinquante").
-Expanding numbers for these languages is planned. The English voice expands numbers itself.
+Expanding numbers for these languages is planned. The English voices expand numbers themselves.
 
 ### Do I need PyTorch?
 
